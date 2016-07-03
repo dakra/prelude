@@ -12,6 +12,7 @@
    ob-ipython
    ob-restclient
    org-bullets
+   org-pomodoro
    ))
 
 (add-hook 'org-mode-hook 'org-indent-mode)
@@ -62,7 +63,7 @@
 (setq org-src-fontify-natively t)  ; syntax highlighting for source code blocks
 
 ;; copy org text as rich text
-(defun formatted-copy ()
+(defun org-formatted-copy ()
   "Export region to HTML, and copy it to the clipboard."
   (interactive)
   (save-window-excursion
@@ -74,7 +75,7 @@
          (point-max)
          "xclip -selection clipboard -t 'text/html' -i"))
       (kill-buffer buf))))
-;;(global-set-key (kbd "C-c e") 'formatted-copy)
+;;(global-set-key (kbd "C-c e") 'org-formatted-copy)
 
 
 ;; add all languages to org mode
@@ -98,7 +99,7 @@
    (java)
    (js)
    (latex)
-   (ledger)
+   (ledger . t)
    (lilypond)
    (lisp)
    (matlab)

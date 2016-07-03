@@ -12,6 +12,7 @@
    browse-at-remote
    color-theme-sanityinc-solarized
    dockerfile-mode
+   ;;git-gutter
    highlight-symbol
    lua-mode
    magit-gh-pulls
@@ -26,10 +27,51 @@
    swiper-helm
    systemd
    sr-speedbar
+   skewer-mode
    projectile-speedbar
    tide
    virtualenvwrapper
    ))
+
+
+;; disable arrow keys to be forced to learn emacs
+(setq guru-warn-only nil)
+
+
+;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
+;; used together with i3 keyboard shortcut (S-e) to `emacsclient -cn -e '(switch-to-buffer nil)`
+(load-file "~/.emacs.d/personal/i3-emacs/i3.el")
+(load-file "~/.emacs.d/personal/i3-emacs/i3-integration.el")
+(require 'i3)
+(require 'i3-integration)
+(i3-one-window-per-frame-mode-on)
+(i3-advise-visible-frame-list-on)
+
+;; since i3-mode always creates new frames instead of windows
+;; rebind "C-x o" to switch frames if we use X11
+(global-set-key (kbd "C-x o") (lambda ()
+                                (interactive)
+                                (if (display-graphic-p)
+                                    (other-frame 1)
+                                  (other-window 1))))
+(global-set-key (kbd "C-x O") (lambda ()
+                                (interactive)
+                                (if (display-graphic-p)
+                                    (other-frame -1)
+                                  (other-window -1))))
+;; C-x 2/3 should create a new frame in X
+(global-set-key (kbd "C-x 2") (lambda ()
+                                (interactive)
+                                (if (display-graphic-p)
+                                    (progn (i3-command 0 "split vertical")
+                                           (new-frame))
+                                  (split-window-horizontally))))
+(global-set-key (kbd "C-x 3") (lambda ()
+                                (interactive)
+                                (if (display-graphic-p)
+                                    (progn (i3-command 0 "split horizontal")
+                                           (new-frame))
+                                  (split-window-horizontally))))
 
 (setq browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "google-chrome")
@@ -41,6 +83,21 @@
 (speedbar-add-supported-extension ".hs")
 (speedbar-add-supported-extension ".scala")
 (speedbar-add-supported-extension ".md")
+
+
+;; XXX: not sure if git gutter is really nicer than diff-hl
+;; diff-hl comes pre-packaged with prelude but doesn't
+;; have those *-hunk commands
+
+;;;; disable diff-hl that's enabled in prelude-editor.el:393
+;;(global-diff-hl-mode -1)
+;;(remove-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+;;;; use git-gutter everywhere
+;;(global-git-gutter-mode t)
+;;(global-set-key (kbd "C-x v =") 'git-gutter:popup-hunk)
+;;(global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)
+;;(global-set-key (kbd "C-x v r") 'git-gutter:revert-hunk)
+
 
 ;; yank text to X11 clipboard
 (defun yank-to-x-clipboard ()
@@ -81,6 +138,11 @@ displayed anywhere else."
 (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
 
 
+(setq httpd-port 8079)  ; set port for simple-httpd used by skewer
+(add-hook 'js2-mode-hook 'skewer-mode)
+(add-hook 'css-mode-hook 'skewer-css-mode)
+(add-hook 'html-mode-hook 'skewer-html-mode)
+
 ;; python
 
 (setq python-shell-interpreter "ipython")
@@ -96,6 +158,22 @@ displayed anywhere else."
 (venv-initialize-interactive-shells) ;; if you want interactive shell support
 (venv-initialize-eshell) ;; if you want eshell support
 (setq venv-location "/home/daniel/.virtualenvs/")
+
+(defcustom python-autopep8-path (executable-find "autopep8")
+  "autopep8 executable path."
+  :group 'python
+  :type 'string)
+
+(defun python-autopep8 ()
+  "Automatically formats Python code to conform to the PEP 8 style guide.
+$ autopep8 --in-place --aggressive --aggressive <filename>"
+  (interactive)
+  (when (eq major-mode 'anaconda-mode)
+    (shell-command
+     (format "%s --in-place --aggressive %s" python-autopep8-path
+             (shell-quote-argument (buffer-file-name))))
+    (revert-buffer t t t)))
+
 
 ;; auto completion in restclient-mode
 (add-to-list 'company-backends 'company-restclient)
@@ -119,12 +197,12 @@ displayed anywhere else."
                                             (abbreviate-file-name (buffer-file-name))
                                           "%b"))))
 
-;; save files as root
-(defun sudo-save ()
-  (interactive)
-  (if (not buffer-file-name)
-      (write-file (concat "/sudo:root@localhost:" (ido-read-file-name "File:")))
-    (write-file (concat "/sudo:root@localhost:" buffer-file-name))))
+;; change `find-file` so all files that belong to root are opened as root
+(crux-reopen-as-root-mode)
+
+;; ledger-mode for bookkeeping
+(autoload 'ledger-mode "ledger-mode" "A major mode for Ledger" t)
+(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
 
 (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
@@ -147,7 +225,7 @@ displayed anywhere else."
 
 ;; auto close tags in web-mode
 (setq web-mode-enable-auto-closing t)
-(setq web-mode-enable-auto-pairing t)
+;;(setq web-mode-enable-auto-pairing t)  ; doesn't play nice with smartparens
 
 
 ;; TypeScript
@@ -219,6 +297,7 @@ displayed anywhere else."
 
 (global-set-key "\C-s" 'swiper-helm)  ; use swiper with helm backend for search
 
+(require 'projectile-speedbar)
 (global-set-key [f5] 'projectile-speedbar-toggle)
 
 ;; backup
