@@ -9,33 +9,54 @@
 
 (prelude-require-packages
  '(
-   browse-at-remote
    color-theme-sanityinc-solarized
-   dockerfile-mode
-   ;;git-gutter
-   highlight-symbol
-   lua-mode
-   magit-gh-pulls
+   smart-mode-line-powerline-theme
+
+   sr-speedbar  ; open speedbar inside the frame
+   projectile-speedbar
+
+   ;; typing helpers
+   yasnippet
+   emmet-mode
+   helm-emmet
+   whole-line-or-region  ; operate on current line if region is undefined
+   highlight-symbol  ; highlight all symbols like the one under the cursor
    multiple-cursors
+   region-bindings-mode  ; clone cursor with n,p when region selected
+   swiper-helm  ; C-s search with helm
+
+   ;; git / github
+   browse-at-remote  ; "C-G" opens current buffer on github
+   gist
+   ;;github-issues
+   magit-gh-pulls
+
+   ;; coding major/minor modes
+   lua-mode
+   dockerfile-mode
+   systemd
+   company-tern
+   skewer-mode  ; js live reloading
+   tide  ; typescript
+   sqlup-mode  ; make sql keywords automatically upercase
+   realgud
+   virtualenvwrapper
    restclient
    restclient-helm
    company-restclient
-   realgud
-   region-bindings-mode
-   smart-mode-line-powerline-theme
-   sqlup-mode
-   swiper-helm
-   systemd
-   sr-speedbar
-   skewer-mode
-   projectile-speedbar
-   tide
-   virtualenvwrapper
    ))
 
 
 ;; disable arrow keys to be forced to learn emacs
 (setq guru-warn-only nil)
+
+(yas-global-mode 1)
+(add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
+
+(whole-line-or-region-mode t)
+
+(setq company-idle-delay 0)  ; show auto completion instantly
+(setq company-begin-commands '(self-insert-command)) ; start autocompletion only after typing
 
 
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
@@ -137,11 +158,19 @@ displayed anywhere else."
 (add-hook 'sql-mode-hook 'sqlup-mode)
 (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
 
+;; use tern for js autocompletion
+(add-hook 'js-mode-hook (lambda () (tern-mode t)))
+(add-to-list 'company-backends 'company-tern)
+(setq company-tern-property-marker "")  ; don't show circles for properties
 
 (setq httpd-port 8079)  ; set port for simple-httpd used by skewer
 (add-hook 'js2-mode-hook 'skewer-mode)
 (add-hook 'css-mode-hook 'skewer-css-mode)
 (add-hook 'html-mode-hook 'skewer-html-mode)
+
+(add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
+(add-hook 'css-mode-hook  'emmet-mode) ;; enable Emmet's css abbreviation.
+
 
 ;; python
 
@@ -179,6 +208,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-to-list 'company-backends 'company-restclient)
 
 
+;; open current line/region/dired/commit in github
+(define-key prelude-mode-map (kbd "C-c G") nil)
+(global-set-key (kbd "C-c G") 'browse-at-remote)
+
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
 ;; just type 'fixes #' and get github issue autocompletion
 ;;(add-hook 'git-commit-mode-hook 'git-commit-insert-issue-mode)
@@ -186,6 +219,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; github pull request support for magit
 ;;(require 'magit-gh-pulls)
 (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
+(setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
 ;; auto highlight all occurences of symbol under cursor
 (add-hook 'prog-mode-hook #'highlight-symbol-mode)
