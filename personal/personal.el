@@ -35,15 +35,16 @@
    lua-mode
    dockerfile-mode
    systemd
-   company-tern
    skewer-mode  ; js live reloading
    tide  ; typescript
    sqlup-mode  ; make sql keywords automatically upercase
    realgud
    virtualenvwrapper
+   company-tern
+   company-emoji
+   company-restclient
    restclient
    restclient-helm
-   company-restclient
    ))
 
 
@@ -55,8 +56,40 @@
 
 (whole-line-or-region-mode t)
 
+;; emoji font
+;; package ttf-symbola has to be installed
+(defun --set-emoji-font (frame)
+  "Adjust the font settings of FRAME so Emacs can display emoji properly."
+  (set-fontset-font t 'symbol (font-spec :family "Symbola") frame 'prepend))
+
+;; For when Emacs is started in GUI mode:
+(--set-emoji-font nil)
+;; Hook for when a frame is created with emacsclient
+;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Frames.html
+(add-hook 'after-make-frame-functions '--set-emoji-font)
+
+;; company-mode config
+
+(require 'company-emoji)
+(add-to-list 'company-backends 'company-emoji)
+
 (setq company-idle-delay 0)  ; show auto completion instantly
 (setq company-begin-commands '(self-insert-command)) ; start autocompletion only after typing
+;; don't auto complete with <return> but with C-j
+(with-eval-after-load 'company
+  (define-key company-active-map (kbd "<return>") nil)
+  (define-key company-active-map (kbd "RET") nil)
+  (define-key company-active-map (kbd "C-j") #'company-complete-selection))
+
+;; Add yasnippet support for all company backends
+(defvar company-mode/enable-yas t
+  "Enable yasnippet for all backends.")
+(defun company-mode/backend-with-yas (backend)
+  (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+      backend
+    (append (if (consp backend) backend (list backend))
+            '(:with company-yasnippet))))
+(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
 
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
