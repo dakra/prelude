@@ -99,7 +99,8 @@
                 #'python-imenu-create-flat-index))
   (add-hook 'post-self-insert-hook
             #'electric-layout-post-self-insert-function nil 'local)
-  (add-hook 'after-save-hook 'prelude-python-mode-set-encoding nil 'local))
+  ;;(add-hook 'after-save-hook 'prelude-python-mode-set-encoding nil 'local)
+  )
 
 (setq prelude-python-mode-hook 'prelude-python-mode-defaults)
 

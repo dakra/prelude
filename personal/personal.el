@@ -24,6 +24,7 @@
    multiple-cursors
    region-bindings-mode  ; clone cursor with n,p when region selected
    swiper-helm  ; C-s search with helm
+   goto-chg  ; goto last change
 
    ;; git / github
    browse-at-remote  ; "C-G" opens current buffer on github
@@ -49,10 +50,7 @@
 
 
 ;; disable arrow keys to be forced to learn emacs
-(setq guru-warn-only nil)
-
-(yas-global-mode 1)
-(add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
+;;(setq guru-warn-only nil)
 
 (whole-line-or-region-mode t)
 
@@ -80,16 +78,6 @@
   (define-key company-active-map (kbd "<return>") nil)
   (define-key company-active-map (kbd "RET") nil)
   (define-key company-active-map (kbd "C-j") #'company-complete-selection))
-
-;; Add yasnippet support for all company backends
-(defvar company-mode/enable-yas t
-  "Enable yasnippet for all backends.")
-(defun company-mode/backend-with-yas (backend)
-  (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
-      backend
-    (append (if (consp backend) backend (list backend))
-            '(:with company-yasnippet))))
-(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
 
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
@@ -272,15 +260,29 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
 
+;; aggressive indent everywhere
+;;(global-aggressive-indent-mode 1)
+;; disable for modes where proper indentation can't be reliably determined
+;;(add-to-list 'aggressive-indent-excluded-modes 'python-mode)
+;;(add-to-list 'aggressive-indent-excluded-modes 'haml-mode)
+;; or opt-in for some only with:
 (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
 (add-hook 'css-mode-hook #'aggressive-indent-mode)
+(add-hook 'js2-mode-hook #'aggressive-indent-mode)
 
+;; octave
 (add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
+(defun octave-send-region-or-line ()
+  (interactive)
+  (if (region-active-p)
+      (octave-send-region (region-beginning) (region-end))
+    (octave-send-line)))
 (add-hook 'octave-mode-hook
           (lambda ()
             (abbrev-mode 1)
             (auto-fill-mode 1)
             (show-paren-mode 1)
+            (define-key octave-mode-map (kbd "C-x C-e") 'octave-send-region-or-line)
             (eldoc-mode 1)
             (if (eq window-system 'x)
                 (font-lock-mode 1))))
@@ -288,14 +290,15 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 (setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
 
-(setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
 
+(setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
+(setq web-mode-markup-indent-offset 2)
 ;; auto close tags in web-mode
 (setq web-mode-enable-auto-closing t)
 ;;(setq web-mode-enable-auto-pairing t)  ; doesn't play nice with smartparens
 
-
 ;; TypeScript
+(setq typescript-indent-level 2)
 
 (defun setup-tide-mode ()
   (interactive)
@@ -303,7 +306,9 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   (flycheck-mode +1)
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
   (eldoc-mode +1)
-  (company-mode +1))
+  (company-mode +1)
+  (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))  ; add tide yasnippets as company backend
+  )
 
 ;; aligns annotation to the right hand side
 ;;(setq company-tooltip-align-annotations t)
@@ -356,6 +361,14 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; key bindings - misc
 
+;; goto last change
+(global-set-key (kbd "C-c \\") 'goto-last-change)
+(global-set-key (kbd "C-c |") 'goto-last-change-reverse)
+
+;; scroll 4 lines up/down w/o moving pointer
+(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
+(global-set-key "\M-p"  (lambda () (interactive) (scroll-down 1)) )
+
 ;; remove flyspess 'C-;' keybinding so we can use it for avy jump
 (eval-after-load "flyspell"
   '(define-key flyspell-mode-map (kbd "C-;") nil))
@@ -366,6 +379,22 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 (require 'projectile-speedbar)
 (global-set-key [f5] 'projectile-speedbar-toggle)
+
+
+(require 'yasnippet)
+(add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
+(yas-global-mode 1)
+
+;; Add yasnippet support for all company backends
+(defvar company-mode/enable-yas t
+  "Enable yasnippet for all backends.")
+(defun company-mode/backend-with-yas (backend)
+  (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+      backend
+    (append (if (consp backend) backend (list backend))
+            '(:with company-yasnippet))))
+(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+
 
 ;; backup
 
