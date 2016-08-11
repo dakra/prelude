@@ -35,6 +35,7 @@
    ;; coding major/minor modes
    lua-mode
    dockerfile-mode
+   nginx-mode
    systemd
    skewer-mode  ; js live reloading
    tide  ; typescript
@@ -71,13 +72,17 @@
 (require 'company-emoji)
 (add-to-list 'company-backends 'company-emoji)
 
-(setq company-idle-delay 0)  ; show auto completion instantly
+(setq company-idle-delay 0.1)  ; show auto completion almost instantly
 (setq company-begin-commands '(self-insert-command)) ; start autocompletion only after typing
 ;; don't auto complete with <return> but with C-j
 (with-eval-after-load 'company
   (define-key company-active-map (kbd "<return>") nil)
   (define-key company-active-map (kbd "RET") nil)
   (define-key company-active-map (kbd "C-j") #'company-complete-selection))
+
+
+;; keep follow-mode in between helm sessions once activated
+(setq helm-follow-mode-persistent t)
 
 
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
@@ -169,11 +174,61 @@ displayed anywhere else."
 (add-to-list 'delete-frame-functions #'maybe-delete-frame-buffer)
 
 
-;; FIXME: make sql-mode recognize mariadb prompt
-(defun sqli-add-hooks ()
-  (sql-set-product-feature 'mysql :prompt-regexp "^\(?:mysql\\|mariadb\).*> "))
-(add-hook 'sql-interactive-mode-hook 'sqli-add-hooks)
-;;(sql-set-product-feature 'mysql :prompt-regexp "^MariaDB \[[a-zA-Z]+]\]> ")
+;; SQL
+(require 'sql)
+(sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\) \\[[_a-zA-Z]*\\]> ")
+
+(setq sql-product 'mysql)
+(setq sql-connection-alist
+      '((atomx-local-api (sql-product 'mysql)
+                         (sql-server "localhost")
+                         (sql-user "daniel")
+                         (sql-database "api"))
+        (atomx-remote-api (sql-product 'mysql)
+                          (sql-server "localhost")
+                          (sql-port 3307)
+                          (sql-user "root")
+                          (sql-database "api"))))
+
+(setq sql-mysql-login-params (append sql-mysql-login-params '(port)))
+
+(defun dakra-sql-atomx-local-api ()
+  (interactive)
+  (dakra-sql-connect 'mysql 'atomx-local-api))
+
+(defun dakra-sql-atomx-remote-api ()
+  (interactive)
+  (dakra-sql-connect 'mysql 'atomx-remote-api))
+
+(defun dakra-sql-connect (product connection)
+  ;; load the password
+  (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")
+
+  ;; update the password to the sql-connection-alist
+  (let ((connection-info (assoc connection sql-connection-alist))
+        (sql-password (car (last (assoc connection dakra-sql-passwords)))))
+    (delete sql-password connection-info)
+    (nconc connection-info `((sql-password ,sql-password)))
+    (setq sql-connection-alist (assq-delete-all connection sql-connection-alist))
+    (add-to-list 'sql-connection-alist connection-info))
+
+  ;; connect to database
+  (setq sql-product product)
+  (sql-connect connection))
+
+(setq sql-mysql-login-params
+      '((user :default "daniel")
+        (database :default "api")
+        (server :default "localhost")))
+
+(add-hook 'sql-interactive-mode-hook
+          (lambda ()
+            (toggle-truncate-lines t)
+            ))
+(add-hook 'sql-mode
+          (lambda ()
+            (setq sql-set-product 'mysql)))
+
 
 ;; Capitalize keywords in SQL mode
 (add-hook 'sql-mode-hook 'sqlup-mode)
@@ -195,8 +250,9 @@ displayed anywhere else."
 
 ;; python
 
-(setq python-shell-interpreter "ipython")
-
+;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
+(setq python-shell-interpreter "ipython"
+      python-shell-interpreter-args "--simple-prompt -i")
 ;; XXX: run python once automatically?
 ;; run-python once for eldoc
 ;; (defun run-python-once ()
@@ -271,6 +327,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-hook 'js2-mode-hook #'aggressive-indent-mode)
 
 ;; octave
+(setq octave-block-offset 4)
 (add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
 (defun octave-send-region-or-line ()
   (interactive)

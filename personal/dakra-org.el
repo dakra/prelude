@@ -18,29 +18,31 @@
 (add-hook 'org-mode-hook 'org-indent-mode)
 
 (setq org-directory "~/org/")
-(setq org-default-notes-file (concat org-directory "refile.org"))
+(setq org-default-notes-file (concat org-directory "gtd.org"))
 
 ;; I use C-c c to start capture mode
 (global-set-key (kbd "C-c c") 'org-capture)
 
 ;; Capture templates for: TODO tasks, Notes, appointments, phone calls, meetings, and org-protocol
 (setq org-capture-templates
-      (quote (("t" "todo" entry (file "~/git/org/refile.org")
-               "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
-              ("r" "respond" entry (file "~/git/org/refile.org")
-               "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
-              ("n" "note" entry (file "~/git/org/refile.org")
-               "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
-              ("j" "Journal" entry (file+datetree "~/git/org/diary.org")
-               "* %?\n%U\n" :clock-in t :clock-resume t)
-              ("w" "org-protocol" entry (file "~/git/org/refile.org")
-               "* TODO Review %c\n%U\n" :immediate-finish t)
-              ("m" "Meeting" entry (file "~/git/org/refile.org")
-               "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t)
-              ("P" "Phone call" entry (file "~/git/org/refile.org")
-               "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
-              ("h" "Habit" entry (file "~/git/org/refile.org")
-               "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n"))))
+      `(("t" "todo" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
+        ("r" "respond" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
+        ("n" "note" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+        ("w" "org-protocol" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* TODO Review %c\n%U\n" :immediate-finish t)
+        ("m" "Meeting" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t)
+        ("P" "Phone call" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
+        ("p" "Protocol" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
+        ("L" "Protocol Link" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* %? [[%:link][%:description]] \nCaptured On: %U")
+        ("h" "Habit" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
+         "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
 ;; use utf-8 characters instead of `*` as bullet points
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
@@ -48,9 +50,9 @@
 (require 'org-protocol)
 ;; org-capture chrome plugin: https://chrome.google.com/webstore/detail/org-capture/kkkjlfejijcjgjllecmnejhogpbcigdc?hl=en
 (setq org-capture-templates `(
-                              ("p" "Protocol" entry (file+headline ,(concat org-directory "notes.org") "Inbox")
+                              ("p" "Protocol" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
                                "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
-                              ("L" "Protocol Link" entry (file+headline ,(concat org-directory "notes.org") "Inbox")
+                              ("L" "Protocol Link" entry (file+headline ,(concat org-directory "gtd.org") "Inbox")
                                "* %? [[%:link][%:description]] \nCaptured On: %U")
                               ))
 
