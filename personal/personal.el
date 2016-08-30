@@ -47,13 +47,22 @@
    company-restclient
    restclient
    restclient-helm
+   outline-magic  ; better outline-mode
    ))
 
 
 ;; disable arrow keys to be forced to learn emacs
 ;;(setq guru-warn-only nil)
 
+;; Do action that normally works on a region to the whole line if no region active.
+;; That way you can just C-w to copy the whole line for example.
 (whole-line-or-region-mode t)
+
+;; cache projectile project files
+;; projectile-find-files will be much faster for large projects.
+;; C-u C-c p f to clear cache before search.
+(setq projectile-enable-caching t)
+
 
 ;; emoji font
 ;; package ttf-symbola has to be installed
@@ -174,6 +183,12 @@ displayed anywhere else."
 (add-to-list 'delete-frame-functions #'maybe-delete-frame-buffer)
 
 
+;; use outline-cycle (from outline-magic) in outline-minor-mode
+(eval-after-load 'outline
+  '(progn
+     (require 'outline-magic)
+     (define-key outline-minor-mode-map (kbd "<C-tab>") 'outline-cycle)))
+
 ;; SQL
 (require 'sql)
 (sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\) \\[[_a-zA-Z]*\\]> ")
@@ -185,7 +200,7 @@ displayed anywhere else."
                          (sql-user "daniel")
                          (sql-database "api"))
         (atomx-remote-api (sql-product 'mysql)
-                          (sql-server "localhost")
+                          (sql-server "127.0.0.1")
                           (sql-port 3307)
                           (sql-user "root")
                           (sql-database "api"))))
@@ -250,6 +265,9 @@ displayed anywhere else."
 
 ;; python
 
+;; XXX: Emacs25 python hangs when this is set to `true`
+(setq python-shell-completion-native-enable nil)
+
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "--simple-prompt -i")
@@ -264,6 +282,7 @@ displayed anywhere else."
 (venv-initialize-interactive-shells) ;; if you want interactive shell support
 (venv-initialize-eshell) ;; if you want eshell support
 (setq venv-location "/home/daniel/.virtualenvs/")
+(venv-workon '"atomx")
 
 (defcustom python-autopep8-path (executable-find "autopep8")
   "autopep8 executable path."
