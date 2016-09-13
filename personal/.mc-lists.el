@@ -4,8 +4,12 @@
 (setq mc/cmds-to-run-for-all
       '(
         crux-move-beginning-of-line
+        crux-smart-open-line
+        electric-newline-and-maybe-indent
+        helm-show-kill-ring
         sp-backward-delete-char
         whole-line-or-region-yank
+        yas-expand
         ))
 
 (setq mc/cmds-to-run-once

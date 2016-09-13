@@ -12,8 +12,8 @@
    color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
-   sr-speedbar  ; open speedbar inside the frame
-   projectile-speedbar
+   ;;sr-speedbar  ; open speedbar inside the frame
+   ;;projectile-speedbar
 
    ;; typing helpers
    yasnippet
@@ -25,6 +25,8 @@
    region-bindings-mode  ; clone cursor with n,p when region selected
    swiper-helm  ; C-s search with helm
    goto-chg  ; goto last change
+   highlight-indent-guides
+   origami  ; code folding
 
    ;; git / github
    browse-at-remote  ; "C-G" opens current buffer on github
@@ -39,12 +41,16 @@
    systemd
    skewer-mode  ; js live reloading
    tide  ; typescript
+   ng2-mode
    sqlup-mode  ; make sql keywords automatically upercase
    realgud
+   fabric
    virtualenvwrapper
+   slime-company
    company-tern
    company-emoji
    company-restclient
+   company-quickhelp
    restclient
    restclient-helm
    outline-magic  ; better outline-mode
@@ -63,6 +69,10 @@
 ;; C-u C-c p f to clear cache before search.
 (setq projectile-enable-caching t)
 
+;; highlight indentations in python
+(setq highlight-indent-guides-method 'character)
+(add-hook 'python-mode-hook 'highlight-indent-guides-mode)
+;;(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
 
 ;; emoji font
 ;; package ttf-symbola has to be installed
@@ -78,6 +88,9 @@
 
 ;; company-mode config
 
+(require 'slime-company)
+(slime-setup '(slime-fancy slime-company))
+
 (require 'company-emoji)
 (add-to-list 'company-backends 'company-emoji)
 
@@ -89,6 +102,8 @@
   (define-key company-active-map (kbd "RET") nil)
   (define-key company-active-map (kbd "C-j") #'company-complete-selection))
 
+;; show help popup when completing with company
+(company-quickhelp-mode 1)
 
 ;; keep follow-mode in between helm sessions once activated
 (setq helm-follow-mode-persistent t)
@@ -136,9 +151,13 @@
 
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
 
-(speedbar-add-supported-extension ".hs")
-(speedbar-add-supported-extension ".scala")
-(speedbar-add-supported-extension ".md")
+;; XXX: never use speedbar. disable for now
+;;(speedbar-add-supported-extension ".hs")
+;;(speedbar-add-supported-extension ".scala")
+;;(speedbar-add-supported-extension ".md")
+;;(require 'projectile-speedbar)
+;;(global-set-key [f5] 'projectile-speedbar-toggle)
+
 
 
 ;; XXX: not sure if git gutter is really nicer than diff-hl
@@ -169,6 +188,10 @@
 
 
 (setq ffap-machine-p-known 'reject)  ; don't "ping Germany" when typing test.de<TAB>
+
+(require 'origami)
+(define-key origami-mode-map (kbd "C-c C-o") 'origami-recursively-toggle-node)
+(global-origami-mode)
 
 ;; auto kill buffer when closing window
 (defun maybe-delete-frame-buffer (frame)
@@ -246,8 +269,11 @@ displayed anywhere else."
 
 
 ;; Capitalize keywords in SQL mode
+(require 'sqlup-mode)
 (add-hook 'sql-mode-hook 'sqlup-mode)
 (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
+;; Don't capitalize `name` keyword
+(add-to-list 'sqlup-blacklist "name")
 
 ;; use tern for js autocompletion
 (add-hook 'js-mode-hook (lambda () (tern-mode t)))
@@ -271,6 +297,11 @@ displayed anywhere else."
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
 (setq python-shell-interpreter "ipython"
       python-shell-interpreter-args "--simple-prompt -i")
+;; FIXME: run new python interpreter on projectile-switch-project?
+;; and only run pshell when it's a pyramid project.
+;;(setq python-shell-interpreter "python"
+;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
+
 ;; XXX: run python once automatically?
 ;; run-python once for eldoc
 ;; (defun run-python-once ()
@@ -318,7 +349,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
 ;; auto highlight all occurences of symbol under cursor
-(add-hook 'prog-mode-hook #'highlight-symbol-mode)
+;;(add-hook 'prog-mode-hook #'highlight-symbol-mode)
 
 ;; more useful frame title, that show either a file or a
 ;; buffer name (if the buffer isn't visiting a file)
@@ -342,6 +373,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(add-to-list 'aggressive-indent-excluded-modes 'haml-mode)
 ;; or opt-in for some only with:
 (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
+(add-hook 'lisp-mode #'aggressive-indent-mode)
 (add-hook 'css-mode-hook #'aggressive-indent-mode)
 (add-hook 'js2-mode-hook #'aggressive-indent-mode)
 
@@ -453,9 +485,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 (global-set-key "\C-s" 'swiper-helm)  ; use swiper with helm backend for search
 
-(require 'projectile-speedbar)
-(global-set-key [f5] 'projectile-speedbar-toggle)
-
 
 (require 'yasnippet)
 (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
@@ -470,6 +499,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
     (append (if (consp backend) backend (list backend))
             '(:with company-yasnippet))))
 (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+
+
 
 
 ;; backup

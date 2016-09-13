@@ -56,8 +56,7 @@
                     (setq auth-token (buffer-substring del-start-point (point)))
                     ;;(kill-buffer (current-buffer))
                     ;;(set-buffer api-buffer)
-                    (atomx-replace-restclient-auth-token auth-token)
-                    ))))
+                    (atomx-replace-restclient-auth-token auth-token)))))
 
 (provide 'atomx)
 ;;; atomx.el ends here
