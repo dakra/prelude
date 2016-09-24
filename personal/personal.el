@@ -43,6 +43,7 @@
    tide  ; typescript
    ng2-mode
    sqlup-mode  ; make sql keywords automatically upercase
+   sphinx-mode
    realgud
    fabric
    virtualenvwrapper
@@ -56,6 +57,10 @@
    outline-magic  ; better outline-mode
    ))
 
+
+;; save and restore buffer and cursor positions (but don't restore window layout)
+(desktop-save-mode 1)
+(setq desktop-restore-frames nil)
 
 ;; disable arrow keys to be forced to learn emacs
 ;;(setq guru-warn-only nil)
@@ -73,6 +78,9 @@
 (setq highlight-indent-guides-method 'character)
 (add-hook 'python-mode-hook 'highlight-indent-guides-mode)
 ;;(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+
+;; activate character folding in searches i.e. searching for 'a' matches 'ä' as well
+(setq search-default-mode 'char-fold-to-regexp)
 
 ;; emoji font
 ;; package ttf-symbola has to be installed
@@ -326,7 +334,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   (interactive)
   (when (eq major-mode 'anaconda-mode)
     (shell-command
-     (format "%s --in-place --aggressive %s" python-autopep8-path
+     (format "%s --in-place --max-line-length %s --aggressive %s" python-autopep8-path
+             whitespace-line-column
              (shell-quote-argument (buffer-file-name))))
     (revert-buffer t t t)))
 
@@ -350,6 +359,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; auto highlight all occurences of symbol under cursor
 ;;(add-hook 'prog-mode-hook #'highlight-symbol-mode)
+(define-key prelude-mode-map (kbd "C-c s") nil)  ; remove default crux swap windows keybinding
+(global-set-key (kbd "C-c s") 'highlight-symbol)
 
 ;; more useful frame title, that show either a file or a
 ;; buffer name (if the buffer isn't visiting a file)
@@ -453,21 +464,25 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (require 'region-bindings-mode)
 (region-bindings-mode-enable)
 
-(define-key region-bindings-mode-map "a" 'mc/mark-all-like-this)
-(define-key region-bindings-mode-map "p" 'mc/mark-previous-like-this)
-(define-key region-bindings-mode-map "n" 'mc/mark-next-like-this)
-(define-key region-bindings-mode-map "m" 'mc/mark-more-like-this-extended)
+(define-key region-bindings-mode-map "\M-a" 'mc/mark-all-like-this)
+(define-key region-bindings-mode-map "\M-p" 'mc/mark-previous-like-this)
+(define-key region-bindings-mode-map "\M-n" 'mc/mark-next-like-this)
+(define-key region-bindings-mode-map "\M-m" 'mc/mark-more-like-this-extended)
 
-(global-set-key (kbd "C-c C-d") 'mc/mark-next-like-this-word)
+(global-set-key (kbd "C-c m") 'mc/mark-next-like-this-word)
 (global-set-key (kbd "C->") 'mc/mark-next-like-this)
 (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
-(global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
+(global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this-dwim)
 
 (global-unset-key (kbd "M-<down-mouse-1>"))
 (global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
 
 
 ;; key bindings - misc
+
+;; Make god-mode a little bit more vi-like
+(global-set-key (kbd "<escape>") 'god-local-mode)
+(define-key god-local-mode-map (kbd "i") 'god-local-mode)
 
 ;; goto last change
 (global-set-key (kbd "C-c \\") 'goto-last-change)
