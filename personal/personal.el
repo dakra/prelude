@@ -65,6 +65,15 @@
 ;; disable arrow keys to be forced to learn emacs
 ;;(setq guru-warn-only nil)
 
+;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
+(setq fill-column 80)
+
+;; Use 'C-c S' or 'M-s M-w' for 'eww-search-words' current region
+(define-key prelude-mode-map (kbd "C-c S") nil)  ; remove default crux find-shell-init keybinding
+(global-set-key (kbd "C-c S") 'eww-search-words)
+
+(setq eww-search-prefix "https://google.com/search?q=")
+
 ;; Do action that normally works on a region to the whole line if no region active.
 ;; That way you can just C-w to copy the whole line for example.
 (whole-line-or-region-mode t)
@@ -116,6 +125,12 @@
 ;; keep follow-mode in between helm sessions once activated
 (setq helm-follow-mode-persistent t)
 
+
+;; always loop GIF images
+(setq image-animate-loop t)
+
+;; send alerts by default to D-Bus
+(setq alert-default-style 'notifications)
 
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
 ;; used together with i3 keyboard shortcut (S-e) to `emacsclient -cn -e '(switch-to-buffer nil)`
@@ -199,7 +214,9 @@
 
 (require 'origami)
 (define-key origami-mode-map (kbd "C-c C-o") 'origami-recursively-toggle-node)
-(global-origami-mode)
+(add-hook 'prog-mode-hook
+          (lambda () (origami-mode)))
+;;(global-origami-mode)
 
 ;; auto kill buffer when closing window
 (defun maybe-delete-frame-buffer (frame)
@@ -299,6 +316,11 @@ displayed anywhere else."
 
 ;; python
 
+
+;; use both pylint and flake8 in flycheck
+(flycheck-add-next-checker 'python-flake8 'python-pylint)
+setq flycheck-flake8-maximum-line-length 120
+
 ;; XXX: Emacs25 python hangs when this is set to `true`
 (setq python-shell-completion-native-enable nil)
 
@@ -317,11 +339,14 @@ displayed anywhere else."
 ;;   (run-python))
 ;; (add-hook 'anaconda-mode-hook 'run-python-once)
 
-;;(require 'virtualenvwrapper)
+(require 'virtualenvwrapper)
 (venv-initialize-interactive-shells) ;; if you want interactive shell support
 (venv-initialize-eshell) ;; if you want eshell support
 (setq venv-location "/home/daniel/.virtualenvs/")
-(venv-workon '"atomx")
+(venv-workon '"atomx")  ; default venv after a starting emacs
+(setq projectile-switch-project-action '(lambda ()
+                                          (venv-projectile-auto-workon)
+                                          (projectile-find-file)))
 
 (defcustom python-autopep8-path (executable-find "autopep8")
   "autopep8 executable path."
@@ -332,7 +357,7 @@ displayed anywhere else."
   "Automatically formats Python code to conform to the PEP 8 style guide.
 $ autopep8 --in-place --aggressive --aggressive <filename>"
   (interactive)
-  (when (eq major-mode 'anaconda-mode)
+  (when (eq major-mode 'python-mode)
     (shell-command
      (format "%s --in-place --max-line-length %s --aggressive %s" python-autopep8-path
              whitespace-line-column
@@ -407,6 +432,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                 (font-lock-mode 1))))
 
 
+(setq whitespace-global-modes '(not org-mode))  ; don't use whitespace-mode in org-mode
 (setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
 
 
@@ -441,6 +467,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
 
+
+(setq undo-tree-visualizer-timestamps t)  ; show timestamps in undo-tree
 
 ;; Keep region when undoing in region
 (defadvice undo-tree-undo (around keep-region activate)
@@ -480,6 +508,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; key bindings - misc
 
+;; Normally "C-x k" prompts you which buffer to kill. Remap to always kill the current buffer
+(global-set-key (kbd "C-x k") 'kill-this-buffer)
+
+(require 'god-mode)
 ;; Make god-mode a little bit more vi-like
 (global-set-key (kbd "<escape>") 'god-local-mode)
 (define-key god-local-mode-map (kbd "i") 'god-local-mode)
@@ -505,6 +537,14 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
 (yas-global-mode 1)
 
+;; Remove Yasnippet's default tab key binding
+(define-key yas-minor-mode-map (kbd "<tab>") nil)
+(define-key yas-minor-mode-map (kbd "TAB") nil)
+;; Set Yasnippet's key binding to shift+tab
+(define-key yas-minor-mode-map (kbd "<backtab>") 'yas-expand)
+;; Alternatively use Control-c + tab
+(define-key yas-minor-mode-map (kbd "\C-c TAB") 'yas-expand)
+
 ;; Add yasnippet support for all company backends
 (defvar company-mode/enable-yas t
   "Enable yasnippet for all backends.")
@@ -514,7 +554,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
     (append (if (consp backend) backend (list backend))
             '(:with company-yasnippet))))
 (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
-
 
 
 

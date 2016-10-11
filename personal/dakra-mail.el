@@ -12,16 +12,22 @@
 ;; mu package (includes mu4e) must be installed in the system
 (require 'mu4e)
 
+;; for org capture
+(require 'org-mu4e)
 
 ;; default
 (setq mu4e-maildir "~/.mail/gmail/")
 
-(setq mu4e-drafts-folder "/[Gmail]/.Drafts")
-(setq mu4e-sent-folder   "/[Gmail]/.Sent Mail")
-(setq mu4e-trash-folder  "/[Gmail]/.Trash")
+(setq mu4e-drafts-folder "/drafts")
+(setq mu4e-sent-folder   "/sent_mail")
+(setq mu4e-trash-folder  "/trash")
+(setq mu4e-refile-folder "/all_mail")
 
 ;; default search only inbox or sent mail
-(setq helm-mu-default-search-string "(maildir:/Inbox OR maildir:/[Gmail]/.Sent Mail)")
+(setq helm-mu-default-search-string "(maildir:/inbox OR maildir:/sent_mail)")
+
+;; don't show duplicate mails when searching
+(setq mu4e-headers-skip-duplicates t)
 
 ;; use helm-mu for search
 (define-key mu4e-main-mode-map "s" 'helm-mu)
@@ -41,10 +47,33 @@
 ;; the 'All Mail' folder by pressing ``ma''.
 
 (setq mu4e-maildir-shortcuts
-      '( ("/Inbox"               . ?i)
-         ("/[Gmail]/.Sent Mail"   . ?s)
-         ("/[Gmail]/.Trash"       . ?t)
-         ("/[Gmail]/.All Mail"    . ?a)))
+      '( ("/inbox"      . ?i)
+         ("/sent_mail"  . ?s)
+         ("/trash"      . ?t)
+         ("/all_mail"   . ?a)))
+
+(fset 'my-move-to-trash "mt")
+(define-key mu4e-headers-mode-map (kbd "d") 'my-move-to-trash)
+(define-key mu4e-view-mode-map (kbd "d") 'my-move-to-trash)
+
+;; gmail delete == move mail to trash folder
+(fset 'my-move-to-trash "mt")
+(define-key mu4e-headers-mode-map (kbd "D") 'my-move-to-trash)
+(define-key mu4e-view-mode-map (kbd "D") 'my-move-to-trash)
+
+;; (setq mu4e-bookmarks `(("\\\\Inbox" "Inbox" ?i)
+;;                        ("flag:flagged" "Flagged messages" ?f)
+;;                        (,(concat "flag:unread AND "
+;;                                  "NOT flag:trashed AND "
+;;                                  "NOT maildir:/spam AND "
+;;                                  "NOT maildir:/trash")
+;;                         "Unread messages" ?u)))
+
+;; (add-hook 'mu4e-mark-execute-pre-hook
+;;           (lambda (mark msg)
+;;             (cond ((member mark '(refile trash)) (mu4e-action-retag-message msg "-\\Inbox"))
+;;                   ((equal mark 'flag) (mu4e-action-retag-message msg "\\Starred"))
+;;                   ((equal mark 'unflag) (mu4e-action-retag-message msg "-\\Starred")))))
 
 ;; allow for updating mail using 'U' in the main view:
 (setq mu4e-get-mail-command "mbsync gmail")
@@ -69,8 +98,10 @@
 (when (fboundp 'imagemagick-register-types)
   (imagemagick-register-types))
 
-;; don't save messages to Sent Messages, Gmail/IMAP takes care of this
-(setq mu4e-sent-messages-behavior 'delete)
+;;rename files when moving
+;;NEEDED FOR MBSYNC
+(setq mu4e-change-filenames-when-moving t)
+
 
 ;; something about ourselves
 (setq
@@ -81,10 +112,7 @@
   "regards,\n"
   "  Daniel\n"))
 
-;; sending mail -- replace USERNAME with your gmail username
-;; also, make sure the gnutls command line utils are installed
-;; package 'gnutls-bin' in Debian/Ubuntu
-
+;; sending mail
 (require 'smtpmail)
 (setq message-send-mail-function 'smtpmail-send-it
       starttls-use-gnutls t
