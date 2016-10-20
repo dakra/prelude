@@ -38,6 +38,7 @@
    lua-mode
    dockerfile-mode
    nginx-mode
+   graphviz-dot-mode
    systemd
    skewer-mode  ; js live reloading
    tide  ; typescript
@@ -58,9 +59,13 @@
    ))
 
 
+;; temporary fixes:
+;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
+(defalias 'display-buffer-in-major-side-window 'window--make-major-side-window)
+
 ;; save and restore buffer and cursor positions (but don't restore window layout)
-(desktop-save-mode 1)
-(setq desktop-restore-frames nil)
+;;(desktop-save-mode 1)
+;;(setq desktop-restore-frames nil)
 
 ;; disable arrow keys to be forced to learn emacs
 ;;(setq guru-warn-only nil)
@@ -310,16 +315,50 @@ displayed anywhere else."
 (add-hook 'css-mode-hook 'skewer-css-mode)
 (add-hook 'html-mode-hook 'skewer-html-mode)
 
+(require 'emmet-mode)
 (add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
+(add-hook 'web-mode-hook 'emmet-mode)
 (add-hook 'css-mode-hook  'emmet-mode) ;; enable Emmet's css abbreviation.
+
+(define-key emmet-mode-keymap (kbd "<backtab>") 'emmet-expand-line)
+(define-key emmet-mode-keymap (kbd "\C-c TAB") 'emmet-expand-line)
+
+(define-key emmet-mode-keymap (kbd "C-M-p") 'emmet-prev-edit-point)
+(define-key emmet-mode-keymap (kbd "C-M-n") 'emmet-next-edit-point)
+(define-key emmet-mode-keymap (kbd "TAB") 'emmet-next-edit-point)
+
+(setq emmet-move-cursor-between-quotes t)
+(setq emmet-move-cursor-after-expanding t)
 
 
 ;; python
 
+;; accept 'UTF-8' (uppercase) as a valid encoding in the coding header
+(define-coding-system-alias 'UTF-8 'utf-8)
+
+
+;; activate virtualenv for flycheck
+;; (from https://github.com/lunaryorn/.emacs.d/blob/master/lisp/flycheck-virtualenv.el)
+(require 'flycheck)
+
+(declare-function python-shell-calculate-exec-path "python")
+
+(defun flycheck-virtualenv-executable-find (executable)
+  "Find an EXECUTABLE in the current virtualenv if any."
+  (if (bound-and-true-p python-shell-virtualenv-root)
+      (let ((exec-path (python-shell-calculate-exec-path)))
+        (executable-find executable))
+    (executable-find executable)))
+
+(defun flycheck-virtualenv-setup ()
+  "Setup Flycheck for the current virtualenv."
+  (setq-local flycheck-executable-find #'flycheck-virtualenv-executable-find))
+
+(add-hook 'python-mode-hook #'flycheck-virtualenv-setup)
 
 ;; use both pylint and flake8 in flycheck
 (flycheck-add-next-checker 'python-flake8 'python-pylint)
-setq flycheck-flake8-maximum-line-length 120
+(setq flycheck-flake8-maximum-line-length 120)
 
 ;; XXX: Emacs25 python hangs when this is set to `true`
 (setq python-shell-completion-native-enable nil)
@@ -395,7 +434,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                                           "%b"))))
 
 ;; change `find-file` so all files that belong to root are opened as root
-(crux-reopen-as-root-mode)
+;; too often unintentional changes. just use 'M-x crux-sudo-edit' when needed
+;;(crux-reopen-as-root-mode)
 
 ;; ledger-mode for bookkeeping
 (autoload 'ledger-mode "ledger-mode" "A major mode for Ledger" t)
@@ -432,7 +472,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                 (font-lock-mode 1))))
 
 
-(setq whitespace-global-modes '(not org-mode))  ; don't use whitespace-mode in org-mode
+(setq whitespace-global-modes '(not org-mode org-src-mode))  ; don't use whitespace-mode in org-mode
 (setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
 
 
@@ -556,6 +596,15 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
 
+;;; Don't show some modes that are always on in the mode line
+(diminish 'yas-minor-mode)
+(diminish 'guru-mode)
+(diminish 'company-mode)
+(diminish 'helm-mode)
+(diminish 'whole-line-or-region-mode)
+(diminish 'prelude-mode)
+(diminish 'which-key-mode)
+(diminish 'beacon-mode)
 
 ;; backup
 
