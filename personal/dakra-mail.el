@@ -21,6 +21,14 @@
 ;; set mu4e as default mail client
 (setq  mail-user-agent 'mu4e-user-agent)
 
+(defalias 'org-mail 'org-mu4e-compose-org-mode)
+
+;; when mail is sent, automatically convert org body to HTML
+(setq org-mu4e-convert-to-html t)
+
+;; FIXME: only set this during mu4e usage
+(setq org-export-with-toc nil)  ; turn off table of contents
+
 
 ;; default
 (setq mu4e-maildir "~/.mail")
@@ -93,7 +101,7 @@
 
 ;; allow for updating mail using 'U' in the main view:
 ;; (only update inboxes)
-(setq mu4e-get-mail-command "mbsync -q gmail-inbox atomx-inbox hogaso-inbox e5-inbox")
+(setq mu4e-get-mail-command "mbsync gmail-inbox atomx-inbox hogaso-inbox e5-inbox")
 ;; for update all:
 ;;(setq mu4e-get-mail-command "mbsync -a")
 
@@ -105,7 +113,7 @@
 (setq mu4e-use-fancy-chars t)
 
 ;;; Save attachment (this can also be a function)
-(setq mu4e-attachment-dir "~/download")
+(setq mu4e-attachment-dir "~/Downloads")
 
 
 ;; display html messages
@@ -117,6 +125,12 @@
             (local-set-key (kbd "<tab>") 'shr-next-link)
             (local-set-key (kbd "<backtab>") 'shr-previous-link)))
 (setq shr-color-visible-luminance-min 80)
+
+;; Don't reply to self
+(setq mu4e-user-mail-address-list
+      '("daniel.kraus@gmail.com" "dakra@tr0ll.net"
+        "daniel@atomx.com" "daniel@hogaso.com" "daniel.kraus@ebenefuenf.de"))
+(setq mu4e-compose-dont-reply-to-self t)
 
 ;; Always display plain text messages.
 (setq mu4e-view-html-plaintext-ratio-heuristic 30)
@@ -294,3 +308,40 @@
 
 ;; don't keep message buffers around
 (setq message-kill-buffer-on-exit t)
+
+
+;; If there's 'attach' 'file' 'pdf' in the message warn when sending w/o attachment
+(defun mbork/message-attachment-present-p ()
+  "Return t if an attachment is found in the current message."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (when (search-forward "<#part" nil t) t))))
+
+(defcustom mbork/message-attachment-intent-re
+  (regexp-opt '("attach"
+		"file"
+                "pdf"))
+  "A regex which - if found in the message, and if there is no
+attachment - should launch the no-attachment warning.")
+
+(defcustom mbork/message-attachment-reminder
+  "Are you sure you want to send this message without any attachment? "
+  "The default question asked when trying to send a message
+containing `mbork/message-attachment-intent-re' without an
+actual attachment.")
+
+(defun mbork/message-warn-if-no-attachments ()
+  "Ask the user if s?he wants to send the message even though
+there are no attachments."
+  (when (and (save-excursion
+	       (save-restriction
+		 (widen)
+		 (goto-char (point-min))
+		 (re-search-forward mbork/message-attachment-intent-re nil t)))
+	     (not (mbork/message-attachment-present-p)))
+    (unless (y-or-n-p mbork/message-attachment-reminder)
+      (keyboard-quit))))
+
+(add-hook 'message-send-hook #'mbork/message-warn-if-no-attachments)

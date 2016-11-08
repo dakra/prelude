@@ -7,6 +7,8 @@
         crux-smart-open-line
         electric-newline-and-maybe-indent
         helm-show-kill-ring
+        org-delete-char
+        org-self-insert-command
         sp-backward-delete-char
         whole-line-or-region-yank
         yas-expand
@@ -17,4 +19,5 @@
         handle-switch-frame
         helm-M-x
         helm-find-files
+        smart-region
         ))

@@ -18,11 +18,53 @@
 ;; Install newest org and org-plus-contrib packages
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
+(require 'org-habit)
+
 (add-hook 'org-mode-hook 'org-indent-mode)
 
 (setq org-directory "~/org/")
 
 (setq org-agenda-files '("~/org"))
+
+;; org-mode keybindings
+(add-hook 'org-mode-hook
+          '(lambda ()
+             ;; Make links work like chasing definitions in source code.
+             (org-defkey org-mode-map "\M-." 'org-open-at-point)
+             (org-defkey org-mode-map "\M-," 'org-mark-ring-goto)
+
+             ;; Undefine C-c [ and C-c ] since this breaks my
+             ;; org-agenda files when directories are include It
+             ;; expands the files in the directories individually
+             (org-defkey org-mode-map "\C-c[" 'undefined)
+             (org-defkey org-mode-map "\C-c]" 'undefined))
+          'append)
+
+;; Global key bindings
+(global-set-key (kbd "C-c c") 'org-capture)
+(global-set-key (kbd "<f5>") 'bh/org-todo)
+(global-set-key (kbd "<S-f5>") 'bh/widen)
+(global-set-key (kbd "<f6>") 'org-agenda)
+(global-set-key (kbd "<f7>") 'org-clock-goto)
+(global-set-key (kbd "<f8>") 'org-pomodoro)
+
+
+;; Enter key follows links (= C-c C-o)
+(setq org-return-follows-link t)
+
+(setq org-todo-keywords
+      (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+              (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "PHONE" "MEETING"))))
+
+(setq org-todo-keyword-faces
+      (quote (("TODO" :foreground "red" :weight bold)
+              ("NEXT" :foreground "blue" :weight bold)
+              ("DONE" :foreground "forest green" :weight bold)
+              ("WAITING" :foreground "orange" :weight bold)
+              ("HOLD" :foreground "magenta" :weight bold)
+              ("CANCELLED" :foreground "forest green" :weight bold)
+              ("MEETING" :foreground "forest green" :weight bold)
+              ("PHONE" :foreground "forest green" :weight bold))))
 
 ;; Targets include this file and any file contributing to the agenda - up to 9 levels deep
 (setq org-refile-targets (quote ((nil :maxlevel . 9)
@@ -31,26 +73,19 @@
 ;; Allow refile to create parent tasks with confirmation
 (setq org-refile-allow-creating-parent-nodes (quote confirm))
 
-;; Exclude DONE state tasks from refile targets
-(defun bh/verify-refile-target ()
-  "Exclude todo keywords with a done state from refile targets"
-  (not (member (nth 2 (org-heading-components)) org-done-keywords)))
-
-(setq org-refile-target-verify-function 'bh/verify-refile-target)
-
-
-(setq org-todo-keywords
-      (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
-              (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "PHONE" "MEETING"))))
-
 (setq org-use-fast-todo-selection t)
+
+;; This allows changing todo states with S-left and S-right skipping all of the normal processing
+;; when entering or leaving a todo state.
+;; This cycles through the todo states but skips setting timestamps and entering notes which
+;; is very convenient when all you want to do is fix up the status of an entry.
+(setq org-treat-S-cursor-todo-selection-as-state-change nil)
 
 (setq org-default-notes-file (concat org-directory "refile.org"))
 
 (setq org-clock-idle-time 10)  ; idle after 10 minutes
 
-;; I use C-c c to start capture mode
-(global-set-key (kbd "C-c c") 'org-capture)
+
 
 (require 'org-protocol)
 ;; org-capture chrome plugin: https://chrome.google.com/webstore/detail/org-capture/kkkjlfejijcjgjllecmnejhogpbcigdc?hl=en
@@ -78,19 +113,183 @@
         ("h" "Habit" entry (file ,(concat org-directory "refile.org"))
          "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
-;; Capturing task often is <1min and results in empty drawer.
-;; Remove empty LOGBOOK drawers on clock out
-(defun bh/remove-empty-drawer-on-clock-out ()
-  (interactive)
-  (save-excursion
-    (beginning-of-line 0)
-    (org-remove-empty-drawer-at "LOGBOOK" (point))))
-(add-hook 'org-clock-out-hook 'bh/remove-empty-drawer-on-clock-out 'append)
 
+;; undone TODO entries will block switching the parent to DONE
+(setq org-enforce-todo-dependencies t)
+
+;; Do not dim blocked tasks
+(setq org-agenda-dim-blocked-tasks nil)
+
+;; Compact the block agenda view
+(setq org-agenda-compact-blocks nil)
+
+
+;; Agenda clock report parameters
+(setq org-agenda-clockreport-parameter-plist
+      (quote (:link t :maxlevel 5 :fileskip0 t :compact nil :narrow 80)))
+
+;; Set default column view headings: Task Effort Clock_Summary
+(setq org-columns-default-format "%80ITEM(Task) %10Effort(Effort){:} %10CLOCKSUM")
+
+;; global Effort estimate values
+;; global STYLE property values for completion
+(setq org-global-properties (quote (("Effort_ALL" . "0:15 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 0:00")
+                                    ("STYLE_ALL" . "habit"))))
+
+;; Agenda log mode items to display (closed and state changes by default)
+(setq org-agenda-log-mode-items (quote (closed state)))
+
+;; Tags with fast selection keys
+(setq org-tag-alist (quote (("PERSONAL" . ?p)
+                            ("WORK" . ?w)
+                            ("ATOMX" . ?a)
+                            ("E5" . ?e)
+                            ("HOGASO" . ?h)
+                            ("ORG" . ?o)
+                            ("NOTE" . ?n)
+                            ("crypt" . ?c)
+                            ("FLAGGED" . ??))))
+
+;; Allow setting single tags without the menu
+(setq org-fast-tag-selection-single-key (quote expert))
+
+;; Keep tasks with dates on the global todo lists
+(setq org-agenda-todo-ignore-with-date nil)
+
+;; Keep tasks with deadlines on the global todo lists
+(setq org-agenda-todo-ignore-deadlines nil)
+
+;; Keep tasks with scheduled dates on the global todo lists
+(setq org-agenda-todo-ignore-scheduled nil)
+
+;; Keep tasks with timestamps on the global todo lists
+(setq org-agenda-todo-ignore-timestamp nil)
+
+;; Remove completed deadline tasks from the agenda view
+(setq org-agenda-skip-deadline-if-done t)
+
+;; Remove completed scheduled tasks from the agenda view
+(setq org-agenda-skip-scheduled-if-done t)
+
+;; Remove completed items from search results
+(setq org-agenda-skip-timestamp-if-done t)
+
+
+(setq org-archive-mark-done nil)
+(setq org-archive-location "%s_archive::* Archived Tasks")
+
+
+;; Include agenda archive files when searching for things
+(setq org-agenda-text-search-extra-files (quote (agenda-archives)))
+
+;; Show all future entries for repeating tasks
+(setq org-agenda-repeating-timestamp-show-all t)
+
+;; Show all agenda dates - even if they are empty
+(setq org-agenda-show-all-dates t)
+
+;; Start the weekly agenda on Monday
+(setq org-agenda-start-on-weekday 1)
+
+;; C-RET, C-S-RET insert new heading after current task content
+(setq org-insert-heading-respect-content nil)
+
+(setq org-special-ctrl-a/e t)
+(setq org-special-ctrl-k t)
+(setq org-yank-adjusted-subtrees t)
+
+
+;; Use sticky agenda's so they persist
+(setq org-agenda-sticky t)
+
+;; Show a little bit more when using sparse-trees
+(setq org-show-following-heading t)
+(setq org-show-hierarchy-above t)
+(setq org-show-siblings (quote ((default))))
+
+(require 'org-crypt)
+;; Encrypt all entries before saving
+(org-crypt-use-before-save-magic)
+(setq org-tags-exclude-from-inheritance (quote ("crypt")))
+;; GPG key to use for encryption
+(setq org-crypt-key "C1C8D63F884EF9C9")
+;; don't ask to disable auto-save
+(setq org-crypt-disable-auto-save nil)
+
+
+;; leave highlights in sparse tree after edit. C-c C-c removes highlights
+(setq org-remove-highlights-with-change nil)
+
+(add-to-list 'org-structure-template-alist '("sp" "#+BEGIN_SRC python\n?\n#+END_SRC"))
+(add-to-list 'org-structure-template-alist '("si" "#+BEGIN_SRC ipython\n?\n#+END_SRC"))
+
+
+;; Overwrite the current window with the agenda
+(setq org-agenda-window-setup 'current-window)
+
+;; disable whitespace-mode in org-mode
+(add-hook 'org-mode-hook (lambda () (whitespace-mode -1)))
 
 ;; use utf-8 characters instead of `*` as bullet points
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
+(require 'org-pomodoro)
+
+;; called with py3status in ~/.config/i3status/config with emacsclient --eval
+(defun dakra/org-pomodoro-i3-bar-time ()
+  "Display remaining pomodoro time in i3 status bar."
+  (if (org-pomodoro-active-p)
+      (format "Pomodoro: %d minutes - %s" (/ org-pomodoro-countdown 60) org-clock-heading)
+    "No active pomodoro"))
+
+;;(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
+;;(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
+;;(setq org-pomodoro-killed-hook 'dakra/org-pomodoro-i3-bar-time)
+
+
+;;; Create org TODO from github issue
+;; FIXME:
+;; get gh user/project from org filename/header? or properties?
+;; replace ^M chars with \n
+;; always insert TODO even when on NEXT header
+;; ...
+(require 'gh)
+(defun dakra/org-insert-gh-issue (issue-number)
+  (interactive "NGithub issue number:")
+  (let (api raw-issue issue issue-title issue-body)
+    (setf api (gh-issues-api "api" :sync nil :cache nil :num-retries 1))
+    (setf raw-issue (gh-issues-issue-get api "atomx" "api" issue-number))
+    (setf issue (oref raw-issue :data))
+    (setf issue-title (oref issue :title))
+    (setf issue-body (oref issue :body))
+    (org-insert-todo-heading-respect-content)
+    (org-insert-link nil
+                     (format "https://github.com/atomx/api/issues/%s" issue-number)
+                     (format "#%s: %s" issue-number issue-title))
+    (when bh/insert-inactive-timestamp
+      (next-line)
+      (move-end-of-line 1))
+    (insert (format "\n%s" issue-body))))
+
+
+;;; automatically create github issues from org-mode
+;; You have to set 'GH-PROJECT' property
+(defun gh-issue-new-browse (project title body)
+  (browse-url (concat "https://github.com/"
+                      project
+                      "/issues/new?title="
+                      (url-hexify-string title)
+                      "&body="
+                      (url-hexify-string body))))
+
+(defun gh-issue-create ()
+  (interactive)
+  (gh-issue-new-browse (org-entry-get (point) "GH-PROJECT" t)
+                       (org-get-heading)
+                       (org-export-as 'gfm t)))
+
+
+;;; org babel config
 
 (setq org-confirm-babel-evaluate nil)  ; don't prompt me to confirm everytime I want to evaluate a block
 
@@ -113,23 +312,6 @@
          "xclip -selection clipboard -t 'text/html' -i"))
       (kill-buffer buf))))
 ;;(global-set-key (kbd "C-c e") 'org-formatted-copy)
-
-(require 'org-pomodoro)
-
-(defun dakra/org-pomodoro-i3-bar-time ()
-  "Display remaining pomodoro time in i3 status bar."
-  (interactive)
-  (with-temp-file "~/.emacs.d/.pomodoro"
-    (if (org-pomodoro-active-p)
-        (insert (format "Pomodoro: %d minutes" (/ org-pomodoro-countdown 60)))
-      (insert "No active pomodoro"))))
-
-(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
-
-(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
-(setq org-pomodoro-killed-hook 'dakra/org-pomodoro-i3-bar-time)
-
-
 
 ;; Tab should do indent in code blocks
 (setq org-src-tab-acts-natively t)
@@ -210,22 +392,14 @@ session as the current block. ARG has same meaning as in
       (org-babel-remove-result))))
 
 
-;;; automatically create github issues from org-mode
-;; You have to set 'GH-PROJECT' property
-(defun gh-issue-new-browse (project title body)
-  (browse-url (concat "https://github.com/"
-                      project
-                      "/issues/new?title="
-                      (url-hexify-string title)
-                      "&body="
-                      (url-hexify-string body))))
-
-(defun gh-issue-create ()
-  (interactive)
-  (gh-issue-new-browse (org-entry-get (point) "GH-PROJECT" t)
-                       (org-get-heading)
-                       (org-export-as 'gfm t)))
-
+;; this adds a "new language" in babel that gets exported as js in html
+;; https://www.reddit.com/r/orgmode/comments/5bi6ku/tip_for_exporting_javascript_source_block_to/
+(add-to-list 'org-src-lang-modes '("inline-js" . javascript))
+(defvar org-babel-default-header-args:inline-js
+  '((:results . "html")
+    (:exports . "results")))
+(defun org-babel-execute:inline-js (body _params)
+  (format "<script type=\"text/javascript\">\n%s\n</script>" body))
 
 ;; dot == graphviz-dot
 (add-to-list 'org-src-lang-modes (quote ("dot" . graphviz-dot)))
@@ -254,6 +428,7 @@ session as the current block. ARG has same meaning as in
    (ledger . t)
    (lilypond)
    (lisp)
+   (lua)
    (matlab)
    (maxima)
    (mscgen)

@@ -14,19 +14,22 @@
 
    ;;sr-speedbar  ; open speedbar inside the frame
    ;;projectile-speedbar
+   wolfram
 
    ;; typing helpers
-   yasnippet
    emmet-mode
-   helm-emmet
-   whole-line-or-region  ; operate on current line if region is undefined
-   highlight-symbol  ; highlight all symbols like the one under the cursor
-   multiple-cursors
-   region-bindings-mode  ; clone cursor with n,p when region selected
-   swiper-helm  ; C-s search with helm
    goto-chg  ; goto last change
+   helm-emmet
    highlight-indent-guides
+   highlight-symbol  ; highlight all symbols like the one under the cursor
+   iedit
+   multiple-cursors
    origami  ; code folding
+   region-bindings-mode  ; clone cursor with n,p when region selected
+   smart-region
+   swiper-helm  ; C-s search with helm
+   whole-line-or-region  ; operate on current line if region is undefined
+   yasnippet
 
    ;; git / github
    browse-at-remote  ; "C-G" opens current buffer on github
@@ -69,6 +72,48 @@
 
 ;; disable arrow keys to be forced to learn emacs
 ;;(setq guru-warn-only nil)
+
+;; display custom agenda when starting emacs
+(add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
+
+
+;;; toggle narrow or widen (region or defun) with C-x n
+(defun narrow-or-widen-dwim (p)
+  "Widen if buffer is narrowed, narrow-dwim otherwise.
+Dwim means: region, org-src-block, org-subtree, or
+defun, whichever applies first.  Narrowing to
+org-src-block actually calls `org-edit-src-code'.
+
+With prefix P, don't widen, just narrow even if buffer
+is already narrowed."
+  (interactive "P")
+  (declare (interactive-only))
+  (cond ((and (buffer-narrowed-p) (not p)) (widen))
+        ((region-active-p)
+         (narrow-to-region (region-beginning)
+                           (region-end)))
+        ((derived-mode-p 'org-mode)
+         ;; `org-edit-src-code' is not a real narrowing
+         ;; command. Remove this first conditional if
+         ;; you don't want it.
+         (cond ((ignore-errors (org-edit-src-code) t)
+                (delete-other-windows))
+               ((ignore-errors (org-narrow-to-block) t))
+               (t (org-narrow-to-subtree))))
+        ((derived-mode-p 'latex-mode)
+         (LaTeX-narrow-to-environment))
+        (t (narrow-to-defun))))
+(define-key ctl-x-map "n" #'narrow-or-widen-dwim)
+
+;; C-SPC is smart-region
+(smart-region-on)
+
+;; dired list size in human-readable format and list directories first
+(setq dired-listing-switches "-hal --group-directories-first")
+
+;; wolfram alpha queries (M-x wolfram-alpha)
+(require 'wolfram)
+(setq wolfram-alpha-app-id "KTKV36-2LRW2LELV8")
 
 ;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
 (setq fill-column 80)
@@ -116,7 +161,9 @@
 (require 'company-emoji)
 (add-to-list 'company-backends 'company-emoji)
 
-(setq company-idle-delay 0.1)  ; show auto completion almost instantly
+;; FIXME: can't set it to lower value because of anaconda bug:
+;; https://github.com/proofit404/anaconda-mode/issues/183
+(setq company-idle-delay 0.5)  ; show auto completion almost instantly
 (setq company-begin-commands '(self-insert-command)) ; start autocompletion only after typing
 ;; don't auto complete with <return> but with C-j
 (with-eval-after-load 'company
@@ -175,6 +222,14 @@
 (setq browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "google-chrome")
 
+(defun dakra-toggle-browser ()
+  (interactive)
+  (if (eq browse-url-browser-function 'eww-browse-url)
+      (setq browse-url-browser-function 'browse-url-generic
+            browse-url-generic-program "google-chrome")
+    (setq browse-url-browser-function 'eww-browse-url)))
+
+
 (setq sml/theme 'powerline)  ; smart-mode-line theme
 
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
@@ -201,19 +256,13 @@
 ;;(global-set-key (kbd "C-x v s") 'git-gutter:stage-hunk)
 ;;(global-set-key (kbd "C-x v r") 'git-gutter:revert-hunk)
 
+;; Save whatever’s in the current (system) clipboard before
+;; replacing it with the Emacs’ text.
+;; https://github.com/dakrone/eos/blob/master/eos.org
+(setq save-interprogram-paste-before-kill t)
 
-;; yank text to X11 clipboard
-(defun yank-to-x-clipboard ()
-  (interactive)
-  (if (region-active-p)
-      (progn
-        (shell-command-on-region (region-beginning) (region-end) "xsel -i")
-        (message "Yanked region to clipboard!")
-        (deactivate-mark))
-    (message "No region active; can't yank to clipboard!")))
-
-(global-set-key (kbd "C-c y") 'yank-to-x-clipboard)
-
+;; allow horizontal scrolling with "M-x >"
+(put 'scroll-left 'disabled nil)
 
 (setq ffap-machine-p-known 'reject)  ; don't "ping Germany" when typing test.de<TAB>
 
@@ -472,9 +521,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                 (font-lock-mode 1))))
 
 
-(setq whitespace-global-modes '(not org-mode org-src-mode))  ; don't use whitespace-mode in org-mode
 (setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
-
 
 (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
 (setq web-mode-markup-indent-offset 2)
@@ -571,6 +618,11 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (global-set-key (kbd "C-;") 'avy-goto-char-timer)
 
 (global-set-key "\C-s" 'swiper-helm)  ; use swiper with helm backend for search
+
+
+(setq iedit-toggle-key-default nil)
+(require 'iedit)
+(global-set-key (kbd "C-c ;") 'iedit-mode)
 
 
 (require 'yasnippet)
