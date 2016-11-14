@@ -44,10 +44,11 @@
     (set-keymap-parent newmap oldmap)
     (define-key newmap (kbd "C-c +") nil)
     (define-key newmap (kbd "C-c -") nil)
-    (define-key newmap (kbd "C-a") nil)
+    (define-key newmap (kbd "C-a") nil)  ; C-a is smarter in org-mode
+    (define-key newmap [(control shift return)] nil)  ; C-S-return adds new TODO
     (make-local-variable 'minor-mode-overriding-map-alist)
     (push `(prelude-mode . ,newmap) minor-mode-overriding-map-alist))
-)
+  )
 
 (setq prelude-org-mode-hook 'prelude-org-mode-defaults)
 

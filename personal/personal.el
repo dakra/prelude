@@ -12,6 +12,7 @@
    color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
+   quelpa  ; install/update packages from source
    ;;sr-speedbar  ; open speedbar inside the frame
    ;;projectile-speedbar
    wolfram
@@ -116,7 +117,8 @@ is already narrowed."
 (setq wolfram-alpha-app-id "KTKV36-2LRW2LELV8")
 
 ;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
-(setq fill-column 80)
+;; set with 'custom' since it's buffer-local variable
+;; (setq fill-column 80)
 
 ;; Use 'C-c S' or 'M-s M-w' for 'eww-search-words' current region
 (define-key prelude-mode-map (kbd "C-c S") nil)  ; remove default crux find-shell-init keybinding
@@ -153,13 +155,13 @@ is already narrowed."
 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Frames.html
 (add-hook 'after-make-frame-functions '--set-emoji-font)
 
+(require 'company-emoji)
+(add-to-list 'company-backends 'company-emoji)
+
 ;; company-mode config
 
 (require 'slime-company)
 (slime-setup '(slime-fancy slime-company))
-
-(require 'company-emoji)
-(add-to-list 'company-backends 'company-emoji)
 
 ;; FIXME: can't set it to lower value because of anaconda bug:
 ;; https://github.com/proofit404/anaconda-mode/issues/183
@@ -472,6 +474,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; auto highlight all occurences of symbol under cursor
 ;;(add-hook 'prog-mode-hook #'highlight-symbol-mode)
+;;(setq highlight-symbol-idle-delay 0.5)
 (define-key prelude-mode-map (kbd "C-c s") nil)  ; remove default crux swap windows keybinding
 (global-set-key (kbd "C-c s") 'highlight-symbol)
 
@@ -602,6 +605,15 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; Make god-mode a little bit more vi-like
 (global-set-key (kbd "<escape>") 'god-local-mode)
 (define-key god-local-mode-map (kbd "i") 'god-local-mode)
+
+;; change curser to bar when in god-mode
+(defun god-update-cursor ()
+  "Toggle curser style to bar when in god-mode"
+  (setq cursor-type (if (or god-local-mode buffer-read-only)
+                        'bar
+                      'box)))
+(add-hook 'god-mode-enabled-hook 'god-update-cursor)
+(add-hook 'god-mode-disabled-hook 'god-update-cursor)
 
 ;; goto last change
 (global-set-key (kbd "C-c \\") 'goto-last-change)

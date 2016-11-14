@@ -13,12 +13,15 @@
    ob-restclient
    org-download
    org-pomodoro
+   ox-jira
    ))
 
 ;; Install newest org and org-plus-contrib packages
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
 (require 'org-habit)
+
+(require 'ox-jira)  ; for jira export (then copy&paste to ticket)
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 
@@ -48,6 +51,10 @@
 (global-set-key (kbd "<f7>") 'org-clock-goto)
 (global-set-key (kbd "<f8>") 'org-pomodoro)
 
+;; install the restapi branch from org-jira (not on melpa yet)
+(quelpa '(org-jira :fetcher github :repo "baohaojun/org-jira" :branch "restapi") :upgrade nil)
+;;(require 'org-jira)
+(setq jiralib-url "https://jira.paesslergmbh.de")
 
 ;; Enter key follows links (= C-c C-o)
 (setq org-return-follows-link t)
@@ -240,7 +247,9 @@
   "Display remaining pomodoro time in i3 status bar."
   (if (org-pomodoro-active-p)
       (format "Pomodoro: %d minutes - %s" (/ org-pomodoro-countdown 60) org-clock-heading)
-    "No active pomodoro"))
+    (if (org-clock-is-active)
+        (org-no-properties (org-clock-get-clock-string))
+      "No active pomodoro or tasks")))
 
 ;;(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
 ;;(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
@@ -256,7 +265,7 @@
 (require 'gh)
 (defun dakra/org-insert-gh-issue (issue-number)
   (interactive "NGithub issue number:")
-  (let (api raw-issue issue issue-title issue-body)
+  (let (api raw-issue issue issue-title issue-body start-point)
     (setf api (gh-issues-api "api" :sync nil :cache nil :num-retries 1))
     (setf raw-issue (gh-issues-issue-get api "atomx" "api" issue-number))
     (setf issue (oref raw-issue :data))
@@ -269,8 +278,11 @@
     (when bh/insert-inactive-timestamp
       (next-line)
       (move-end-of-line 1))
-    (insert (format "\n%s" issue-body))))
-
+    (insert "\n")
+    (setq start-point (point))
+    (insert (format "%s" issue-body))
+    (shell-command-on-region start-point (point) "pandoc -f markdown_github -t org" :replace t)
+    (org-indent-refresh-maybe (point) (mark) nil)))
 
 ;;; automatically create github issues from org-mode
 ;; You have to set 'GH-PROJECT' property

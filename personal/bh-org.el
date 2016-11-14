@@ -833,4 +833,18 @@ Late deadlines first, then scheduled, then non-late deadlines"
 
 (add-hook 'org-insert-heading-hook 'bh/insert-heading-inactive-timestamp 'append)
 
+
+;; automatically change the list bullets when you change list levels
+(setq org-list-demote-modify-bullet (quote (("+" . "-")
+                                            ("*" . "-")
+                                            ("1." . "-")
+                                            ("1)" . "-")
+                                            ("A)" . "-")
+                                            ("B)" . "-")
+                                            ("a)" . "-")
+                                            ("b)" . "-")
+                                            ("A." . "-")
+                                            ("B." . "-")
+                                            ("a." . "-")
+                                            ("b." . "-"))))
 ;;; bh-org.el ends here
