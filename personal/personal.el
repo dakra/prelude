@@ -77,6 +77,8 @@
 ;; display custom agenda when starting emacs
 (add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
 
+;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
+(setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5")
 
 ;;; toggle narrow or widen (region or defun) with C-x n
 (defun narrow-or-widen-dwim (p)

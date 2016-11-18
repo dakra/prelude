@@ -383,6 +383,8 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (setq org-drawers (quote ("PROPERTIES" "LOGBOOK")))
 ;; Save clock data and state changes and notes in the LOGBOOK drawer
 (setq org-clock-into-drawer t)
+;; make time editing use discrete minute intervals (no rounding) increments
+(setq org-time-stamp-rounding-minutes (quote (1 1)))
 ;; Sometimes I change tasks I'm clocking quickly - this removes clocked tasks with 0:00 duration
 (setq org-clock-out-remove-zero-time-clocks t)
 ;; Clock out when moving task to a done state

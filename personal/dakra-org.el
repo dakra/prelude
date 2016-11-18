@@ -19,7 +19,10 @@
 ;; Install newest org and org-plus-contrib packages
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
-(require 'org-habit)
+(require 'org-habit)  ; track habits
+
+(require 'org-man)  ; make org-links work with man pages
+(setq org-man-command 'woman)  ; open org-link man pages with woman
 
 (require 'ox-jira)  ; for jira export (then copy&paste to ticket)
 

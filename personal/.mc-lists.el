@@ -7,10 +7,10 @@
         crux-smart-open-line
         electric-newline-and-maybe-indent
         helm-show-kill-ring
+        indent-for-tab-command
         org-delete-char
         org-self-insert-command
         sp-backward-delete-char
-        sp-forward-slurp-sexp
         whole-line-or-region-yank
         yas-expand
         ))
