@@ -78,13 +78,20 @@
 (define-key mu4e-headers-mode-map (kbd "d") 'my-move-to-trash)
 (define-key mu4e-view-mode-map (kbd "d") 'my-move-to-trash)
 
+;; Don't ask to quit
+(setq mu4e-confirm-quit nil)
+
 ;; gmail delete == move mail to trash folder
 (fset 'my-move-to-trash "mt")
 (define-key mu4e-headers-mode-map (kbd "D") 'my-move-to-trash)
 (define-key mu4e-view-mode-map (kbd "D") 'my-move-to-trash)
 
 (setq mu4e-bookmarks `(("maildir:/gmail/inbox OR maildir:/atomx/inbox OR maildir:/hogaso/inbox OR maildir:/e5/inbox" "All inboxes" ?i)
-                       ("flag:flagged" "Flagged messages" ?f)))
+                       ("flag:flagged" "Flagged messages" ?f)
+                       ("list:pylons-discuss@googlegroups.com OR list:pylons-devel@googlegroups.com" "Pyramid"?p)
+                       ("list:intern.lists.ccc.de" "CCC Intern"?c)
+                       ("list:intern.lists.entropia.de" "Entropia Intern" ?e)
+                       ("list:uwsgi.lists.unbit.it" "uwsgi" ?u)))
 ;; (setq mu4e-bookmarks `(("\\\\Inbox" "Inbox" ?i)
 ;;                        ("flag:flagged" "Flagged messages" ?f)
 ;;                        (,(concat "flag:unread AND "
@@ -115,6 +122,23 @@
 ;;; Save attachment (this can also be a function)
 (setq mu4e-attachment-dir "~/Downloads")
 
+;; Attach files from dired (C-c RET C-a)
+(require 'gnus-dired)
+;; make the `gnus-dired-mail-buffers' function also work on
+;; message-mode derived modes, such as mu4e-compose-mode
+(defun gnus-dired-mail-buffers ()
+  "Return a list of active message buffers."
+  (let (buffers)
+    (save-current-buffer
+      (dolist (buffer (buffer-list t))
+        (set-buffer buffer)
+        (when (and (derived-mode-p 'message-mode)
+                   (null message-sent-message-via))
+          (push (buffer-name buffer) buffers))))
+    (nreverse buffers)))
+
+(setq gnus-dired-mail-mode 'mu4e-user-agent)
+(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
 
 ;; display html messages
 (require 'mu4e-contrib)
@@ -128,14 +152,18 @@
 
 ;; Don't reply to self
 (setq mu4e-user-mail-address-list
-      '("daniel.kraus@gmail.com" "dakra@tr0ll.net"
+      '("daniel.kraus@gmail.com" "dakra@tr0ll.net" "d@niel-kraus.de"
         "daniel@atomx.com" "daniel@hogaso.com" "daniel.kraus@ebenefuenf.de"))
 (setq mu4e-compose-dont-reply-to-self t)
 
 ;; Always display plain text messages.
-(setq mu4e-view-html-plaintext-ratio-heuristic 30)
+(setq mu4e-view-html-plaintext-ratio-heuristic most-positive-fixnum)
 
 (setq mu4e-msg2pdf "/usr/bin/msg2pdf")  ; to display html messages as pdf
+
+;; View mail in browser with "a V"
+(add-to-list 'mu4e-view-actions
+             '("ViewInBrowser" . mu4e-action-view-in-browser) t)
 
 ;; enable inline images
 (setq mu4e-view-show-images t)

@@ -28,9 +28,31 @@
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 
+;;(setq org-list-indent-offset 1)
+
 (setq org-directory "~/org/")
 
 (setq org-agenda-files '("~/org"))
+
+;; Show headings up to level 2 by default when opening an org files
+(setq org-startup-folded 'content)
+;; overwrite org function to only show 'org-content' of level 2
+(defun org-set-startup-visibility ()
+  "Set the visibility required by startup options and properties."
+  (cond
+   ((eq org-startup-folded t)
+    (org-overview))
+   ((eq org-startup-folded 'content)
+    (org-content 2))
+   ((or (eq org-startup-folded 'showeverything)
+	(eq org-startup-folded nil))
+    (outline-show-all)))
+  (unless (eq org-startup-folded 'showeverything)
+    (when org-hide-block-startup (org-hide-block-all))
+    (org-set-visibility-according-to-property 'no-cleanup)
+    (org-cycle-hide-archived-subtrees 'all)
+    (org-cycle-hide-drawers 'all)
+    (org-cycle-show-empty-lines t)))
 
 ;; org-mode keybindings
 (add-hook 'org-mode-hook
@@ -58,6 +80,22 @@
 (quelpa '(org-jira :fetcher github :repo "baohaojun/org-jira" :branch "restapi") :upgrade nil)
 ;;(require 'org-jira)
 (setq jiralib-url "https://jira.paesslergmbh.de")
+
+;; we never want to upgrade org-jira (to the soap version on master)
+;; This snippet prevents package-menu to update it
+(defvar package-menu-exclude-packages '("org-jira"))
+
+(defun package-menu--remove-excluded-packages (orig)
+  (let ((included (-filter
+                   (lambda (entry)
+                     (let ((name (symbol-name (package-desc-name (car entry)))))
+                       (not (member name package-menu-exclude-packages))))
+                   tabulated-list-entries)))
+    (setq-local tabulated-list-entries included)
+    (funcall orig)))
+
+(advice-add 'package-menu--find-upgrades :around #'package-menu--remove-excluded-packages)
+
 
 ;; Enter key follows links (= C-c C-o)
 (setq org-return-follows-link t)
@@ -119,7 +157,7 @@
         ("p" "Protocol" entry (file ,(concat org-directory "refile.org"))
          "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
         ("L" "Protocol Link" entry (file ,(concat org-directory "refile.org"))
-         "* %? [[%:link][%:description]] \nCaptured On: %U")
+         "* %?\nCaptured On: %U\n[[%:link][%:description]]\n")
         ("h" "Habit" entry (file ,(concat org-directory "refile.org"))
          "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
@@ -133,6 +171,16 @@
 ;; Compact the block agenda view
 (setq org-agenda-compact-blocks nil)
 
+;; Only show the current clocked time in mode line (not all)
+(setq org-clock-mode-line-total 'current)
+
+;; Clocktable (C-c C-x C-r) defaults
+;; FIXME: doesn't work?
+(setq org-clocktable-defaults
+      '(:maxlevel 5 :lang "en" :scope file-with-archives :block thismonth
+                  :wstart 1 :mstart 1 :tstart nil :tend nil :step nil :stepskip0 nil :fileskip0 nil
+                  :tags nil :emphasize t :link nil :narrow 70! :indent t :formula nil :timestamp nil
+                  :level nil :tcolumns nil :formatter nil))
 
 ;; Agenda clock report parameters
 (setq org-agenda-clockreport-parameter-plist
@@ -210,7 +258,7 @@
 
 
 ;; Use sticky agenda's so they persist
-(setq org-agenda-sticky t)
+;;(setq org-agenda-sticky t)
 
 ;; Show a little bit more when using sparse-trees
 (setq org-show-following-heading t)
@@ -226,6 +274,9 @@
 ;; don't ask to disable auto-save
 (setq org-crypt-disable-auto-save nil)
 
+
+;; don't show * / = etc
+(setq org-hide-emphasis-markers t)
 
 ;; leave highlights in sparse tree after edit. C-c C-c removes highlights
 (setq org-remove-highlights-with-change nil)
@@ -331,6 +382,9 @@
 ;; Tab should do indent in code blocks
 (setq org-src-tab-acts-natively t)
 
+;; Don't remove (or add) any extra whitespace
+(setq org-src-preserve-indentation t)
+(setq org-edit-src-content-indentation 0)
 
 ;;; Some helper function to manage org-babel sessions
 
@@ -462,7 +516,7 @@ session as the current block. ARG has same meaning as in
    (scala)
    (scheme)
    (screen)
-   (sh . t)
+   (shell . t)
    (shen)
    (sql . t)
    (sqlite)))

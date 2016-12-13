@@ -17,9 +17,14 @@
    ;;projectile-speedbar
    wolfram
 
+   docker
+   docker-tramp
+   dockerfile-mode
+
    ;; typing helpers
    emmet-mode
    goto-chg  ; goto last change
+   back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
    helm-emmet
    highlight-indent-guides
    highlight-symbol  ; highlight all symbols like the one under the cursor
@@ -40,9 +45,9 @@
 
    ;; coding major/minor modes
    lua-mode
-   dockerfile-mode
    nginx-mode
    graphviz-dot-mode
+   litable  ; live preview for elisp
    systemd
    skewer-mode  ; js live reloading
    tide  ; typescript
@@ -54,7 +59,7 @@
    virtualenvwrapper
    slime-company
    company-tern
-   company-emoji
+   ;;company-emoji
    company-restclient
    company-quickhelp
    restclient
@@ -66,6 +71,10 @@
 ;; temporary fixes:
 ;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
 (defalias 'display-buffer-in-major-side-window 'window--make-major-side-window)
+
+
+(require 'back-button)
+(back-button-mode 1)
 
 ;; save and restore buffer and cursor positions (but don't restore window layout)
 ;;(desktop-save-mode 1)
@@ -113,7 +122,13 @@ is already narrowed."
 
 ;; dired list size in human-readable format and list directories first
 (setq dired-listing-switches "-hal --group-directories-first")
+(setq dired-dwim-target t)
+(setq diredp-dwim-any-frame-flag t)
+(diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
 
+(add-to-list 'tramp-default-proxies-alist
+             '("api" "atomx" "/ssh:api:"))
+(set 'tramp-default-proxies-alist nil)
 ;; wolfram alpha queries (M-x wolfram-alpha)
 (require 'wolfram)
 (setq wolfram-alpha-app-id "KTKV36-2LRW2LELV8")
@@ -147,6 +162,7 @@ is already narrowed."
 
 ;; emoji font
 ;; package ttf-symbola has to be installed
+;; Just use "C-x 8 RET <type name>" insead
 (defun --set-emoji-font (frame)
   "Adjust the font settings of FRAME so Emacs can display emoji properly."
   (set-fontset-font t 'symbol (font-spec :family "Symbola") frame 'prepend))
@@ -157,8 +173,8 @@ is already narrowed."
 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Frames.html
 (add-hook 'after-make-frame-functions '--set-emoji-font)
 
-(require 'company-emoji)
-(add-to-list 'company-backends 'company-emoji)
+;;(require 'company-emoji)
+;;(add-to-list 'company-backends 'company-emoji)
 
 ;; company-mode config
 
@@ -236,6 +252,7 @@ is already narrowed."
 
 (setq sml/theme 'powerline)  ; smart-mode-line theme
 
+(setq docker-keymap-prefix "C-c C-d")  ; set docker-mode prefix
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
 
 ;; XXX: never use speedbar. disable for now
@@ -297,7 +314,7 @@ displayed anywhere else."
 
 ;; SQL
 (require 'sql)
-(sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\) \\[[_a-zA-Z]*\\]> ")
+(sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\) \\[[_a-zA-Z0-9]*\\]> ")
 
 (setq sql-product 'mysql)
 (setq sql-connection-alist
@@ -309,19 +326,28 @@ displayed anywhere else."
                           (sql-server "127.0.0.1")
                           (sql-port 3307)
                           (sql-user "root")
-                          (sql-database "api"))))
+                          (sql-database "api"))
+        (paessler-docker (sql-product 'mysql)
+                         (sql-server "127.0.0.1")
+                         (sql-port 3308)
+                         (sql-user "root")
+                         (sql-database "paessler_com2"))))
 
 (setq sql-mysql-login-params (append sql-mysql-login-params '(port)))
 
-(defun dakra-sql-atomx-local-api ()
+(defun dakra/sql-atomx-local-api ()
   (interactive)
-  (dakra-sql-connect 'mysql 'atomx-local-api))
+  (dakra/sql-connect 'mysql 'atomx-local-api))
 
-(defun dakra-sql-atomx-remote-api ()
+(defun dakra/sql-atomx-remote-api ()
   (interactive)
-  (dakra-sql-connect 'mysql 'atomx-remote-api))
+  (dakra/sql-connect 'mysql 'atomx-remote-api))
 
-(defun dakra-sql-connect (product connection)
+(defun dakra/sql-paessler-docker ()
+  (interactive)
+  (dakra/sql-connect 'mysql 'paessler-docker))
+
+(defun dakra/sql-connect (product connection)
   ;; load the password
   (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")
 
@@ -355,8 +381,9 @@ displayed anywhere else."
 (require 'sqlup-mode)
 (add-hook 'sql-mode-hook 'sqlup-mode)
 (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
-;; Don't capitalize `name` keyword
+;; Don't capitalize `name` or 'type' keyword
 (add-to-list 'sqlup-blacklist "name")
+(add-to-list 'sqlup-blacklist "type")
 
 ;; use tern for js autocompletion
 (add-hook 'js-mode-hook (lambda () (tern-mode t)))
@@ -378,11 +405,14 @@ displayed anywhere else."
 
 (define-key emmet-mode-keymap (kbd "C-M-p") 'emmet-prev-edit-point)
 (define-key emmet-mode-keymap (kbd "C-M-n") 'emmet-next-edit-point)
-(define-key emmet-mode-keymap (kbd "TAB") 'emmet-next-edit-point)
+;;(define-key emmet-mode-keymap (kbd "TAB") 'emmet-next-edit-point)
 
 (setq emmet-move-cursor-between-quotes t)
 (setq emmet-move-cursor-after-expanding t)
 
+(setq auto-mode-alist (rassq-delete-all 'css-mode auto-mode-alist))
+;; css files in ccss subfolder are 'clever-css'
+(add-to-list 'auto-mode-alist '("/ccss/.*\\.css\\'" . clevercss-mode))
 
 ;; python
 
@@ -413,23 +443,14 @@ displayed anywhere else."
 (flycheck-add-next-checker 'python-flake8 'python-pylint)
 (setq flycheck-flake8-maximum-line-length 120)
 
-;; XXX: Emacs25 python hangs when this is set to `true`
-(setq python-shell-completion-native-enable nil)
-
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
-(setq python-shell-interpreter "ipython"
-      python-shell-interpreter-args "--simple-prompt -i")
+;; when setting interpreter to 'ipython', you need additional '--simple-prompt' arg
+(setq python-shell-interpreter "python"
+      python-shell-interpreter-args "-i")
 ;; FIXME: run new python interpreter on projectile-switch-project?
 ;; and only run pshell when it's a pyramid project.
 ;;(setq python-shell-interpreter "python"
 ;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
-
-;; XXX: run python once automatically?
-;; run-python once for eldoc
-;; (defun run-python-once ()
-;;   (remove-hook 'anaconda-mode-hook 'run-python-once)
-;;   (run-python))
-;; (add-hook 'anaconda-mode-hook 'run-python-once)
 
 (require 'virtualenvwrapper)
 (venv-initialize-interactive-shells) ;; if you want interactive shell support
@@ -460,6 +481,9 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; auto completion in restclient-mode
 (add-to-list 'company-backends 'company-restclient)
 
+;; disable auto escape quote feature of smartparens
+(setq sp-escape-quotes-after-insert nil
+      sp-escape-wrapped-region nil)
 
 ;; open current line/region/dired/commit in github
 (define-key prelude-mode-map (kbd "C-c G") nil)
@@ -533,6 +557,9 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; auto close tags in web-mode
 (setq web-mode-enable-auto-closing t)
 ;;(setq web-mode-enable-auto-pairing t)  ; doesn't play nice with smartparens
+;; FIXME: do dir-locals
+(setq web-mode-engines-alist
+      '(("django"  . "/templates/.*\\.html\\'")))
 
 ;; TypeScript
 (setq typescript-indent-level 2)
@@ -628,7 +655,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; remove flyspess 'C-;' keybinding so we can use it for avy jump
 (eval-after-load "flyspell"
   '(define-key flyspell-mode-map (kbd "C-;") nil))
-(setq avy-timeout-seconds 0.4)  ; only wait 0.4 seconds for char timeout (default 0.5)
+(setq avy-timeout-seconds 0.3)  ; only wait 0.3 seconds for char timeout (default 0.5)
 (global-set-key (kbd "C-;") 'avy-goto-char-timer)
 
 (global-set-key "\C-s" 'swiper-helm)  ; use swiper with helm backend for search
