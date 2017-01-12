@@ -475,7 +475,7 @@ as the default task."
           (when bh/keep-clock-running
             (bh/clock-in-default-task)))))))
 
-(defvar bh/organization-task-id "eb155a82-92b2-4f25-a3c6-0304591af2f9")
+(defvar bh/organization-task-id "f2088c3f-8452-4221-b63e-fbd9fb83089f")
 
 (defun bh/clock-in-organization-task-as-default ()
   (interactive)
@@ -489,8 +489,38 @@ as the default task."
              (not org-clock-resolving-clocks-due-to-idleness))
     (bh/clock-in-parent-task)))
 
-;;(add-hook 'org-clock-out-hook 'bh/clock-out-maybe 'append)
+(add-hook 'org-clock-out-hook 'bh/clock-out-maybe 'append)
 
+(require 'org-id)
+(defun bh/clock-in-task-by-id (id)
+  "Clock in a task by id"
+  (org-with-point-at (org-id-find id 'marker)
+    (org-clock-in nil)))
+
+(defun bh/clock-in-last-task (arg)
+  "Clock in the interrupted task if there is one
+Skip the default task and get the next one.
+A prefix arg forces clock in of the default task."
+  (interactive "p")
+  (let ((clock-in-to-task
+         (cond
+          ((eq arg 4) org-clock-default-task)
+          ((and (org-clock-is-active)
+                (equal org-clock-default-task (cadr org-clock-history)))
+           (caddr org-clock-history))
+          ((org-clock-is-active) (cadr org-clock-history))
+          ((equal org-clock-default-task (car org-clock-history)) (cadr org-clock-history))
+          (t (car org-clock-history)))))
+    (widen)
+    (org-with-point-at clock-in-to-task
+      (org-clock-in nil))))
+
+;; Show 1 minute clocking gaps. Hit "v c" in the agenda view
+(setq org-agenda-clock-consistency-checks
+      (quote (:max-duration "4:00"
+                            :min-duration 0
+                            :max-gap 0
+                            :gap-ok-around ("4:00"))))
 
 ;; Exclude DONE state tasks from refile targets
 (defun bh/verify-refile-target ()

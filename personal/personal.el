@@ -16,15 +16,16 @@
    ;;sr-speedbar  ; open speedbar inside the frame
    ;;projectile-speedbar
    wolfram
+   keychain-environment  ; reload keychain info for ssh/gpg agent
 
    docker
    docker-tramp
    dockerfile-mode
 
    ;; typing helpers
+   back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
    emmet-mode
    goto-chg  ; goto last change
-   back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
    helm-emmet
    highlight-indent-guides
    highlight-symbol  ; highlight all symbols like the one under the cursor
@@ -44,27 +45,27 @@
    magit-gh-pulls
 
    ;; coding major/minor modes
-   lua-mode
-   nginx-mode
+   company-emoji
+   company-quickhelp
+   company-restclient
+   company-tern
+   fabric
    graphviz-dot-mode
    litable  ; live preview for elisp
-   systemd
-   skewer-mode  ; js live reloading
-   tide  ; typescript
+   lua-mode
    ng2-mode
-   sqlup-mode  ; make sql keywords automatically upercase
-   sphinx-mode
+   nginx-mode
+   outline-magic  ; better outline-mode
    realgud
-   fabric
-   virtualenvwrapper
-   slime-company
-   company-tern
-   ;;company-emoji
-   company-restclient
-   company-quickhelp
    restclient
    restclient-helm
-   outline-magic  ; better outline-mode
+   skewer-mode  ; js live reloading
+   slime-company
+   sphinx-mode
+   sqlup-mode  ; make sql keywords automatically upercase
+   systemd
+   tide  ; typescript
+   virtualenvwrapper
    ))
 
 
@@ -72,6 +73,25 @@
 ;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
 (defalias 'display-buffer-in-major-side-window 'window--make-major-side-window)
 
+;; temp: fish support for keychain reload environment
+;; https://github.com/tarsius/keychain-environment/issues/6
+(defun keychain-refresh-environment ()
+  "Set ssh-agent and gpg-agent environment variables.
+Set the environment variables `SSH_AUTH_SOCK', `SSH_AGENT_PID'
+and `GPG_AGENT' in Emacs' `process-environment' according to
+information retrieved from files created by the keychain script."
+  (interactive)
+  (let* ((ssh (shell-command-to-string "keychain -q --noask --agents ssh --eval"))
+         (gpg (shell-command-to-string "keychain -q --noask --agents gpg --eval")))
+    (list (and ssh
+               (string-match "SSH_AUTH_SOCK \\(.*?\\);" ssh)
+               (setenv       "SSH_AUTH_SOCK" (match-string 1 ssh)))
+          (and ssh
+               (string-match "SSH_AGENT_PID \\([0-9]*\\)?;" ssh)
+               (setenv       "SSH_AGENT_PID" (match-string 1 ssh)))
+          (and gpg
+               (string-match "GPG_AGENT_INFO \\(.*?\\);" gpg)
+               (setenv       "GPG_AGENT_INFO" (match-string 1 gpg))))))
 
 (require 'back-button)
 (back-button-mode 1)
@@ -88,6 +108,24 @@
 
 ;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
 (setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5")
+
+;; recenter window after imenu jump so cursor doesn't end up on the last line
+(add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
+
+(defun xah-paste-or-paste-previous ()
+  "Paste. When called repeatedly, paste previous.
+This command calls `yank', and if repeated, call `yank-pop'.
+
+URL `http://ergoemacs.org/emacs/emacs_paste_or_paste_previous.html'
+Version 2017-01-11"
+  (interactive)
+  (progn
+    (when (and delete-selection-mode (region-active-p))
+      (delete-region (region-beginning) (region-end)))
+    (if (eq real-last-command this-command)
+        (yank-pop 1)
+      (yank))))
+(global-set-key (kbd "C-y") 'xah-paste-or-paste-previous)
 
 ;;; toggle narrow or widen (region or defun) with C-x n
 (defun narrow-or-widen-dwim (p)
@@ -157,6 +195,9 @@ is already narrowed."
 (add-hook 'python-mode-hook 'highlight-indent-guides-mode)
 ;;(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
 
+;; Enable eldoc for python
+(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+
 ;; activate character folding in searches i.e. searching for 'a' matches 'ä' as well
 (setq search-default-mode 'char-fold-to-regexp)
 
@@ -215,16 +256,16 @@ is already narrowed."
 
 ;; since i3-mode always creates new frames instead of windows
 ;; rebind "C-x o" to switch frames if we use X11
-(global-set-key (kbd "C-x o") (lambda ()
-                                (interactive)
-                                (if (display-graphic-p)
-                                    (other-frame 1)
-                                  (other-window 1))))
-(global-set-key (kbd "C-x O") (lambda ()
-                                (interactive)
-                                (if (display-graphic-p)
-                                    (other-frame -1)
-                                  (other-window -1))))
+;;(global-set-key (kbd "C-x o") (lambda ()
+;;                                (interactive)
+;;                                (if (display-graphic-p)
+;;                                    (other-frame 1)
+;;                                  (other-window 1))))
+;;(global-set-key (kbd "C-x O") (lambda ()
+;;                                (interactive)
+;;                                (if (display-graphic-p)
+;;                                    (other-frame -1)
+;;                                  (other-window -1))))
 ;; C-x 2/3 should create a new frame in X
 (global-set-key (kbd "C-x 2") (lambda ()
                                 (interactive)
@@ -477,6 +518,12 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
              (shell-quote-argument (buffer-file-name))))
     (revert-buffer t t t)))
 
+
+;; importmagic
+;; FIXME: very buggy yet 15.12.2016
+;;(require 'importmagic)
+;;(add-hook 'python-mode-hook 'importmagic-mode)
+;;(define-key importmagic-mode-map (kbd "C-c C-i") 'importmagic-fix-symbol-at-point)
 
 ;; auto completion in restclient-mode
 (add-to-list 'company-backends 'company-restclient)

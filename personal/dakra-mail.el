@@ -30,6 +30,15 @@
 (setq org-export-with-toc nil)  ; turn off table of contents
 
 
+;; Show additional user-agent header
+(setq mu4e-view-fields
+      '(:from :to :cc :subject :flags :date :maildir :user-agent :mailing-list :tags :attachments :signature :decryption))
+
+;; Auto sign mails
+(add-hook 'mu4e-compose-mode-hook 'mml-secure-message-sign-pgpmime)
+;; Encrypt mails by calling (mml-secure-message-encrypt-pgpmime)
+
+
 ;; default
 (setq mu4e-maildir "~/.mail")
 
@@ -81,16 +90,26 @@
 ;; Don't ask to quit
 (setq mu4e-confirm-quit nil)
 
+;; Don't spam the minibuffer with 'Indexing...' messages
+(setq mu4e-hide-index-messages t)
+
 ;; gmail delete == move mail to trash folder
 (fset 'my-move-to-trash "mt")
 (define-key mu4e-headers-mode-map (kbd "D") 'my-move-to-trash)
 (define-key mu4e-view-mode-map (kbd "D") 'my-move-to-trash)
 
+;; Add some mailing lists
+(add-to-list 'mu4e~mailing-lists '("intern.lists.entropia.de" . "Entropia"))
+(add-to-list 'mu4e~mailing-lists '("intern.lists.ccc.de" . "CCC"))
+(add-to-list 'mu4e~mailing-lists '("pylons-discuss.googlegroups.com" . "Pyramid"))
+(add-to-list 'mu4e~mailing-lists '("pylons-devel.googlegroups.com" . "Pyramid"))
+
 (setq mu4e-bookmarks `(("maildir:/gmail/inbox OR maildir:/atomx/inbox OR maildir:/hogaso/inbox OR maildir:/e5/inbox" "All inboxes" ?i)
                        ("flag:flagged" "Flagged messages" ?f)
-                       ("list:pylons-discuss@googlegroups.com OR list:pylons-devel@googlegroups.com" "Pyramid"?p)
-                       ("list:intern.lists.ccc.de" "CCC Intern"?c)
-                       ("list:intern.lists.entropia.de" "Entropia Intern" ?e)
+                       ("list:magit@googlegroups.com OR list:mu-discuss@googlegroups.com" "Elisp" ?e)
+                       ("list:pylons-discuss@googlegroups.com OR list:pylons-devel@googlegroups.com OR list:sqlalchemy@googlegroups.com" "Python" ?p)
+                       ("list:intern.lists.ccc.de" "CCC Intern" ?c)
+                       ("list:intern.lists.entropia.de" "Entropia Intern" ?k)
                        ("list:uwsgi.lists.unbit.it" "uwsgi" ?u)))
 ;; (setq mu4e-bookmarks `(("\\\\Inbox" "Inbox" ?i)
 ;;                        ("flag:flagged" "Flagged messages" ?f)
@@ -152,8 +171,11 @@
 
 ;; Don't reply to self
 (setq mu4e-user-mail-address-list
-      '("daniel.kraus@gmail.com" "dakra@tr0ll.net" "d@niel-kraus.de"
-        "daniel@atomx.com" "daniel@hogaso.com" "daniel.kraus@ebenefuenf.de"))
+      '("daniel.kraus@gmail.com" "dakra@tr0ll.net" "daniel@tr0ll.net" "d@niel-kraus.de"
+        "dakra-cepheus@tr0ll.net"
+        "daniel@atomx.com"
+        "daniel@hogaso.com"
+        "daniel.kraus@ebenefuenf.de"))
 (setq mu4e-compose-dont-reply-to-self t)
 
 ;; Always display plain text messages.

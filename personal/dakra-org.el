@@ -74,7 +74,30 @@
 (global-set-key (kbd "<S-f5>") 'bh/widen)
 (global-set-key (kbd "<f6>") 'org-agenda)
 (global-set-key (kbd "<f7>") 'org-clock-goto)
-(global-set-key (kbd "<f8>") 'org-pomodoro)
+(global-set-key (kbd "<f8>") 'org-cycle-agenda-files)
+(global-set-key (kbd "<f9> <f9>") 'bh/show-org-agenda)
+(global-set-key (kbd "<f9> b") 'bbdb)
+(global-set-key (kbd "<f9> c") 'calendar)
+(global-set-key (kbd "<f9> f") 'boxquote-insert-file)
+(global-set-key (kbd "<f9> g") 'gnus)
+(global-set-key (kbd "<f9> h") 'bh/hide-other)
+(global-set-key (kbd "<f9> n") 'bh/toggle-next-task-display)
+
+(global-set-key (kbd "<f9> I") 'bh/punch-in)
+(global-set-key (kbd "<f9> O") 'bh/punch-out)
+
+(global-set-key (kbd "<f9> o") 'bh/make-org-scratch)
+
+(global-set-key (kbd "<f9> r") 'boxquote-region)
+(global-set-key (kbd "<f9> s") 'bh/switch-to-scratch)
+
+(global-set-key (kbd "<f9> t") 'bh/insert-inactive-timestamp)
+(global-set-key (kbd "<f9> T") 'bh/toggle-insert-inactive-timestamp)
+
+(global-set-key (kbd "<f9> v") 'visible-mode)
+(global-set-key (kbd "<f9> l") 'org-toggle-link-display)
+(global-set-key (kbd "<f9> SPC") 'bh/clock-in-last-task)
+(global-set-key (kbd "C-<f9>") 'previous-buffer)
 
 ;; install the restapi branch from org-jira (not on melpa yet)
 (quelpa '(org-jira :fetcher github :repo "baohaojun/org-jira" :branch "restapi") :upgrade nil)
@@ -133,7 +156,8 @@
 
 (setq org-clock-idle-time 10)  ; idle after 10 minutes
 
-
+(require 'org-id)
+(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
 
 (require 'org-protocol)
 ;; org-capture chrome plugin: https://chrome.google.com/webstore/detail/org-capture/kkkjlfejijcjgjllecmnejhogpbcigdc?hl=en
@@ -145,7 +169,7 @@
         ("T" "todo with link" entry (file ,(concat org-directory "refile.org"))
          "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
         ("r" "respond" entry (file ,(concat org-directory "refile.org"))
-         "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
+         "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
         ("n" "note" entry (file ,(concat org-directory "refile.org"))
          "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
         ("w" "org-protocol" entry (file ,(concat org-directory "refile.org"))
@@ -175,12 +199,20 @@
 (setq org-clock-mode-line-total 'current)
 
 ;; Clocktable (C-c C-x C-r) defaults
+(setq org-clock-clocktable-default-properties '(:block thismonth :scope file-with-archives))
+
 ;; FIXME: doesn't work?
 (setq org-clocktable-defaults
-      '(:maxlevel 5 :lang "en" :scope file-with-archives :block thismonth
+      '(:maxlevel 3 :lang "en" :scope file-with-archives :block thismonth
                   :wstart 1 :mstart 1 :tstart nil :tend nil :step nil :stepskip0 nil :fileskip0 nil
-                  :tags nil :emphasize t :link nil :narrow 70! :indent t :formula nil :timestamp nil
+                  :tags nil :emphasize nil :link t :narrow 70! :indent t :formula nil :timestamp nil
                   :level nil :tcolumns nil :formatter nil))
+
+;; Never show 'days' in clocksum (e.g. in report clocktable)
+;; format string used when creating CLOCKSUM lines and when generating a
+;; time duration (avoid showing days)
+(setq org-time-clocksum-format
+      '(:hours "%d" :require-hours t :minutes ":%02d" :require-minutes t))
 
 ;; Agenda clock report parameters
 (setq org-agenda-clockreport-parameter-plist
@@ -355,6 +387,9 @@
                        (org-export-as 'gfm t)))
 
 
+;; code-verbatim with backticks
+(add-to-list 'org-emphasis-alist '("`" org-code verbatim))
+
 ;;; org babel config
 
 (setq org-confirm-babel-evaluate nil)  ; don't prompt me to confirm everytime I want to evaluate a block
@@ -383,7 +418,7 @@
 (setq org-src-tab-acts-natively t)
 
 ;; Don't remove (or add) any extra whitespace
-(setq org-src-preserve-indentation t)
+(setq org-src-preserve-indentation nil)
 (setq org-edit-src-content-indentation 0)
 
 ;;; Some helper function to manage org-babel sessions
