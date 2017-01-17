@@ -169,7 +169,7 @@
         ("T" "todo with link" entry (file ,(concat org-directory "refile.org"))
          "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
         ("r" "respond" entry (file ,(concat org-directory "refile.org"))
-         "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
+         "* TODO Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
         ("n" "note" entry (file ,(concat org-directory "refile.org"))
          "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
         ("w" "org-protocol" entry (file ,(concat org-directory "refile.org"))
@@ -219,7 +219,10 @@
       (quote (:link t :maxlevel 5 :fileskip0 t :compact nil :narrow 80)))
 
 ;; Set default column view headings: Task Effort Clock_Summary
-(setq org-columns-default-format "%80ITEM(Task) %10Effort(Effort){:} %10CLOCKSUM")
+;;(setq org-columns-default-format "%80ITEM(Task) %10Effort(Effort){:} %10CLOCKSUM")
+
+;; Set default column view headings: Task Total-Time Time-Stamp
+(setq org-columns-default-format "%75ITEM(Task) %10CLOCKSUM %16TIMESTAMP_IA")
 
 ;; global Effort estimate values
 ;; global STYLE property values for completion
@@ -388,7 +391,9 @@
 
 
 ;; code-verbatim with backticks
-(add-to-list 'org-emphasis-alist '("`" org-code verbatim))
+;; Set in preload.el
+;; see: https://lists.gnu.org/archive/html/emacs-orgmode/2012-08/msg00715.html
+
 
 ;;; org babel config
 
@@ -507,6 +512,9 @@ session as the current block. ARG has same meaning as in
 
 ;; dot == graphviz-dot
 (add-to-list 'org-src-lang-modes (quote ("dot" . graphviz-dot)))
+
+;; Add 'conf-mode' to org-babel
+(add-to-list 'org-src-lang-modes '("conf" . conf))
 
 ;; add all languages to org mode
 (org-babel-do-load-languages

@@ -76,16 +76,10 @@
 
 (setq mu4e-maildir-shortcuts
       '(("/gmail/inbox"      . ?i)
-        ("/atomx/inbox"      . ?a)
-        ("/e5/inbox"         . ?e)
-        ("/hogaso/inbox"     . ?h)
         ("/gmail/sent_mail"  . ?s)
         ("/gmail/trash"      . ?t)
-        ("/gmail/all_mail"   . ?A)))
-
-(fset 'my-move-to-trash "mt")
-(define-key mu4e-headers-mode-map (kbd "d") 'my-move-to-trash)
-(define-key mu4e-view-mode-map (kbd "d") 'my-move-to-trash)
+        ("/gmail/drafts"     . ?d)
+        ("/gmail/all_mail"   . ?a)))
 
 ;; Don't ask to quit
 (setq mu4e-confirm-quit nil)
@@ -95,8 +89,11 @@
 
 ;; gmail delete == move mail to trash folder
 (fset 'my-move-to-trash "mt")
-(define-key mu4e-headers-mode-map (kbd "D") 'my-move-to-trash)
-(define-key mu4e-view-mode-map (kbd "D") 'my-move-to-trash)
+(define-key mu4e-headers-mode-map (kbd "d") 'my-move-to-trash)
+(define-key mu4e-view-mode-map (kbd "d") 'my-move-to-trash)
+
+;; Mark all as read with 'M'
+(define-key mu4e-headers-mode-map (kbd "M") 'mu4e-headers-mark-all-unread-read)
 
 ;; Add some mailing lists
 (add-to-list 'mu4e~mailing-lists '("intern.lists.entropia.de" . "Entropia"))
@@ -132,8 +129,12 @@
 ;;(setq mu4e-get-mail-command "mbsync -a")
 
 ;; update database every ten minutes
-(setq  mu4e-update-interval (* 60 10))
+;;(setq  mu4e-update-interval (* 60 10))
 
+;; We do a full index (that verify integrity) with a systemd job
+;; Go fast inside emacs
+(setq mu4e-index-cleanup nil      ;; don't do a full cleanup check
+      mu4e-index-lazy-check t)    ;; don't consider up-to-date dirs
 
 ;;; Use 'fancy' non-ascii characters in various places in mu4e
 (setq mu4e-use-fancy-chars t)
@@ -221,12 +222,10 @@
                      ( smtpmail-smtp-server . "smtp.gmail.com" )
                      ( smtpmail-auth-credentials . '(("smtp.gmail.com" 587 "daniel.kraus@gmail.com" nil)) )
                      ( mu4e-maildir-shortcuts . (("/gmail/inbox"      . ?i)
-                                                 ("/e5/inbox"         . ?e)
-                                                 ("/atomx/inbox"      . ?a)
-                                                 ("/hogaso/inbox"     . ?h)
                                                  ("/gmail/sent_mail"  . ?s)
                                                  ("/gmail/trash"      . ?t)
-                                                 ("/gmail/all_mail"   . ?A)))
+                                                 ("/gmail/drafts"     . ?d)
+                                                 ("/gmail/all_mail"   . ?a)))
                      ( mu4e-drafts-folder . "/gmail/drafts" )
                      ( mu4e-sent-folder   . "/gmail/sent_mail" )
                      ( mu4e-trash-folder  . "/gmail/trash" )
@@ -247,12 +246,10 @@
                      ( smtpmail-smtp-user . "daniel@atomx.com" )
                      ( smtpmail-smtp-server . "smtp.gmail.com" )
                      ( smtpmail-auth-credentials . '(("smtp.gmail.com" 587 "daniel@atomx.com" nil)) )
-                     ( mu4e-maildir-shortcuts . (("/atomx/inbox"      . ?a)
-                                                 ("/e5/inbox"         . ?e)
-                                                 ("/gmail/inbox"      . ?i)
-                                                 ("/hogaso/inbox"     . ?h)
+                     ( mu4e-maildir-shortcuts . (("/atomx/inbox"      . ?i)
                                                  ("/atomx/sent_mail"  . ?s)
                                                  ("/atomx/trash"      . ?t)
+                                                 ("/atomx/drafts"     . ?d)
                                                  ("/atomx/all_mail"   . ?a)))
                      ( mu4e-drafts-folder . "/atomx/drafts" )
                      ( mu4e-sent-folder   . "/atomx/sent_mail" )
@@ -274,12 +271,10 @@
                      ( smtpmail-smtp-user . "daniel.kraus@ebenefuenf.de" )
                      ( smtpmail-smtp-server . "smtp.fastmail.com" )
                      ( smtpmail-auth-credentials . '(("smtp.fastmail.com" 587 "daniel.kraus@ebenefuenf.de" nil)) )
-                     ( mu4e-maildir-shortcuts . (("/atomx/inbox"   . ?a)
-                                                 ("/e5/inbox"      . ?e)
-                                                 ("/gmail/inbox"   . ?i)
-                                                 ("/hogaso/inbox"  . ?h)
+                     ( mu4e-maildir-shortcuts . (("/e5/inbox"      . ?i)
                                                  ("/e5/sent_mail"  . ?s)
                                                  ("/e5/trash"      . ?t)
+                                                 ("/e5/drafts"     . ?d)
                                                  ("/e5/archive"    . ?a)))
                      ( mu4e-drafts-folder . "/e5/drafts" )
                      ( mu4e-sent-folder   . "/e5/sent_mail" )
@@ -308,12 +303,10 @@
                      ( smtpmail-smtp-user . "daniel@hogaso.com" )
                      ( smtpmail-smtp-server . "smtp.gmail.com" )
                      ( smtpmail-auth-credentials . '(("smtp.gmail.com" 587 "daniel@hogaso.com" nil)) )
-                     ( mu4e-maildir-shortcuts . (("/atomx/inbox"      . ?a)
-                                                 ("/e5/inbox"         . ?e)
-                                                 ("/gmail/inbox"      . ?i)
-                                                 ("/hogaso/inbox"     . ?h)
+                     ( mu4e-maildir-shortcuts . (("/hogaso/inbox"      . ?i)
                                                  ("/hogaso/sent_mail"  . ?s)
                                                  ("/hogaso/trash"      . ?t)
+                                                 ("/hogaso/drafts"     . ?d)
                                                  ("/hogaso/all_mail"   . ?a)))
                      ( mu4e-drafts-folder . "/hogaso/drafts" )
                      ( mu4e-sent-folder   . "/hogaso/sent_mail" )

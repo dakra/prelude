@@ -163,6 +163,8 @@ is already narrowed."
 (setq dired-dwim-target t)
 (setq diredp-dwim-any-frame-flag t)
 (diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
+;; Show details by default  (diredp hides it)
+(setq diredp-hide-details-initially-flag nil)
 
 (add-to-list 'tramp-default-proxies-alist
              '("api" "atomx" "/ssh:api:"))
