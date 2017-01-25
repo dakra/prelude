@@ -9,6 +9,7 @@
         helm-show-kill-ring
         org-beginning-of-line
         org-delete-char
+        org-end-of-line
         org-self-insert-command
         sp-backward-delete-char
         sp-delete-char

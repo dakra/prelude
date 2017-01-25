@@ -12,7 +12,7 @@
    color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
-   quelpa  ; install/update packages from source
+   ;;quelpa  ; install/update packages from source
    ;;sr-speedbar  ; open speedbar inside the frame
    ;;projectile-speedbar
    wolfram
@@ -73,25 +73,6 @@
 ;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
 (defalias 'display-buffer-in-major-side-window 'window--make-major-side-window)
 
-;; temp: fish support for keychain reload environment
-;; https://github.com/tarsius/keychain-environment/issues/6
-(defun keychain-refresh-environment ()
-  "Set ssh-agent and gpg-agent environment variables.
-Set the environment variables `SSH_AUTH_SOCK', `SSH_AGENT_PID'
-and `GPG_AGENT' in Emacs' `process-environment' according to
-information retrieved from files created by the keychain script."
-  (interactive)
-  (let* ((ssh (shell-command-to-string "keychain -q --noask --agents ssh --eval"))
-         (gpg (shell-command-to-string "keychain -q --noask --agents gpg --eval")))
-    (list (and ssh
-               (string-match "SSH_AUTH_SOCK \\(.*?\\);" ssh)
-               (setenv       "SSH_AUTH_SOCK" (match-string 1 ssh)))
-          (and ssh
-               (string-match "SSH_AGENT_PID \\([0-9]*\\)?;" ssh)
-               (setenv       "SSH_AGENT_PID" (match-string 1 ssh)))
-          (and gpg
-               (string-match "GPG_AGENT_INFO \\(.*?\\);" gpg)
-               (setenv       "GPG_AGENT_INFO" (match-string 1 gpg))))))
 
 (require 'back-button)
 (back-button-mode 1)
@@ -166,9 +147,60 @@ is already narrowed."
 ;; Show details by default  (diredp hides it)
 (setq diredp-hide-details-initially-flag nil)
 
+
+;; Tramp config
+
+;; Turn of auto-save for tramp files
+(add-to-list 'backup-directory-alist
+             (cons tramp-file-name-regexp nil))
+
+;; Use ControlPath from .ssh/config
+(setq tramp-ssh-controlmaster-options "")
+
+;; See https://www.gnu.org/software/tramp/#Ad_002dhoc-multi_002dhops
+;; For all hosts, except my local one, first connect via ssh, and then apply sudo -u root:
 (add-to-list 'tramp-default-proxies-alist
-             '("api" "atomx" "/ssh:api:"))
-(set 'tramp-default-proxies-alist nil)
+             '(nil "\\`root\\'" "/ssh:%h:"))
+(add-to-list 'tramp-default-proxies-alist
+             '((regexp-quote (system-name)) nil nil))
+(add-to-list 'tramp-default-proxies-alist
+             '("localhost" nil nil))
+;; add tramp proxy for atomx user
+(add-to-list 'tramp-default-proxies-alist '(nil "atomx" "/ssh:%h:"))
+;; Helm config
+
+;; keep follow-mode in between helm sessions once activated
+(setq helm-follow-mode-persistent t)
+
+(define-key prelude-mode-map (kbd "C-c i") 'helm-imenu-anywhere)
+(define-key prelude-mode-map (kbd "C-c j") 'helm-imenu)
+
+;; use helm bookmarks
+(global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+
+;; use swiper with helm backend for search
+(global-set-key "\C-s" 'swiper-helm)
+
+;; Smaller helm window
+(setq helm-autoresize-max-height 0)
+(setq helm-autoresize-min-height 30)
+(helm-autoresize-mode 1)
+
+;; Don't show details in helm-mini for tramp buffers
+(setq helm-buffer-skip-remote-checking t)
+
+;; Show bookmarks in helm-mini as well
+(setq helm-mini-default-sources '(helm-source-buffers-list
+                                  helm-source-recentf
+                                  helm-source-bookmarks
+                                  helm-source-buffer-not-found))
+
+;; Skip version control for tramp files
+(setq vc-ignore-dir-regexp
+      (format "\\(%s\\)\\|\\(%s\\)"
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
+
 ;; wolfram alpha queries (M-x wolfram-alpha)
 (require 'wolfram)
 (setq wolfram-alpha-app-id "KTKV36-2LRW2LELV8")
@@ -196,6 +228,10 @@ is already narrowed."
 (setq highlight-indent-guides-method 'character)
 (add-hook 'python-mode-hook 'highlight-indent-guides-mode)
 ;;(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+(setq highlight-indent-guides-character ?\|)
+(setq highlight-indent-guides-auto-odd-face-perc 15)
+(setq highlight-indent-guides-auto-even-face-perc 15)
+(setq highlight-indent-guides-auto-character-face-perc 20)
 
 ;; Enable eldoc for python
 (add-hook 'python-mode-hook 'anaconda-eldoc-mode)
@@ -236,10 +272,6 @@ is already narrowed."
 
 ;; show help popup when completing with company
 (company-quickhelp-mode 1)
-
-;; keep follow-mode in between helm sessions once activated
-(setq helm-follow-mode-persistent t)
-
 
 ;; always loop GIF images
 (setq image-animate-loop t)
@@ -523,9 +555,12 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; importmagic
 ;; FIXME: very buggy yet 15.12.2016
+;; importmagic itself buggy: https://github.com/alecthomas/importmagic
+;; Always reorder imports; No way to put each import on a new line..
 ;;(require 'importmagic)
 ;;(add-hook 'python-mode-hook 'importmagic-mode)
 ;;(define-key importmagic-mode-map (kbd "C-c C-i") 'importmagic-fix-symbol-at-point)
+;;(add-to-list 'helm-boring-buffer-regexp-list "\\*epc con")
 
 ;; auto completion in restclient-mode
 (add-to-list 'company-backends 'company-restclient)
@@ -535,8 +570,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
       sp-escape-wrapped-region nil)
 
 ;; open current line/region/dired/commit in github
-(define-key prelude-mode-map (kbd "C-c G") nil)
-(global-set-key (kbd "C-c G") 'browse-at-remote)
+(define-key prelude-mode-map (kbd "C-c G") 'browse-at-remote)
 
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
 ;; just type 'fixes #' and get github issue autocompletion
@@ -548,10 +582,14 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
 ;; auto highlight all occurences of symbol under cursor
-;;(add-hook 'prog-mode-hook #'highlight-symbol-mode)
-;;(setq highlight-symbol-idle-delay 0.5)
-(define-key prelude-mode-map (kbd "C-c s") nil)  ; remove default crux swap windows keybinding
-(global-set-key (kbd "C-c s") 'highlight-symbol)
+(add-hook 'prog-mode-hook #'highlight-symbol-mode)
+(setq highlight-symbol-idle-delay 0.5)
+(set-face-attribute 'highlight-symbol-face nil :background "gray30")
+(define-key prelude-mode-map (kbd "C-c s") 'highlight-symbol)
+
+(add-hook 'prog-mode-hook #'highlight-symbol-nav-mode)
+(setq highlight-symbol-on-navigation-p t)
+
 
 ;; more useful frame title, that show either a file or a
 ;; buffer name (if the buffer isn't visiting a file)
@@ -673,6 +711,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (global-unset-key (kbd "M-<down-mouse-1>"))
 (global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
 
+(with-eval-after-load 'multiple-cursors-core
+  (define-key mc/keymap (kbd "M-T") 'mc/reverse-regions)
+  (define-key mc/keymap (kbd "C-,") 'mc/unmark-next-like-this)
+  (define-key mc/keymap (kbd "C-.") 'mc/skip-to-next-like-this))
 
 ;; key bindings - misc
 
@@ -707,7 +749,78 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq avy-timeout-seconds 0.3)  ; only wait 0.3 seconds for char timeout (default 0.5)
 (global-set-key (kbd "C-;") 'avy-goto-char-timer)
 
-(global-set-key "\C-s" 'swiper-helm)  ; use swiper with helm backend for search
+;; Flyspell setup
+;;http://blog.binchen.org/posts/effective-spell-check-in-emacs.html
+
+;; {{ flyspell setup for web-mode
+(defun web-mode-flyspell-verify ()
+  (let* ((f (get-text-property (- (point) 1) 'face))
+         rlt)
+    (cond
+     ;; Check the words with these font faces, possibly.
+     ;; this *blacklist* will be tweaked in next condition
+     ((not (memq f '(web-mode-html-attr-value-face
+                     web-mode-html-tag-face
+                     web-mode-html-attr-name-face
+                     web-mode-constant-face
+                     web-mode-doctype-face
+                     web-mode-keyword-face
+                     web-mode-comment-face ;; focus on get html label right
+                     web-mode-function-name-face
+                     web-mode-variable-name-face
+                     web-mode-css-property-name-face
+                     web-mode-css-selector-face
+                     web-mode-css-color-face
+                     web-mode-type-face
+                     web-mode-block-control-face)))
+      (setq rlt t))
+     ;; check attribute value under certain conditions
+     ((memq f '(web-mode-html-attr-value-face))
+      (save-excursion
+        (search-backward-regexp "=['\"]" (line-beginning-position) t)
+        (backward-char)
+        (setq rlt (string-match "^\\(value\\|class\\|ng[A-Za-z0-9-]*\\)$"
+                                (thing-at-point 'symbol)))))
+     ;; finalize the blacklist
+     (t
+      (setq rlt nil)))
+    rlt))
+(put 'web-mode 'flyspell-mode-predicate 'web-mode-flyspell-verify)
+
+;; Don't display doublon (double word) as error
+(defvar flyspell-check-doublon t
+  "Check doublon (double word) when calling `flyspell-highlight-incorrect-region'.")
+(make-variable-buffer-local 'flyspell-check-doublon)
+
+(defadvice flyspell-highlight-incorrect-region (around flyspell-highlight-incorrect-region-hack activate)
+  (if (or flyspell-check-doublon (not (eq 'doublon (ad-get-arg 2))))
+      ad-do-it))
+
+(defun web-mode-hook-setup ()
+  (flyspell-mode 1)
+  (setq flyspell-check-doublon nil))
+
+(add-hook 'web-mode-hook 'web-mode-hook-setup)
+
+;; Spell check camel case strings
+(setq ispell-program-name "aspell"
+      ;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
+      ispell-extra-args '("--sug-mode=ultra" "--lang=en_US" "--run-together" "--run-together-limit=5" "--run-together-min=2"))
+
+;; Javascript and ReactJS setup
+(defun js-flyspell-verify ()
+  (let* ((f (get-text-property (- (point) 1) 'face)))
+    ;; *whitelist*
+    ;; only words with following font face will be checked
+    (memq f '(js2-function-call
+              js2-function-param
+              js2-object-property
+              font-lock-variable-name-face
+              font-lock-string-face
+              font-lock-function-name-face))))
+(put 'js2-mode 'flyspell-mode-predicate 'js-flyspell-verify)
+(put 'rjsx-mode 'flyspell-mode-predicate 'js-flyspell-verify)
+;; }}
 
 
 (setq iedit-toggle-key-default nil)
@@ -739,6 +852,9 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 
 ;;; Don't show some modes that are always on in the mode line
+(diminish 'back-button-mode)
+(diminish 'auto-revert-mode)
+(diminish 'whitespace-mode)
 (diminish 'yas-minor-mode)
 (diminish 'guru-mode)
 (diminish 'company-mode)

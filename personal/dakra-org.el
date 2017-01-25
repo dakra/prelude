@@ -13,6 +13,7 @@
    ob-restclient
    org-download
    org-pomodoro
+   orgit
    ox-jira
    ))
 
@@ -100,7 +101,7 @@
 (global-set-key (kbd "C-<f9>") 'previous-buffer)
 
 ;; install the restapi branch from org-jira (not on melpa yet)
-(quelpa '(org-jira :fetcher github :repo "baohaojun/org-jira" :branch "restapi") :upgrade nil)
+;;(quelpa '(org-jira :fetcher github :repo "baohaojun/org-jira" :branch "restapi") :upgrade nil)
 ;;(require 'org-jira)
 (setq jiralib-url "https://jira.paesslergmbh.de")
 
@@ -292,6 +293,12 @@
 (setq org-yank-adjusted-subtrees t)
 
 
+;; Show lot of clocking history so it's easy to pick items off the C-F11 list
+(setq org-clock-history-length 23)
+;; Save the running clock and all clock history when exiting Emacs, load it on startup
+(setq org-clock-persist t)
+(org-clock-persistence-insinuate)
+
 ;; Use sticky agenda's so they persist
 ;;(setq org-agenda-sticky t)
 
@@ -343,6 +350,19 @@
 ;;(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
 ;;(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
 ;;(setq org-pomodoro-killed-hook 'dakra/org-pomodoro-i3-bar-time)
+
+
+;; Automatically copy orgit link to last commit after commit
+(add-hook 'git-commit-setup-hook
+          (lambda ()
+            (add-hook 'with-editor-post-finish-hook
+                      (lambda ()
+                        (let* ((repo (abbreviate-file-name default-directory))
+                               (rev (magit-git-string "rev-parse" "HEAD"))
+                               (link (format "orgit-rev:%s::%s" repo rev))
+                               (desc (format "%s (magit-rev %s)" repo rev)))
+                          (push (list link desc) org-stored-links)))
+                      t t)))
 
 
 ;;; Create org TODO from github issue

@@ -56,6 +56,10 @@
 ;; show email address as well and not only the name
 (setq mu4e-view-show-addresses t)
 
+;; Don't show related messages by default.
+;; Activate with 'W' on demand
+(setq mu4e-headers-include-related nil)
+
 ;; use helm-mu for search
 ;; FIXME helm search broken
 ;;(define-key mu4e-main-mode-map "s" 'helm-mu)
@@ -91,8 +95,12 @@
 (fset 'my-move-to-trash "mt")
 (define-key mu4e-headers-mode-map (kbd "d") 'my-move-to-trash)
 (define-key mu4e-view-mode-map (kbd "d") 'my-move-to-trash)
+;; Overwrite normal 'D' keybinding
+(define-key mu4e-headers-mode-map (kbd "D") 'my-move-to-trash)
+(define-key mu4e-view-mode-map (kbd "D") 'my-move-to-trash)
 
 ;; Mark all as read with 'M'
+
 (define-key mu4e-headers-mode-map (kbd "M") 'mu4e-headers-mark-all-unread-read)
 
 ;; Add some mailing lists
@@ -129,7 +137,7 @@
 ;;(setq mu4e-get-mail-command "mbsync -a")
 
 ;; update database every ten minutes
-;;(setq  mu4e-update-interval (* 60 10))
+(setq  mu4e-update-interval (* 60 10))
 
 ;; We do a full index (that verify integrity) with a systemd job
 ;; Go fast inside emacs

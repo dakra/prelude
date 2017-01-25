@@ -9,3 +9,6 @@
                            ("`" org-code verbatim)
                            ("~" org-code verbatim)
                            ("+" (:strike-through t))))
+
+(require 'recentf)
+(add-to-list 'recentf-keep 'file-remote-p)
