@@ -15,6 +15,9 @@
    ;;quelpa  ; install/update packages from source
    ;;sr-speedbar  ; open speedbar inside the frame
    ;;projectile-speedbar
+   eshell-git-prompt
+   flyspell-correct-helm
+   guess-language  ; switch ispell automatically between languages
    wolfram
    keychain-environment  ; reload keychain info for ssh/gpg agent
 
@@ -27,6 +30,7 @@
    emmet-mode
    goto-chg  ; goto last change
    helm-emmet
+   helm-ext  ; helm "hacks" like better path expandsion
    highlight-indent-guides
    highlight-symbol  ; highlight all symbols like the one under the cursor
    iedit
@@ -56,6 +60,7 @@
    ng2-mode
    nginx-mode
    outline-magic  ; better outline-mode
+   py-isort  ; auto sort python imports
    realgud
    restclient
    restclient-helm
@@ -92,6 +97,18 @@
 
 ;; recenter window after imenu jump so cursor doesn't end up on the last line
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
+
+
+;; eshell
+
+;;(setq eshell-list-files-after-cd t)
+;;(setq eshell-ls-initial-args "-alh")
+
+;; We're in emacs, so 'cat' is nicer there than 'less'
+(setenv "PAGER" "cat")
+
+;; Show git info in prompt
+(eshell-git-prompt-use-theme 'powerline)
 
 (defun xah-paste-or-paste-previous ()
   "Paste. When called repeatedly, paste previous.
@@ -148,6 +165,22 @@ is already narrowed."
 (setq diredp-hide-details-initially-flag nil)
 
 
+;; Switch on 'umlaut-mode' for easier Umlaut usage
+(define-minor-mode umlaut-mode
+  "A mode for conveniently using Umlauts in Emacs"
+  nil
+  :lighter " äöü"
+  :keymap '(("\M-a" . (lambda () (interactive) (insert ?ä)))
+            ("\M-o" . (lambda () (interactive) (insert ?ö)))
+            ("\M-u" . (lambda () (interactive) (insert ?ü)))
+            ("\M-s" . (lambda () (interactive) (insert ?ß)))
+            ("\M-A" . (lambda () (interactive) (insert ?Ä)))
+            ("\M-O" . (lambda () (interactive) (insert ?Ö)))
+            ("\M-U" . (lambda () (interactive) (insert ?Ü)))
+            ("\M-e" . (lambda () (interactive) (insert ?€)))
+            ("\M-p" . (lambda () (interactive) (insert ?£)))
+            ("\M-S" . (lambda () (interactive) (insert "SS")))))
+
 ;; Tramp config
 
 ;; Turn of auto-save for tramp files
@@ -175,6 +208,9 @@ is already narrowed."
 (define-key prelude-mode-map (kbd "C-c i") 'helm-imenu-anywhere)
 (define-key prelude-mode-map (kbd "C-c j") 'helm-imenu)
 
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)  ; rebind tab to run persistent action
+(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)  ; make TAB work in terminal
+(define-key helm-map (kbd "C-z")  'helm-select-action)  ; list actions using C-z
 ;; use helm bookmarks
 (global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
 
@@ -189,11 +225,22 @@ is already narrowed."
 ;; Don't show details in helm-mini for tramp buffers
 (setq helm-buffer-skip-remote-checking t)
 
-;; Show bookmarks in helm-mini as well
+;; Show bookmarks (and create bookmarks) in helm-mini
 (setq helm-mini-default-sources '(helm-source-buffers-list
                                   helm-source-recentf
                                   helm-source-bookmarks
+                                  helm-source-bookmark-set
                                   helm-source-buffer-not-found))
+
+;; Skip . and .. for non empty dirs
+(helm-ext-ff-enable-skipping-dots t)
+
+;; Enable zsh/fish shell like path expansion
+(helm-ext-ff-enable-zsh-path-expansion t)
+(helm-ext-ff-enable-auto-path-expansion t)
+
+;; Don't use minibuffer if there's something there already
+(helm-ext-minibuffer-enable-header-line-maybe t)
 
 ;; Skip version control for tramp files
 (setq vc-ignore-dir-regexp
@@ -232,9 +279,6 @@ is already narrowed."
 (setq highlight-indent-guides-auto-odd-face-perc 15)
 (setq highlight-indent-guides-auto-even-face-perc 15)
 (setq highlight-indent-guides-auto-character-face-perc 20)
-
-;; Enable eldoc for python
-(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 
 ;; activate character folding in searches i.e. searching for 'a' matches 'ä' as well
 (setq search-default-mode 'char-fold-to-regexp)
@@ -389,7 +433,7 @@ displayed anywhere else."
 
 ;; SQL
 (require 'sql)
-(sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\) \\[[_a-zA-Z0-9]*\\]> ")
+(sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\|mysql\\) ?\\[?[_a-zA-Z0-9]*\\]?> ")
 
 (setq sql-product 'mysql)
 (setq sql-connection-alist
@@ -491,9 +535,23 @@ displayed anywhere else."
 
 ;; python
 
+;; Xonsh scripts are python files
+(add-to-list 'auto-mode-alist '("\\.xsh$" . python-mode))
+
+;; Enable eldoc for python
+(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+
+;; Automatically sort and format python imports
+;;(add-hook 'before-save-hook 'py-isort-before-save)
+(setq py-isort-options '("--line-width=100"
+                         "--multi_line=3"
+                         "--trailing-comma"
+                         "--force-grid-wrap"
+                         "--thirdparty=rethinkdb"))
+
+
 ;; accept 'UTF-8' (uppercase) as a valid encoding in the coding header
 (define-coding-system-alias 'UTF-8 'utf-8)
-
 
 ;; activate virtualenv for flycheck
 ;; (from https://github.com/lunaryorn/.emacs.d/blob/master/lisp/flycheck-virtualenv.el)
@@ -514,8 +572,11 @@ displayed anywhere else."
 
 (add-hook 'python-mode-hook #'flycheck-virtualenv-setup)
 
+;; Ignore import errors that don't have typings
+(setq flycheck-python-mypy-silent-imports t)
+
 ;; use both pylint and flake8 in flycheck
-(flycheck-add-next-checker 'python-flake8 'python-pylint)
+(flycheck-add-next-checker 'python-flake8 'python-pylint 'python-mypy)
 (setq flycheck-flake8-maximum-line-length 120)
 
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
@@ -534,7 +595,7 @@ displayed anywhere else."
 (venv-workon '"atomx")  ; default venv after a starting emacs
 (setq projectile-switch-project-action '(lambda ()
                                           (venv-projectile-auto-workon)
-                                          (projectile-find-file)))
+                                          (helm-projectile)))
 
 (defcustom python-autopep8-path (executable-find "autopep8")
   "autopep8 executable path."
@@ -582,6 +643,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
 ;; auto highlight all occurences of symbol under cursor
+(require 'highlight-symbol)
 (add-hook 'prog-mode-hook #'highlight-symbol-mode)
 (setq highlight-symbol-idle-delay 0.5)
 (set-face-attribute 'highlight-symbol-face nil :background "gray30")
@@ -639,6 +701,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 (setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
 
+;; disable whitespace-mode in org-mode
+(add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
+
+
 (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
 (setq web-mode-markup-indent-offset 2)
 ;; auto close tags in web-mode
@@ -691,9 +757,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; "C-=" is not valid ascii sequence in terminals
 ;;(global-set-key (kbd "C-@") 'er/expand-region)
-
-;; multi cursor
-(setq mc/list-file "~/.emacs.d/personal/.mc-lists.el")
 
 (require 'region-bindings-mode)
 (region-bindings-mode-enable)
@@ -749,6 +812,26 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq avy-timeout-seconds 0.3)  ; only wait 0.3 seconds for char timeout (default 0.5)
 (global-set-key (kbd "C-;") 'avy-goto-char-timer)
 
+
+;; Spellcheck setup
+
+;; Show helm-list of correct spelling suggesions
+(require 'flyspell-correct-helm)
+(define-key flyspell-mode-map (kbd "C-.") 'flyspell-correct-previous-word-generic)
+
+;; Automatically guess languages
+(require 'guess-language)
+(setq guess-language-langcodes '((en . ("en_GB" "English"))
+                                 (de . ("de_DE" "German"))))
+(setq guess-language-languages '(en de))
+(setq guess-language-min-paragraph-length 35)
+;; Only guess language for emails
+(add-hook 'mu4e-compose-mode-hook (lambda () (guess-language-mode 1)))
+;;(add-hook 'text-mode-hook (lambda () (guess-language-mode 1)))
+;;(add-hook 'org-mode-hook (lambda () (guess-language-mode 1)))
+;;(add-hook 'mu4e-compose-mode-hook (lambda () (guess-language-mode 1)))
+
+
 ;; Flyspell setup
 ;;http://blog.binchen.org/posts/effective-spell-check-in-emacs.html
 
@@ -803,10 +886,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-hook 'web-mode-hook 'web-mode-hook-setup)
 
 ;; Spell check camel case strings
-(setq ispell-program-name "aspell"
-      ;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
-      ispell-extra-args '("--sug-mode=ultra" "--lang=en_US" "--run-together" "--run-together-limit=5" "--run-together-min=2"))
+(setq ispell-program-name "aspell")
 
+;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
+;;      ispell-extra-args '("--sug-mode=ultra" "--run-together" "--run-together-limit=5" "--run-together-min=2")
 ;; Javascript and ReactJS setup
 (defun js-flyspell-verify ()
   (let* ((f (get-text-property (- (point) 1) 'face)))
@@ -822,6 +905,51 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (put 'rjsx-mode 'flyspell-mode-predicate 'js-flyspell-verify)
 ;; }}
 
+;; http://blog.binchen.org/posts/what-s-the-best-spell-check-set-up-in-emacs.html
+;; Don't use Camel Case when correcting a word
+(defun flyspell-detect-ispell-args (&optional run-together)
+  "if RUN-TOGETHER is true, spell check the CamelCase words."
+  (let (args)
+    (cond
+     ((string-match  "aspell$" ispell-program-name)
+      ;; Force the English dictionary for aspell
+      ;; Support Camel Case spelling check (tested with aspell 0.6)
+      (setq args (list "--sug-mode=ultra"))
+      (if run-together
+          (setq args (append args '("--run-together" "--run-together-limit=5" "--run-together-min=2")))))
+     ((string-match "hunspell$" ispell-program-name)
+      ;; Force the English dictionary for hunspell
+      (setq args "")))
+    args))
+
+(setq-default ispell-extra-args (flyspell-detect-ispell-args t))
+;; (setq ispell-cmd-args (flyspell-detect-ispell-args))
+(defadvice ispell-word (around my-ispell-word activate)
+  (let ((old-ispell-extra-args ispell-extra-args))
+    (ispell-kill-ispell t)
+    (setq ispell-extra-args (flyspell-detect-ispell-args))
+    ad-do-it
+    (setq ispell-extra-args old-ispell-extra-args)
+    (ispell-kill-ispell t)
+    ))
+
+(defadvice flyspell-auto-correct-word (around my-flyspell-auto-correct-word activate)
+  (let ((old-ispell-extra-args ispell-extra-args))
+    (ispell-kill-ispell t)
+    ;; use emacs original arguments
+    (setq ispell-extra-args (flyspell-detect-ispell-args))
+    ad-do-it
+    ;; restore our own ispell arguments
+    (setq ispell-extra-args old-ispell-extra-args)
+    (ispell-kill-ispell t)
+    ))
+
+(defun text-mode-hook-setup ()
+  ;; Turn off RUN-TOGETHER option when spell check text-mode
+  (setq-local ispell-extra-args (flyspell-detect-ispell-args)))
+(add-hook 'text-mode-hook 'text-mode-hook-setup)
+
+;; end spell checking
 
 (setq iedit-toggle-key-default nil)
 (require 'iedit)
@@ -851,7 +979,11 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
 
-;;; Don't show some modes that are always on in the mode line
+;; Ledger
+(setq ledger-post-amount-alignment-column 60)
+
+
+;;; don't show some modes that are always on in the mode line
 (diminish 'back-button-mode)
 (diminish 'auto-revert-mode)
 (diminish 'whitespace-mode)
@@ -863,6 +995,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (diminish 'prelude-mode)
 (diminish 'which-key-mode)
 (diminish 'beacon-mode)
+(diminish 'editorconfig-mode)
 
 ;; backup
 

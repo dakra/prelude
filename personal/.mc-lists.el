@@ -16,6 +16,8 @@
         sp-forward-slurp-sexp
         whole-line-or-region-yank
         yas-expand
+        handle-switch-frame
+        ledger-magic-tab
         ))
 
 (setq mc/cmds-to-run-once
@@ -23,5 +25,4 @@
         handle-switch-frame
         helm-M-x
         helm-find-files
-        smart-region
         ))

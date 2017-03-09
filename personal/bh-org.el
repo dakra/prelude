@@ -511,12 +511,12 @@ A prefix arg forces clock in of the default task."
     (org-with-point-at clock-in-to-task
       (org-clock-in nil))))
 
-;; Show 1 minute clocking gaps. Hit "v c" in the agenda view
+;; Show 20 minute clocking gaps. Hit "v c" in the agenda view
 (setq org-agenda-clock-consistency-checks
-      (quote (:max-duration "4:00"
-                            :min-duration 0
-                            :max-gap 0
-                            :gap-ok-around ("4:00"))))
+      '(:max-duration "4:00"
+                      :min-duration 0
+                      :max-gap 30
+                      :gap-ok-around ("4:00" "11:00" "19:00" "20:00" "21:00")))
 
 ;; Exclude DONE state tasks from refile targets
 (defun bh/verify-refile-target ()

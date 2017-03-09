@@ -124,6 +124,10 @@
 ;; Enter key follows links (= C-c C-o)
 (setq org-return-follows-link t)
 
+;; Don't remove links after inserting
+(setq org-keep-stored-link-after-insertion t)
+
+
 (setq org-todo-keywords
       (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
               (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "PHONE" "MEETING"))))
@@ -169,8 +173,10 @@
          "* TODO %?\n%U\n" :clock-in t :clock-resume t)
         ("T" "todo with link" entry (file ,(concat org-directory "refile.org"))
          "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
+        ("e" "email" entry (file ,(concat org-directory "refile.org"))
+         "* TODO %? Email: %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
         ("r" "respond" entry (file ,(concat org-directory "refile.org"))
-         "* TODO Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
+         "* TODO Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
         ("n" "note" entry (file ,(concat org-directory "refile.org"))
          "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
         ("w" "org-protocol" entry (file ,(concat org-directory "refile.org"))
@@ -231,7 +237,7 @@
                                     ("STYLE_ALL" . "habit"))))
 
 ;; Agenda log mode items to display (closed and state changes by default)
-(setq org-agenda-log-mode-items (quote (closed state)))
+(setq org-agenda-log-mode-items (quote (closed state clock)))
 
 ;; Tags with fast selection keys
 (setq org-tag-alist (quote (("PERSONAL" . ?p)
@@ -296,6 +302,7 @@
 ;; Show lot of clocking history so it's easy to pick items off the C-F11 list
 (setq org-clock-history-length 23)
 ;; Save the running clock and all clock history when exiting Emacs, load it on startup
+(setq org-clock-persist-file "~/.emacs.d/personal/org-clock-save.el")
 (setq org-clock-persist t)
 (org-clock-persistence-insinuate)
 
@@ -323,10 +330,6 @@
 ;; leave highlights in sparse tree after edit. C-c C-c removes highlights
 (setq org-remove-highlights-with-change nil)
 
-(add-to-list 'org-structure-template-alist '("sp" "#+BEGIN_SRC python\n?\n#+END_SRC"))
-(add-to-list 'org-structure-template-alist '("si" "#+BEGIN_SRC ipython\n?\n#+END_SRC"))
-
-
 ;; Overwrite the current window with the agenda
 (setq org-agenda-window-setup 'current-window)
 
@@ -335,6 +338,10 @@
 
 ;; use utf-8 characters instead of `*` as bullet points
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+
+;; Automatic line-wrapping in org-mode
+(add-hook 'org-mode-hook (lambda () (auto-fill-mode 1)))
+
 
 (require 'org-pomodoro)
 
@@ -417,12 +424,62 @@
 
 ;;; org babel config
 
+(add-to-list 'org-structure-template-alist '("sp" "#+BEGIN_SRC python\n?\n#+END_SRC"))
+(add-to-list 'org-structure-template-alist '("si" "#+BEGIN_SRC ipython\n?\n#+END_SRC"))
+
+;; Open babel src in other frame
+;;(setq org-src-window-setup 'other-frame)
+
 (setq org-confirm-babel-evaluate nil)  ; don't prompt me to confirm everytime I want to evaluate a block
 
 ;; display/update images in the buffer after I evaluate
 (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
 
 (setq org-src-fontify-natively t)  ; syntax highlighting for source code blocks
+
+
+;; Show multiple inline figures and results in one cell for ob-ipython.
+;; http://kitchingroup.cheme.cmu.edu/blog/2017/01/29/ob-ipython-and-inline-figures-in-org-mode/
+;; results must be in a drawer. So set a header like:
+;; #+BEGIN_SRC ipython :session :results output drawer
+(defun ob-ipython-inline-image (b64-string)
+  "Write the b64-string to a temporary file.
+Returns an org-link to the file."
+  (let* ((tfile (make-temp-file "ob-ipython-" nil ".png"))
+         (link (format "[[file:%s]]" tfile)))
+    (ob-ipython--write-base64-string tfile b64-string)
+    link))
+
+(defun org-babel-execute:ipython (body params)
+  "Execute a block of IPython code with Babel.
+This function is called by `org-babel-execute-src-block'."
+  (let* ((file (cdr (assoc :file params)))
+         (session (cdr (assoc :session params)))
+         (result-type (cdr (assoc :result-type params))))
+    (org-babel-ipython-initiate-session session params)
+    (-when-let (ret (ob-ipython--eval
+                     (ob-ipython--execute-request
+                      (org-babel-expand-body:generic (encode-coding-string body 'utf-8)
+                                                     params (org-babel-variable-assignments:python params))
+                      (ob-ipython--normalize-session session))))
+      (let ((result (cdr (assoc :result ret)))
+            (output (cdr (assoc :output ret))))
+        (if (eq result-type 'output)
+            (concat
+             output
+             (format "%s"
+                     (mapconcat 'identity
+                                (loop for res in result
+                                      if (eq 'image/png (car res))
+                                      collect (ob-ipython-inline-image (cdr res)))
+                                "\n")))
+          (ob-ipython--create-stdout-buffer output)
+          (cond ((and file (string= (f-ext file) "png"))
+                 (->> result (assoc 'image/png) cdr (ob-ipython--write-base64-string file)))
+                ((and file (string= (f-ext file) "svg"))
+                 (->> result (assoc 'image/svg+xml) cdr (ob-ipython--write-string-to-file file)))
+                (file (error "%s is currently an unsupported file extension." (f-ext file)))
+                (t (->> result (assoc 'text/plain) cdr))))))))
 
 ;; copy org text as rich text
 (defun org-formatted-copy ()

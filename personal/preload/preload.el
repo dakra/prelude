@@ -12,3 +12,6 @@
 
 (require 'recentf)
 (add-to-list 'recentf-keep 'file-remote-p)
+
+;; multi cursor
+(setq mc/list-file "~/.emacs.d/personal/.mc-lists.el")
