@@ -7,6 +7,7 @@
         crux-smart-open-line
         electric-newline-and-maybe-indent
         helm-show-kill-ring
+        ledger-magic-tab
         org-beginning-of-line
         org-delete-char
         org-end-of-line
@@ -16,8 +17,6 @@
         sp-forward-slurp-sexp
         whole-line-or-region-yank
         yas-expand
-        handle-switch-frame
-        ledger-magic-tab
         ))
 
 (setq mc/cmds-to-run-once

@@ -42,13 +42,13 @@
 ;; default
 (setq mu4e-maildir "~/.mail")
 
-(setq mu4e-drafts-folder "/gmail/drafts")
-(setq mu4e-sent-folder   "/gmail/sent_mail")
-(setq mu4e-trash-folder  "/gmail/trash")
-(setq mu4e-refile-folder "/gmail/all_mail")
+(setq mu4e-drafts-folder "/private/Drafts")
+(setq mu4e-sent-folder   "/private/Sent")
+(setq mu4e-trash-folder  "/private/Trash")
+(setq mu4e-refile-folder "/private/Archive")
 
-;; default search only inbox or sent mail
-(setq helm-mu-default-search-string "(maildir:/gmail/inbox OR maildir:/gmail/sent_mail)")
+;; default search only inbox, archive or sent mail
+(setq helm-mu-default-search-string "(maildir:/private/Inbox OR maildir:/private/Archive OR maildir:/private/Sent)")
 
 ;; don't show duplicate mails when searching
 (setq mu4e-headers-skip-duplicates t)
@@ -65,9 +65,6 @@
 ;;(define-key mu4e-main-mode-map "s" 'helm-mu)
 ;;(define-key mu4e-headers-mode-map "s" 'helm-mu)
 ;;(define-key mu4e-view-mode-map "s" 'helm-mu)
-
-;; don't save message to Sent Messages, Gmail/IMAP takes care of this
-(setq mu4e-sent-messages-behavior 'delete)
 
 ;; (See the documentation for `mu4e-sent-messages-behavior' if you have
 ;; additional non-Gmail addresses and want assign them different
@@ -100,7 +97,6 @@
 (define-key mu4e-view-mode-map (kbd "D") 'my-move-to-trash)
 
 ;; Mark all as read with 'M'
-
 (define-key mu4e-headers-mode-map (kbd "M") 'mu4e-headers-mark-all-unread-read)
 
 ;; Add some mailing lists
@@ -109,20 +105,21 @@
 (add-to-list 'mu4e~mailing-lists '("pylons-discuss.googlegroups.com" . "Pyramid"))
 (add-to-list 'mu4e~mailing-lists '("pylons-devel.googlegroups.com" . "Pyramid"))
 
-(setq mu4e-bookmarks `(("maildir:/gmail/inbox OR maildir:/atomx/inbox OR maildir:/hogaso/inbox OR maildir:/e5/inbox" "All inboxes" ?i)
+(setq mu4e-bookmarks `(("maildir:/private/Inbox OR maildir:/gmail/inbox OR maildir:/atomx/inbox OR maildir:/hogaso/inbox OR maildir:/e5/Inbox" "All inboxes" ?i)
                        ("flag:flagged" "Flagged messages" ?f)
+                       (,(concat "flag:unread AND "
+                                 "NOT flag:trashed AND "
+                                 "NOT flag:seen AND "
+                                 "NOT maildir:/atomx/spam AND "
+                                 "NOT maildir:/atomx/trash AND "
+                                 "NOT maildir:/gmail/spam AND "
+                                 "NOT maildir:/gmail/trash")
+                        "Unread messages" ?a)
                        ("list:magit@googlegroups.com OR list:mu-discuss@googlegroups.com" "Elisp" ?e)
                        ("list:pylons-discuss@googlegroups.com OR list:pylons-devel@googlegroups.com OR list:sqlalchemy@googlegroups.com" "Python" ?p)
                        ("list:intern.lists.ccc.de" "CCC Intern" ?c)
                        ("list:intern.lists.entropia.de" "Entropia Intern" ?k)
                        ("list:uwsgi.lists.unbit.it" "uwsgi" ?u)))
-;; (setq mu4e-bookmarks `(("\\\\Inbox" "Inbox" ?i)
-;;                        ("flag:flagged" "Flagged messages" ?f)
-;;                        (,(concat "flag:unread AND "
-;;                                  "NOT flag:trashed AND "
-;;                                  "NOT maildir:/spam AND "
-;;                                  "NOT maildir:/trash")
-;;                         "Unread messages" ?u)))
 
 ;; (add-hook 'mu4e-mark-execute-pre-hook
 ;;           (lambda (mark msg)
@@ -132,7 +129,7 @@
 
 ;; allow for updating mail using 'U' in the main view:
 ;; (only update inboxes)
-(setq mu4e-get-mail-command "mbsync gmail-inbox atomx-inbox hogaso-inbox e5-inbox")
+(setq mu4e-get-mail-command "mbsync private gmail-inbox atomx-inbox hogaso-inbox e5-inbox")
 ;; for update all:
 ;;(setq mu4e-get-mail-command "mbsync -a")
 
@@ -168,6 +165,15 @@
 (setq gnus-dired-mail-mode 'mu4e-user-agent)
 (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
 
+;; I want my format=flowed thank you very much
+;; mu4e sets up visual-line-mode and also fill (M-q) to do the right thing
+;; each paragraph is a single long line; at sending, emacs will add the
+;; special line continuation characters.
+(setq mu4e-compose-format-flowed nil)
+
+;; Dont open new frame for composing mails
+(setq mu4e-compose-in-new-frame nil)
+
 ;; display html messages
 (require 'mu4e-contrib)
 (setq mu4e-html2text-command 'mu4e-shr2text)
@@ -180,12 +186,52 @@
 
 ;; Don't reply to self
 (setq mu4e-user-mail-address-list
-      '("daniel.kraus@gmail.com" "dakra@tr0ll.net" "daniel@tr0ll.net" "d@niel-kraus.de"
+      '("daniel@kraus.my" "daniel.kraus@gmail.com" "dakra@tr0ll.net" "daniel@tr0ll.net" "d@niel-kraus.de"
+        "arlo@kraus.my"
         "dakra-cepheus@tr0ll.net"
         "daniel@atomx.com"
         "daniel@hogaso.com"
         "daniel.kraus@ebenefuenf.de"))
 (setq mu4e-compose-dont-reply-to-self t)
+
+;; Extract name from email for yasnippet template
+;; http://pragmaticemacs.com/emacs/email-templates-in-mu4e-with-yasnippet/
+(defun bjm/mu4e-get-names-for-yasnippet ()
+  "Return comma separated string of names for an email"
+  (interactive)
+  (let ((email-name "") str email-string email-list email-name2 tmpname)
+    (save-excursion
+      (goto-char (point-min))
+      ;; first line in email could be some hidden line containing NO to field
+      (setq str (buffer-substring-no-properties (point-min) (point-max))))
+    ;; take name from TO field - match series of names
+    (when (string-match "^To: \"?\\(.+\\)" str)
+      (setq email-string (match-string 1 str)))
+    ;;split to list by comma
+    (setq email-list (split-string email-string " *, *"))
+    ;;loop over emails
+    (dolist (tmpstr email-list)
+      ;;get first word of email string
+      (setq tmpname (car (split-string tmpstr " ")))
+      ;;remove whitespace or ""
+      (setq tmpname (replace-regexp-in-string "[ \"]" "" tmpname))
+      ;;join to string
+      (setq email-name
+            (concat email-name ", " tmpname)))
+    ;;remove initial comma
+    (setq email-name (replace-regexp-in-string "^, " "" email-name))
+
+    ;;see if we want to use the name in the FROM field
+    ;;get name in FROM field if available, but only if there is only
+    ;;one name in TO field
+    (if (< (length email-list) 2)
+        (when (string-match "^\\([^ ,\n]+\\).+writes:$" str)
+          (progn (setq email-name2 (match-string 1 str))
+                 ;;prefer name in FROM field if TO field has "@"
+                 (when (string-match "@" email-name)
+                   (setq email-name email-name2))
+                 )))
+    email-name))
 
 ;; Always display plain text messages.
 (setq mu4e-view-html-plaintext-ratio-heuristic most-positive-fixnum)
@@ -195,7 +241,8 @@
 ;; View mail in browser with "a V"
 (add-to-list 'mu4e-view-actions
              '("ViewInBrowser" . mu4e-action-view-in-browser) t)
-
+(add-to-list 'mu4e-view-actions
+             '("xViewXWidget" . mu4e-action-view-with-xwidget) t)
 ;; enable inline images
 (setq mu4e-view-show-images t)
 ;; use imagemagick, if available
@@ -224,11 +271,30 @@
            ;; leave-func not defined
            :match-func (lambda (msg)
                          (when msg
+                           (mu4e-message-maildir-matches msg "^/private")))
+           :vars '(  ( user-mail-address  . "daniel@kraus.my"  )
+                     ( mu4e-maildir-shortcuts . (("/private/Inbox"      . ?i)
+                                                 ("/private/Sent"       . ?s)
+                                                 ("/private/Trash"      . ?t)
+                                                 ("/private/Drafts"     . ?d)
+                                                 ("/private/Archive"   . ?a)))
+                     ( mu4e-drafts-folder . "/private/Drafts" )
+                     ( mu4e-sent-folder   . "/private/Sent" )
+                     ( mu4e-trash-folder  . "/private/Trash" )
+                     ( mu4e-refile-folder . "/private/Archive" )
+                     ( user-full-name     . "Daniel Kraus" )
+                     ( mu4e-compose-signature .
+                                              (concat
+                                               "regards,\n"
+                                               "  Daniel\n"))))
+         ,(make-mu4e-context
+           :name "gmail"
+           :enter-func (lambda () (mu4e-message "Switch to the gmail context"))
+           ;; leave-func not defined
+           :match-func (lambda (msg)
+                         (when msg
                            (mu4e-message-maildir-matches msg "^/gmail")))
            :vars '(  ( user-mail-address  . "daniel.kraus@gmail.com"  )
-                     ( smtpmail-smtp-user . "daniel.kraus@gmail.com" )
-                     ( smtpmail-smtp-server . "smtp.gmail.com" )
-                     ( smtpmail-auth-credentials . '(("smtp.gmail.com" 587 "daniel.kraus@gmail.com" nil)) )
                      ( mu4e-maildir-shortcuts . (("/gmail/inbox"      . ?i)
                                                  ("/gmail/sent_mail"  . ?s)
                                                  ("/gmail/trash"      . ?t)
@@ -238,6 +304,8 @@
                      ( mu4e-sent-folder   . "/gmail/sent_mail" )
                      ( mu4e-trash-folder  . "/gmail/trash" )
                      ( mu4e-refile-folder . "/gmail/all_mail" )
+                     ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
+                     ( mu4e-sent-messages-behavior  . delete)
                      ( user-full-name     . "Daniel Kraus" )
                      ( mu4e-compose-signature .
                                               (concat
@@ -251,9 +319,6 @@
                          (when msg
                            (mu4e-message-maildir-matches msg "^/atomx")))
            :vars '(  ( user-mail-address  . "daniel@atomx.com" )
-                     ( smtpmail-smtp-user . "daniel@atomx.com" )
-                     ( smtpmail-smtp-server . "smtp.gmail.com" )
-                     ( smtpmail-auth-credentials . '(("smtp.gmail.com" 587 "daniel@atomx.com" nil)) )
                      ( mu4e-maildir-shortcuts . (("/atomx/inbox"      . ?i)
                                                  ("/atomx/sent_mail"  . ?s)
                                                  ("/atomx/trash"      . ?t)
@@ -263,6 +328,8 @@
                      ( mu4e-sent-folder   . "/atomx/sent_mail" )
                      ( mu4e-trash-folder  . "/atomx/trash" )
                      ( mu4e-refile-folder . "/atomx/all_mail" )
+                     ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
+                     ( mu4e-sent-messages-behavior  . delete)
                      ( user-full-name     . "Daniel Kraus" )
                      ( mu4e-compose-signature . (concat
                                                  "Daniel Kraus\n"
@@ -276,18 +343,15 @@
                          (when msg
                            (mu4e-message-maildir-matches msg "^/e5")))
            :vars '(  ( user-mail-address  . "daniel.kraus@ebenefuenf.de" )
-                     ( smtpmail-smtp-user . "daniel.kraus@ebenefuenf.de" )
-                     ( smtpmail-smtp-server . "smtp.fastmail.com" )
-                     ( smtpmail-auth-credentials . '(("smtp.fastmail.com" 587 "daniel.kraus@ebenefuenf.de" nil)) )
-                     ( mu4e-maildir-shortcuts . (("/e5/inbox"      . ?i)
-                                                 ("/e5/sent_mail"  . ?s)
-                                                 ("/e5/trash"      . ?t)
-                                                 ("/e5/drafts"     . ?d)
-                                                 ("/e5/archive"    . ?a)))
-                     ( mu4e-drafts-folder . "/e5/drafts" )
-                     ( mu4e-sent-folder   . "/e5/sent_mail" )
-                     ( mu4e-trash-folder  . "/e5/trash" )
-                     ( mu4e-refile-folder . "/e5/archive" )
+                     ( mu4e-maildir-shortcuts . (("/e5/Inbox"      . ?i)
+                                                 ("/e5/Sent"  . ?s)
+                                                 ("/e5/Trash"      . ?t)
+                                                 ("/e5/Drafts"     . ?d)
+                                                 ("/e5/Archive"    . ?a)))
+                     ( mu4e-drafts-folder . "/e5/Drafts" )
+                     ( mu4e-sent-folder   . "/e5/Sent" )
+                     ( mu4e-trash-folder  . "/e5/Trash" )
+                     ( mu4e-refile-folder . "/e5/Archive" )
                      ( user-full-name     . "Daniel Kraus" )
                      ( mu4e-compose-signature . (concat
                                                  "Daniel Kraus\n"
@@ -308,9 +372,6 @@
                          (when msg
                            (mu4e-message-maildir-matches msg "^/hogaso")))
            :vars '(  ( user-mail-address  . "daniel@hogaso.com" )
-                     ( smtpmail-smtp-user . "daniel@hogaso.com" )
-                     ( smtpmail-smtp-server . "smtp.gmail.com" )
-                     ( smtpmail-auth-credentials . '(("smtp.gmail.com" 587 "daniel@hogaso.com" nil)) )
                      ( mu4e-maildir-shortcuts . (("/hogaso/inbox"      . ?i)
                                                  ("/hogaso/sent_mail"  . ?s)
                                                  ("/hogaso/trash"      . ?t)
@@ -320,6 +381,8 @@
                      ( mu4e-sent-folder   . "/hogaso/sent_mail" )
                      ( mu4e-trash-folder  . "/hogaso/trash" )
                      ( mu4e-refile-folder . "/hogaso/all_mail" )
+                     ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
+                     ( mu4e-sent-messages-behavior  . delete)
                      ( user-full-name     . "Daniel Kraus" )
                      ( mu4e-compose-signature . (concat
                                                  "Daniel Kraus\n"
@@ -333,32 +396,25 @@
 ;; default is to ask
 '(setq mu4e-compose-context-policy nil)
 
+;; don't keep message buffers around
+(setq message-kill-buffer-on-exit t)
+
 ;; something about ourselves
 ;; (setq
-;;  user-mail-address "daniel.kraus@gmail.com"
+;;  user-mail-address "daniel@kraus.my"
 ;;  user-full-name  "Daniel Kraus"
 ;;  mu4e-compose-signature
 ;;  (concat
 ;;   "regards,\n"
 ;;   "  Daniel\n"))
 
-;; sending mail
-(require 'smtpmail)
-;;; Allow queuing mails
-(setq smtpmail-queue-mail  nil  ;; start in non-queuing mode
-      smtpmail-queue-dir   "~/.mail/queue/")
-(setq message-send-mail-function 'smtpmail-send-it
-      starttls-use-gnutls t
-      smtpmail-starttls-credentials '(("smtp.gmail.com" 587 nil nil))
-      smtpmail-smtp-user "daniel.kraus@gmail.com"
-      smtpmail-auth-credentials '(("smtp.gmail.com" 587 "daniel.kraus@gmail.com" nil))
-      smtpmail-default-smtp-server "smtp.gmail.com"
-      smtpmail-smtp-server "smtp.gmail.com"
-      smtpmail-smtp-service 587)
-
-
-;; don't keep message buffers around
-(setq message-kill-buffer-on-exit t)
+;; sending mail (with msmtp)
+(setq send-mail-function 'sendmail-send-it
+      sendmail-program "~/bin/msmtp-enqueue.sh"
+      mail-specify-envelope-from t
+      message-sendmail-f-is-evil nil
+      mail-envelope-from 'header
+      message-sendmail-envelope-from 'header)
 
 
 ;; If there's 'attach' 'file' 'pdf' in the message warn when sending w/o attachment
