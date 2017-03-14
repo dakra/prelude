@@ -53,6 +53,7 @@
    company-quickhelp
    company-restclient
    company-tern
+   easy-escape  ; Nicer elisp regex syntax highlighting
    fabric
    graphviz-dot-mode
    litable  ; live preview for elisp
@@ -679,6 +680,11 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-hook 'lisp-mode #'aggressive-indent-mode)
 (add-hook 'css-mode-hook #'aggressive-indent-mode)
 (add-hook 'js2-mode-hook #'aggressive-indent-mode)
+
+;; Nicer elisp regex syntax highlighting
+(add-hook 'lisp-mode-hook 'easy-escape-minor-mode)
+(add-hook 'emacs-lisp-mode-hook 'easy-escape-minor-mode)
+
 
 ;; octave
 (setq octave-block-offset 4)

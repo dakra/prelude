@@ -76,11 +76,11 @@
 ;; the 'All Mail' folder by pressing ``ma''.
 
 (setq mu4e-maildir-shortcuts
-      '(("/gmail/inbox"      . ?i)
-        ("/gmail/sent_mail"  . ?s)
-        ("/gmail/trash"      . ?t)
-        ("/gmail/drafts"     . ?d)
-        ("/gmail/all_mail"   . ?a)))
+      '(("/private/Inbox"      . ?i)
+        ("/private/Sent"       . ?s)
+        ("/private/Trash"      . ?t)
+        ("/private/Drafts"     . ?d)
+        ("/private/Archive"   . ?a)))
 
 ;; Don't ask to quit
 (setq mu4e-confirm-quit nil)

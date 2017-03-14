@@ -24,4 +24,5 @@
         handle-switch-frame
         helm-M-x
         helm-find-files
+        smart-region
         ))
