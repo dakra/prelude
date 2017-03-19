@@ -208,9 +208,9 @@
 ;; Clocktable (C-c C-x C-r) defaults
 (setq org-clock-clocktable-default-properties '(:block thismonth :scope file-with-archives))
 
-;; FIXME: doesn't work?
+;; Clocktable (reporting: r) in the agenda
 (setq org-clocktable-defaults
-      '(:maxlevel 3 :lang "en" :scope file-with-archives :block thismonth
+      '(:maxlevel 3 :lang "en" :scope file-with-archives
                   :wstart 1 :mstart 1 :tstart nil :tend nil :step nil :stepskip0 nil :fileskip0 nil
                   :tags nil :emphasize nil :link t :narrow 70! :indent t :formula nil :timestamp nil
                   :level nil :tcolumns nil :formatter nil))

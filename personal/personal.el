@@ -61,6 +61,7 @@
    ng2-mode
    nginx-mode
    outline-magic  ; better outline-mode
+   pippel  ; package-list-packages like interface for python packages
    py-isort  ; auto sort python imports
    realgud
    restclient
@@ -589,6 +590,10 @@ displayed anywhere else."
 ;;(setq python-shell-interpreter "python"
 ;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
 
+;; package-list-packages like interface for python packages using pip
+(require 'pippel)
+(setq pippel-package-path "~/.emacs.d/elpa/pippel-20170317.417/")
+
 (require 'virtualenvwrapper)
 (venv-initialize-interactive-shells) ;; if you want interactive shell support
 (venv-initialize-eshell) ;; if you want eshell support
@@ -637,6 +642,9 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
 ;; just type 'fixes #' and get github issue autocompletion
 ;;(add-hook 'git-commit-mode-hook 'git-commit-insert-issue-mode)
+
+;; Nicer diff (should be taken from global .config/git/config)
+(setq vc-git-diff-switches '("--indent-heuristic"))
 
 ;; github pull request support for magit
 ;;(require 'magit-gh-pulls)
@@ -984,6 +992,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
             '(:with company-yasnippet))))
 (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
+;; Enable editorconfig mode
+(editorconfig-mode 1)
 
 ;; Ledger
 (setq ledger-post-amount-alignment-column 60)
