@@ -159,7 +159,7 @@
 
 (setq org-default-notes-file (concat org-directory "refile.org"))
 
-(setq org-clock-idle-time 10)  ; idle after 10 minutes
+(setq org-clock-idle-time 15)  ; idle after 15 minutes
 
 (require 'org-id)
 (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)

@@ -387,7 +387,10 @@ indent yanked text (with prefix arg don't indent)."
 (winner-mode +1)
 
 ;; diff-hl
-(global-diff-hl-mode +1)
+;;(global-diff-hl-mode +1)
+(add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
+(add-hook 'conf-mode-hook 'turn-on-diff-hl-mode)
+(add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode)
 (add-hook 'dired-mode-hook 'diff-hl-dired-mode)
 (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
 

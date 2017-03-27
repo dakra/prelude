@@ -25,8 +25,11 @@
    docker-tramp
    dockerfile-mode
 
+   use-package
+
    ;; typing helpers
    back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
+   dumb-jump  ; Jump to definition using 'grep'
    emmet-mode
    goto-chg  ; goto last change
    helm-emmet
@@ -61,6 +64,7 @@
    ng2-mode
    nginx-mode
    outline-magic  ; better outline-mode
+   pip-requirements  ; Syntax highlighting for requirements.txt files
    pippel  ; package-list-packages like interface for python packages
    py-isort  ; auto sort python imports
    realgud
@@ -91,8 +95,11 @@
 ;; disable arrow keys to be forced to learn emacs
 ;;(setq guru-warn-only nil)
 
+;; disable guru-mode completely
+(setq prelude-guru nil)
+
 ;; display custom agenda when starting emacs
-(add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
+;;(add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
 
 ;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
 (setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5")
@@ -165,6 +172,28 @@ is already narrowed."
 (diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
 ;; Show details by default  (diredp hides it)
 (setq diredp-hide-details-initially-flag nil)
+
+;; Easily diff 2 marked files in dired
+(defun ora-ediff-files ()
+  (interactive)
+  (let ((files (dired-get-marked-files))
+        (wnd (current-window-configuration)))
+    (if (<= (length files) 2)
+        (let ((file1 (car files))
+              (file2 (if (cdr files)
+                         (cadr files)
+                       (read-file-name
+                        "file: "
+                        (dired-dwim-target-directory)))))
+          (if (file-newer-than-file-p file1 file2)
+              (ediff-files file2 file1)
+            (ediff-files file1 file2))
+          (add-hook 'ediff-after-quit-hook-internal
+                    (lambda ()
+                      (setq ediff-after-quit-hook-internal nil)
+                      (set-window-configuration wnd))))
+      (error "no more than 2 files should be marked"))))
+(define-key dired-mode-map "e" 'ora-ediff-files)
 
 
 ;; Switch on 'umlaut-mode' for easier Umlaut usage
@@ -590,10 +619,6 @@ displayed anywhere else."
 ;;(setq python-shell-interpreter "python"
 ;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
 
-;; package-list-packages like interface for python packages using pip
-(require 'pippel)
-(setq pippel-package-path "~/.emacs.d/elpa/pippel-20170317.417/")
-
 (require 'virtualenvwrapper)
 (venv-initialize-interactive-shells) ;; if you want interactive shell support
 (venv-initialize-eshell) ;; if you want eshell support
@@ -668,6 +693,15 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
       '("" invocation-name " - " (:eval (if (buffer-file-name)
                                             (abbreviate-file-name (buffer-file-name))
                                           "%b"))))
+
+(use-package dumb-jump
+  :bind (("M-g o" . dumb-jump-go-other-window)
+         ("M-g j" . dumb-jump-go)
+         ("M-g p" . dumb-jump-back)
+         ("M-g x" . dumb-jump-go-prefer-external)
+         ("M-g z" . dumb-jump-go-prefer-external-other-window))
+  :config (setq dumb-jump-selector 'helm)
+  :ensure)
 
 ;; change `find-file` so all files that belong to root are opened as root
 ;; too often unintentional changes. just use 'M-x crux-sudo-edit' when needed
