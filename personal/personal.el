@@ -24,10 +24,12 @@
    docker
    docker-tramp
    dockerfile-mode
+   dired+
 
    use-package
 
    ;; typing helpers
+   aggressive-indent
    back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
    dumb-jump  ; Jump to definition using 'grep'
    emmet-mode
@@ -390,13 +392,13 @@ is already narrowed."
                                   (split-window-horizontally))))
 
 (setq browse-url-browser-function 'browse-url-generic
-      browse-url-generic-program "google-chrome")
+      browse-url-generic-program "firefox")
 
 (defun dakra-toggle-browser ()
   (interactive)
   (if (eq browse-url-browser-function 'eww-browse-url)
       (setq browse-url-browser-function 'browse-url-generic
-            browse-url-generic-program "google-chrome")
+            browse-url-generic-program "firefox")
     (setq browse-url-browser-function 'eww-browse-url)))
 
 

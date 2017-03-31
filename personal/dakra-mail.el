@@ -40,12 +40,24 @@
 
 
 ;; default
-(setq mu4e-maildir "~/.mail")
+(setq mu4e-maildir "~/Maildir")
 
 (setq mu4e-drafts-folder "/private/Drafts")
 (setq mu4e-sent-folder   "/private/Sent")
 (setq mu4e-trash-folder  "/private/Trash")
 (setq mu4e-refile-folder "/private/Archive")
+
+;; Dynamically refile
+;; See: https://www.djcbsoftware.nl/code/mu/mu4e/Smart-refiling.html#Smart-refiling
+(defun dakra-mu4e-private-refile (msg)
+  (cond
+   ;; refile all messages from Uber to the 'uber' folder
+   ((mu4e-message-contact-field-matches msg :from "@uber\\.com")
+    "/private/uber")
+   ;; important to have a catch-all at the end!
+   (t  "/private/Archive")))
+
+(setq mu4e-refile-folder 'dakra-mu4e-private-refile)
 
 ;; default search only inbox, archive or sent mail
 (setq helm-mu-default-search-string "(maildir:/private/Inbox OR maildir:/private/Archive OR maildir:/private/Sent)")
@@ -281,7 +293,7 @@
                      ( mu4e-drafts-folder . "/private/Drafts" )
                      ( mu4e-sent-folder   . "/private/Sent" )
                      ( mu4e-trash-folder  . "/private/Trash" )
-                     ( mu4e-refile-folder . "/private/Archive" )
+                     ( mu4e-refile-folder . dakra-mu4e-private-refile)
                      ( user-full-name     . "Daniel Kraus" )
                      ( mu4e-compose-signature .
                                               (concat

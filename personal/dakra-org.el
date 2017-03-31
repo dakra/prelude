@@ -13,6 +13,7 @@
    ob-restclient
    org-download
    org-pomodoro
+   org-jira
    orgit
    ox-jira
    ))
@@ -597,7 +598,7 @@ session as the current block. ARG has same meaning as in
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((C . t)
-   (R . t)
+   ;;(R . t)
    (asymptote)
    (awk)
    (calc)
