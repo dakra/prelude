@@ -9,6 +9,7 @@
 
 (prelude-require-packages
  '(
+   moe-theme
    color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
@@ -65,6 +66,7 @@
    lua-mode
    ng2-mode
    nginx-mode
+   markdown-mode
    outline-magic  ; better outline-mode
    pip-requirements  ; Syntax highlighting for requirements.txt files
    pippel  ; package-list-packages like interface for python packages
@@ -85,6 +87,19 @@
 ;; temporary fixes:
 ;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
 (defalias 'display-buffer-in-major-side-window 'window--make-major-side-window)
+
+
+(require 'powerline)
+(require 'moe-theme)
+;; Show highlighted buffer-id as decoration. (Default: nil)
+(setq moe-theme-highlight-buffer-id t)
+
+(setq moe-theme-resize-markdown-title '(2.0 1.7 1.5 1.3 1.0 1.0))
+(setq moe-theme-resize-org-title '(2.2 1.8 1.6 1.4 1.2 1.0 1.0 1.0 1.0))
+(setq moe-theme-resize-rst-title '(2.0 1.7 1.5 1.3 1.1 1.0))
+
+(powerline-moe-theme)
+(moe-dark)
 
 
 (require 'back-button)
@@ -472,7 +487,7 @@ displayed anywhere else."
 (setq sql-connection-alist
       '((atomx-local-api (sql-product 'mysql)
                          (sql-server "localhost")
-                         (sql-user "daniel")
+                         (sql-user "root")
                          (sql-database "api"))
         (atomx-remote-api (sql-product 'mysql)
                           (sql-server "127.0.0.1")

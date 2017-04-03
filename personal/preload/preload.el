@@ -1,4 +1,13 @@
-(setq prelude-theme 'sanityinc-tomorrow-bright)
+;;(setq prelude-theme 'sanityinc-tomorrow-bright)
+(setq prelude-theme nil)
+
+;;(setq prelude-theme 'moe-dark)
+;;(setq prelude-theme 'doom-one)
+;; brighter minibuffer when active
+;;(add-hook 'minibuffer-setup-hook 'doom-brighten-minibuffer)
+;;(setq doom-one-brighter-comments t
+;;      doom-one-brighter-modeline t)
+
 
 (setq org-list-allow-alphabetical t)
 
