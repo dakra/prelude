@@ -59,9 +59,6 @@
 
 (setq mu4e-refile-folder 'dakra-mu4e-private-refile)
 
-;; default search only inbox, archive or sent mail
-(setq helm-mu-default-search-string "(maildir:/private/Inbox OR maildir:/private/Archive OR maildir:/private/Sent)")
-
 ;; don't show duplicate mails when searching
 (setq mu4e-headers-skip-duplicates t)
 
@@ -74,6 +71,8 @@
 
 ;; use helm-mu for search
 ;; FIXME helm search broken
+;; default search only inbox, archive or sent mail
+;;(setq helm-mu-default-search-string "(maildir:/private/Inbox OR maildir:/private/Archive OR maildir:/private/Sent)")
 ;;(define-key mu4e-main-mode-map "s" 'helm-mu)
 ;;(define-key mu4e-headers-mode-map "s" 'helm-mu)
 ;;(define-key mu4e-view-mode-map "s" 'helm-mu)

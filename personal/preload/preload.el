@@ -9,6 +9,9 @@
 ;;      doom-one-brighter-modeline t)
 
 
+;; Show details by default  (diredp hides it)
+(setq diredp-hide-details-initially-flag nil)
+
 (setq org-list-allow-alphabetical t)
 
 (setq org-emphasis-alist '(("*" bold)

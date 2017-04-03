@@ -61,6 +61,7 @@
    company-tern
    easy-escape  ; Nicer elisp regex syntax highlighting
    fabric
+   fish-mode
    graphviz-dot-mode
    litable  ; live preview for elisp
    lua-mode
@@ -77,7 +78,7 @@
    skewer-mode  ; js live reloading
    slime-company
    sphinx-mode
-   sqlup-mode  ; make sql keywords automatically upercase
+   sqlup-mode  ; make sql keywords automatically uppercase
    systemd
    tide  ; typescript
    virtualenvwrapper
@@ -188,8 +189,6 @@ is already narrowed."
 (setq dired-dwim-target t)
 (setq diredp-dwim-any-frame-flag t)
 (diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
-;; Show details by default  (diredp hides it)
-(setq diredp-hide-details-initially-flag nil)
 
 ;; Easily diff 2 marked files in dired
 (defun ora-ediff-files ()
