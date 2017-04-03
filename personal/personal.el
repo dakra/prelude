@@ -1079,4 +1079,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
       kept-new-versions 9               ; newest versions to keep when a new numbered backup is made (default: 2)
       )
 
+;; Load ssh/gpg agent environment after 2 minutes. If the agent isn't started yet (not entered password),
+;; we have to call (keychain-refresh-environment) interactively later
+(run-at-time "2 min" nil '(lambda () (keychain-refresh-environment)))
 ;;; personal.el ends here
