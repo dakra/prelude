@@ -95,11 +95,12 @@
 (setq moe-theme-highlight-buffer-id t)
 
 (setq moe-theme-resize-markdown-title '(2.0 1.7 1.5 1.3 1.0 1.0))
-(setq moe-theme-resize-org-title '(2.2 1.8 1.6 1.4 1.2 1.0 1.0 1.0 1.0))
+(setq moe-theme-resize-org-title '(1.6 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
 (setq moe-theme-resize-rst-title '(2.0 1.7 1.5 1.3 1.1 1.0))
 
 (powerline-moe-theme)
 (moe-dark)
+(set-face-attribute 'mu4e-header-highlight-face nil :background "#626262" :foreground "#eeeeee")
 
 
 (require 'back-button)
@@ -763,8 +764,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
             (if (eq window-system 'x)
                 (font-lock-mode 1))))
 
-
 (setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
+
+;;(show-paren-mode t)
+;;(setq show-paren-style 'expression)
 
 ;; disable whitespace-mode in org-mode
 (add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
