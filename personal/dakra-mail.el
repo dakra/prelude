@@ -45,7 +45,6 @@
 (setq mu4e-drafts-folder "/private/Drafts")
 (setq mu4e-sent-folder   "/private/Sent")
 (setq mu4e-trash-folder  "/private/Trash")
-(setq mu4e-refile-folder "/private/Archive")
 
 ;; Dynamically refile
 ;; See: https://www.djcbsoftware.nl/code/mu/mu4e/Smart-refiling.html#Smart-refiling

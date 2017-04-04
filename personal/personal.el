@@ -1053,18 +1053,26 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 
 ;;; don't show some modes that are always on in the mode line
-(diminish 'back-button-mode)
 (diminish 'auto-revert-mode)
-(diminish 'whitespace-mode)
-(diminish 'yas-minor-mode)
-(diminish 'guru-mode)
-(diminish 'company-mode)
-(diminish 'helm-mode)
-(diminish 'whole-line-or-region-mode)
-(diminish 'prelude-mode)
-(diminish 'which-key-mode)
+(diminish 'back-button-mode)
 (diminish 'beacon-mode)
+(diminish 'company-mode)
 (diminish 'editorconfig-mode)
+(diminish 'flyspell-mode)
+(diminish 'guru-mode)
+(diminish 'helm-mode)
+(diminish 'prelude-mode)
+(diminish 'smartparens-mode)
+(diminish 'which-key-mode)
+(diminish 'whitespace-mode)
+(diminish 'whole-line-or-region-mode)
+(diminish 'yas-minor-mode)
+
+;; Not always on but doesn't help much in the modeline:
+(diminish 'anaconda-mode)
+(diminish 'easy-escape-minor-mode)
+(diminish 'highlight-symbol-mode)
+
 
 ;; backup
 
@@ -1083,5 +1091,5 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; Load ssh/gpg agent environment after 2 minutes. If the agent isn't started yet (not entered password),
 ;; we have to call (keychain-refresh-environment) interactively later
-(run-at-time "2 min" nil '(lambda () (keychain-refresh-environment)))
+(run-at-time "2 min" nil 'keychain-refresh-environment)
 ;;; personal.el ends here
