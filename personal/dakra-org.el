@@ -194,6 +194,31 @@
          "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
 
+;;; Create (and delete) a new capture frame with emacsclient -ne "(make-capture-frame)"
+(defadvice org-capture-finalize
+    (after delete-capture-frame activate)
+  "Advise capture-finalize to close the frame"
+  (if (equal "capture" (frame-parameter nil 'name))
+      (delete-frame)))
+
+(defadvice org-capture-destroy
+    (after delete-capture-frame activate)
+  "Advise capture-destroy to close the frame"
+  (if (equal "capture" (frame-parameter nil 'name))
+      (delete-frame)))
+
+(use-package noflet
+  :ensure t )
+(defun make-capture-frame ()
+  "Create a new frame and run org-capture."
+  (interactive)
+  (make-frame '((name . "capture")))
+  (select-frame-by-name "capture")
+  (delete-other-windows)
+  (noflet ((switch-to-buffer-other-window (buf) (switch-to-buffer buf)))
+          (org-capture)))
+
+
 ;; undone TODO entries will block switching the parent to DONE
 (setq org-enforce-todo-dependencies t)
 

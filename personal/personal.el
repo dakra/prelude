@@ -27,6 +27,7 @@
    dockerfile-mode
    dired+
 
+   noflet  ; let you locally overwrite functions
    use-package
 
    ;; typing helpers
@@ -95,9 +96,9 @@
 ;; Show highlighted buffer-id as decoration. (Default: nil)
 (setq moe-theme-highlight-buffer-id t)
 
-(setq moe-theme-resize-markdown-title '(2.0 1.7 1.5 1.3 1.0 1.0))
+(setq moe-theme-resize-markdown-title '(1.7 1.5 1.3 1.1 1.0 1.0))
 (setq moe-theme-resize-org-title '(1.6 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
-(setq moe-theme-resize-rst-title '(2.0 1.7 1.5 1.3 1.1 1.0))
+(setq moe-theme-resize-rst-title '(1.7 1.5 1.3 1.1 1.0 1.0))
 
 (powerline-moe-theme)
 (moe-dark)
@@ -821,6 +822,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
         (set-marker m nil))
     ad-do-it))
 
+;; Paste with middle mouse button doesn't move the curser
+(setq mouse-yank-at-point t)
 
 ;; "C-=" is not valid ascii sequence in terminals
 ;;(global-set-key (kbd "C-@") 'er/expand-region)
