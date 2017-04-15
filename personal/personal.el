@@ -64,6 +64,7 @@
    fabric
    fish-mode
    graphviz-dot-mode
+   jira-markup-mode
    litable  ; live preview for elisp
    lua-mode
    ng2-mode
@@ -100,7 +101,8 @@
 (setq moe-theme-resize-org-title '(1.6 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
 (setq moe-theme-resize-rst-title '(1.7 1.5 1.3 1.1 1.0 1.0))
 
-(powerline-moe-theme)
+;; XXX: smart-mode-line theme is better?
+;;(powerline-moe-theme)
 (moe-dark)
 (set-face-attribute 'mu4e-header-highlight-face nil :background "#626262" :foreground "#eeeeee")
 
@@ -126,6 +128,15 @@
 
 ;; recenter window after imenu jump so cursor doesn't end up on the last line
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
+
+;; Confluence uses jira syntax
+(add-to-list 'auto-mode-alist '("\\.confluence$" . jira-markup-mode))
+
+;; Firefox itsalltext config
+;; Use jira mode if 'itsalltext' hostname has 'jira' in it
+(add-to-list 'auto-mode-alist '("/itsalltext/.*jira.*\\.txt$" . jira-markup-mode))
+;; Use markdown for github or gitlab domains
+(add-to-list 'auto-mode-alist '("/itsalltext/.*\\(gitlab\\|github\\).*\\.txt$" . gfm-mode))
 
 
 ;; eshell
@@ -355,7 +366,7 @@ is already narrowed."
 
 ;; FIXME: can't set it to lower value because of anaconda bug:
 ;; https://github.com/proofit404/anaconda-mode/issues/183
-(setq company-idle-delay 0.5)  ; show auto completion almost instantly
+(setq company-idle-delay 0.2)  ; show auto completion almost instantly
 (setq company-begin-commands '(self-insert-command)) ; start autocompletion only after typing
 ;; don't auto complete with <return> but with C-j
 (with-eval-after-load 'company
@@ -625,8 +636,9 @@ displayed anywhere else."
 (setq flycheck-python-mypy-silent-imports t)
 
 ;; use both pylint and flake8 in flycheck
-(flycheck-add-next-checker 'python-flake8 'python-pylint 'python-mypy)
-(setq flycheck-flake8-maximum-line-length 120)
+;;(flycheck-add-next-checker 'python-flake8 'python-pylint 'python-mypy)
+(flycheck-add-next-checker 'python-flake8 'python-mypy)
+(setq flycheck-flake8-maximum-line-length 110)
 
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
 ;; when setting interpreter to 'ipython', you need additional '--simple-prompt' arg
@@ -764,7 +776,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
             (if (eq window-system 'x)
                 (font-lock-mode 1))))
 
-(setq whitespace-line-column 120)  ; highlight lines with more than 120 characters
+(setq whitespace-line-column 110)  ; highlight lines with more than 110 characters
 
 ;;(show-paren-mode t)
 ;;(setq show-paren-style 'expression)
@@ -852,7 +864,11 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; key bindings - misc
 
 ;; Normally "C-x k" prompts you which buffer to kill. Remap to always kill the current buffer
-(global-set-key (kbd "C-x k") 'kill-this-buffer)
+(defun dakra-kill-this-buffer ()
+  "Like (kill-this-buffer) but independent of the menu bar."
+  (interactive)
+  (kill-buffer (current-buffer)))
+(global-set-key (kbd "C-x k") 'dakra-kill-this-buffer)
 
 (require 'god-mode)
 ;; Make god-mode a little bit more vi-like
@@ -956,7 +972,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-hook 'web-mode-hook 'web-mode-hook-setup)
 
 ;; Spell check camel case strings
-(setq ispell-program-name "aspell")
+(setq ispell-program-name "aspell"
+      ispell-extra-args '("--sug-mode=ultra" "--run-together" "--run-together-limit=5" "--run-together-min=2"))
 
 ;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
 ;;      ispell-extra-args '("--sug-mode=ultra" "--run-together" "--run-together-limit=5" "--run-together-min=2")
@@ -995,6 +1012,15 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (setq-default ispell-extra-args (flyspell-detect-ispell-args t))
 ;; (setq ispell-cmd-args (flyspell-detect-ispell-args))
 (defadvice ispell-word (around my-ispell-word activate)
+  (let ((old-ispell-extra-args ispell-extra-args))
+    (ispell-kill-ispell t)
+    (setq ispell-extra-args (flyspell-detect-ispell-args))
+    ad-do-it
+    (setq ispell-extra-args old-ispell-extra-args)
+    (ispell-kill-ispell t)
+    ))
+;; flyspell-correct-helm uses this function
+(defadvice flyspell-correct-word-generic (around my-ispell-word activate)
   (let ((old-ispell-extra-args ispell-extra-args))
     (ispell-kill-ispell t)
     (setq ispell-extra-args (flyspell-detect-ispell-args))
@@ -1053,6 +1079,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; Ledger
 (setq ledger-post-amount-alignment-column 60)
+
+
+;; Turn off auto rever messages
+(setq auto-revert-verbose nil)
 
 
 ;;; don't show some modes that are always on in the mode line

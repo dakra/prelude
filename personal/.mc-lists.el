@@ -6,11 +6,14 @@
         crux-move-beginning-of-line
         crux-smart-open-line
         electric-newline-and-maybe-indent
+        haml-electric-backspace
         helm-show-kill-ring
+        indent-for-tab-command
         ledger-magic-tab
         org-beginning-of-line
         org-delete-char
         org-end-of-line
+        org-force-self-insert
         org-self-insert-command
         sp-backward-delete-char
         sp-delete-char

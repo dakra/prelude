@@ -405,21 +405,26 @@
 ;; always insert TODO even when on NEXT header
 ;; ...
 (require 'gh)
+(setq dakra-gh-issue-project "api")
 (defun dakra/org-insert-gh-issue (issue-number)
   (interactive "NGithub issue number:")
   (let (api raw-issue issue issue-title issue-body start-point)
     (setf api (gh-issues-api "api" :sync nil :cache nil :num-retries 1))
-    (setf raw-issue (gh-issues-issue-get api "atomx" "api" issue-number))
+    (setf raw-issue (gh-issues-issue-get api "atomx" dakra-gh-issue-project issue-number))
     (setf issue (oref raw-issue :data))
     (setf issue-title (oref issue :title))
     (setf issue-body (oref issue :body))
     (org-insert-todo-heading-respect-content)
-    (org-insert-link nil
-                     (format "https://github.com/atomx/api/issues/%s" issue-number)
-                     (format "#%s: %s" issue-number issue-title))
+    (insert (format "%s" issue-title))
+    (org-set-tags-to (format ":%s_%s:" (upcase dakra-gh-issue-project) issue-number))
+    (org-set-tags-command t t)  ; realign tags
     (when bh/insert-inactive-timestamp
       (next-line)
       (move-end-of-line 1))
+    (insert "\n")
+    (org-insert-link nil
+                     (format "https://github.com/atomx/api/issues/%s" issue-number)
+                     (format "#%s: %s" issue-number issue-title))
     (insert "\n")
     (setq start-point (point))
     (insert (format "%s" issue-body))
@@ -664,6 +669,7 @@ session as the current block. ARG has same meaning as in
    (screen)
    (shell . t)
    (shen)
+   (snippet)
    (sql . t)
    (sqlite)))
 

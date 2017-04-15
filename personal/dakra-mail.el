@@ -15,6 +15,9 @@
 ;; for org capture
 (require 'org-mu4e)
 
+;; Store link to message if in header view, not to header query
+(setq org-mu4e-link-query-in-headers-mode nil)
+
 ;; Open mu4e with the 'Mail' key (if your keyboard has one)
 (global-set-key (kbd "<XF86Mail>") 'mu4e)
 
