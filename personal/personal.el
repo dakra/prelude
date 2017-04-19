@@ -391,6 +391,14 @@ is already narrowed."
 (require 'i3-integration)
 (i3-one-window-per-frame-mode-on)
 (i3-advise-visible-frame-list-on)
+(use-package i3
+  :ensure nil)
+(use-package i3-integration
+  :ensure nil
+  :config
+  (i3-one-window-per-frame-mode-on)
+  (i3-advise-visible-frame-list-on)
+  )
 
 ;; since i3-mode always creates new frames instead of windows
 ;; rebind "C-x o" to switch frames if we use X11
@@ -701,6 +709,9 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; Nicer diff (should be taken from global .config/git/config)
 (setq vc-git-diff-switches '("--indent-heuristic"))
 
+;; Always highlight word differences in diff
+(setq magit-diff-refine-hunk 'all)
+
 ;; github pull request support for magit
 ;;(require 'magit-gh-pulls)
 (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
@@ -708,6 +719,23 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; auto highlight all occurences of symbol under cursor
 (require 'highlight-symbol)
+
+;; Make highlight symbol use overlay-put instead of font-lock
+;; https://github.com/nschum/highlight-symbol.el/issues/26#issuecomment-233168193
+(defun highlight-symbol-add-symbol-with-face (symbol face)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward symbol nil t)
+      (let ((ov (make-overlay (match-beginning 0)
+                              (match-end 0))))
+        (overlay-put ov 'highlight-symbol t)
+        (overlay-put ov 'face face)))))
+
+(defun highlight-symbol-remove-symbol (_symbol)
+  (dolist (ov (overlays-in (point-min) (point-max)))
+    (when (overlay-get ov 'highlight-symbol)
+      (delete-overlay ov))))
+
 (add-hook 'prog-mode-hook #'highlight-symbol-mode)
 (setq highlight-symbol-idle-delay 0.5)
 (set-face-attribute 'highlight-symbol-face nil :background "gray30")
@@ -730,8 +758,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
          ("M-g p" . dumb-jump-back)
          ("M-g x" . dumb-jump-go-prefer-external)
          ("M-g z" . dumb-jump-go-prefer-external-other-window))
-  :config (setq dumb-jump-selector 'helm)
-  :ensure)
+  :config (setq dumb-jump-selector 'helm))
 
 ;; change `find-file` so all files that belong to root are opened as root
 ;; too often unintentional changes. just use 'M-x crux-sudo-edit' when needed

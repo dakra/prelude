@@ -1,5 +1,11 @@
+;; User different elpa dirs for emacs stable and unstable
+;;(setq package-user-dir (format "%selpa_%s/"
+;;  user-emacs-directory emacs-major-version)) ; default = ~/.emacs.d/elpa/
+
 ;;(setq prelude-theme 'sanityinc-tomorrow-bright)
 (setq prelude-theme nil)
+
+(add-to-list 'load-path "~/.emacs.d/personal/external")
 
 ;;(setq prelude-theme 'moe-dark)
 ;;(setq prelude-theme 'doom-one)
