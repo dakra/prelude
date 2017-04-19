@@ -30,6 +30,11 @@
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 
+;; Automatically add a CREATED property when inserting a new headline
+(require 'org-expiry)
+(setq org-expiry-inactive-timestamps t)
+(org-expiry-insinuate)
+
 ;;(setq org-list-indent-offset 1)
 
 (setq org-directory "~/org/")
@@ -266,13 +271,18 @@
 (setq org-agenda-log-mode-items (quote (closed state clock)))
 
 ;; Tags with fast selection keys
-(setq org-tag-alist (quote (("PERSONAL" . ?p)
-                            ("WORK" . ?w)
-                            ("ATOMX" . ?a)
-                            ("E5" . ?e)
-                            ("HOGASO" . ?h)
-                            ("ORG" . ?o)
+(setq org-tag-alist (quote ((:startgroup)
+                            ("WAITING" . ?w)
+                            ("HOLD" . ?h)
+                            ("CANCELLED" . ?c)
                             ("NOTE" . ?n)
+                            (:endgroup)
+                            ("PERSONAL" . ?P)
+                            ("WORK" . ?W)
+                            ("ATOMX" . ?A)
+                            ("E5" . ?E)
+                            ("HOGASO" . ?H)
+                            ("ORG" . ?o)
                             ("crypt" . ?c)
                             ("FLAGGED" . ??))))
 

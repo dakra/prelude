@@ -1,10 +1,23 @@
 ;;; package --- bh-org
 
 ;;; Commentary:
-;;; Define function from http://doc.norang.ca/org-mode.html
+;;; Define functions from http://doc.norang.ca/org-mode.html
 ;;; so 'dakra-org.el' is only my own config
 
 ;;; Code:
+
+;; I have a few triggers that automatically assign tags to tasks based
+;; on state changes. If a task moves to CANCELLED state then it gets a
+;; CANCELLED tag. Moving a CANCELLED task back to TODO removes the
+;; CANCELLED tag. These are used for filtering tasks in agenda views.
+(setq org-todo-state-tags-triggers
+      (quote (("CANCELLED" ("CANCELLED" . t))
+              ("WAITING" ("WAITING" . t))
+              ("HOLD" ("WAITING") ("HOLD" . t))
+              (done ("WAITING") ("HOLD"))
+              ("TODO" ("WAITING") ("CANCELLED") ("HOLD"))
+              ("NEXT" ("WAITING") ("CANCELLED") ("HOLD"))
+              ("DONE" ("WAITING") ("CANCELLED") ("HOLD")))))
 
 ;; Custom agenda command definitions
 (setq org-agenda-custom-commands
@@ -381,6 +394,8 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (setq org-drawers (quote ("PROPERTIES" "LOGBOOK")))
 ;; Save clock data and state changes and notes in the LOGBOOK drawer
 (setq org-clock-into-drawer t)
+;; Log all State changes to drawer
+(setq org-log-into-drawer t)
 ;; make time editing use discrete minute intervals (no rounding) increments
 (setq org-time-stamp-rounding-minutes (quote (1 1)))
 ;; Sometimes I change tasks I'm clocking quickly - this removes clocked tasks with 0:00 duration
@@ -859,7 +874,7 @@ Late deadlines first, then scheduled, then non-late deadlines"
       (org-cycle)
       (bh/insert-inactive-timestamp))))
 
-(add-hook 'org-insert-heading-hook 'bh/insert-heading-inactive-timestamp 'append)
+;;(add-hook 'org-insert-heading-hook 'bh/insert-heading-inactive-timestamp 'append)
 
 
 ;; automatically change the list bullets when you change list levels
