@@ -417,7 +417,7 @@
 (require 'gh)
 (setq dakra-gh-issue-project "api")
 (defun dakra/org-insert-gh-issue (issue-number)
-  (interactive "NGithub issue number:")
+  (interactive "N Github issue number:")
   (let (api raw-issue issue issue-title issue-body start-point)
     (setf api (gh-issues-api "api" :sync nil :cache nil :num-retries 1))
     (setf raw-issue (gh-issues-issue-get api "atomx" dakra-gh-issue-project issue-number))
@@ -428,9 +428,8 @@
     (insert (format "%s" issue-title))
     (org-set-tags-to (format ":%s_%s:" (upcase dakra-gh-issue-project) issue-number))
     (org-set-tags-command t t)  ; realign tags
-    (when bh/insert-inactive-timestamp
-      (next-line)
-      (move-end-of-line 1))
+    (next-line 3)  ; Move 3 lines down to the last PROPERTIES drawer line
+    (move-end-of-line 1)
     (insert "\n")
     (org-insert-link nil
                      (format "https://github.com/atomx/api/issues/%s" issue-number)

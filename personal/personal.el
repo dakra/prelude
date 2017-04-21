@@ -74,6 +74,8 @@
    pip-requirements  ; Syntax highlighting for requirements.txt files
    pippel  ; package-list-packages like interface for python packages
    py-isort  ; auto sort python imports
+   python-test
+   python-docstring  ;; Syntax highlighting for python docstring
    realgud
    restclient
    restclient-helm
@@ -86,6 +88,15 @@
    virtualenvwrapper
    ))
 
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'diminish)
+(require 'bind-key)
+(setq use-package-always-ensure t)
 
 ;; temporary fixes:
 ;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
@@ -224,6 +235,35 @@ is already narrowed."
       (error "no more than 2 files should be marked"))))
 (define-key dired-mode-map "e" 'ora-ediff-files)
 
+(defun ora-dired-rsync (dest)
+  (interactive
+   (list
+    (expand-file-name
+     (read-file-name
+      "Rsync to:"
+      (dired-dwim-target-directory)))))
+  ;; store all selected files into "files" list
+  (let ((files (dired-get-marked-files
+                nil current-prefix-arg))
+        ;; the rsync command
+        (tmtxt/rsync-command
+         "rsync -arvz --progress "))
+    ;; add all selected file names as arguments
+    ;; to the rsync command
+    (dolist (file files)
+      (setq tmtxt/rsync-command
+            (concat tmtxt/rsync-command
+                    (shell-quote-argument file)
+                    " ")))
+    ;; append the destination
+    (setq tmtxt/rsync-command
+          (concat tmtxt/rsync-command
+                  (shell-quote-argument dest)))
+    ;; run the async shell command
+    (async-shell-command tmtxt/rsync-command "*rsync*")
+    ;; finally, switch to that window
+    (other-window 1)))
+(define-key dired-mode-map "Y" 'ora-dired-rsync)
 
 ;; Switch on 'umlaut-mode' for easier Umlaut usage
 (define-minor-mode umlaut-mode
@@ -385,12 +425,6 @@ is already narrowed."
 
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
 ;; used together with i3 keyboard shortcut (S-e) to `emacsclient -cn -e '(switch-to-buffer nil)`
-(load-file "~/.emacs.d/personal/i3-emacs/i3.el")
-(load-file "~/.emacs.d/personal/i3-emacs/i3-integration.el")
-(require 'i3)
-(require 'i3-integration)
-(i3-one-window-per-frame-mode-on)
-(i3-advise-visible-frame-list-on)
 (use-package i3
   :ensure nil)
 (use-package i3-integration
@@ -582,20 +616,20 @@ displayed anywhere else."
 (add-hook 'css-mode-hook 'skewer-css-mode)
 (add-hook 'html-mode-hook 'skewer-html-mode)
 
-(require 'emmet-mode)
-(add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
-(add-hook 'web-mode-hook 'emmet-mode)
-(add-hook 'css-mode-hook  'emmet-mode) ;; enable Emmet's css abbreviation.
+(use-package emmet-mode
+  :bind (:map emmet-mode-map
+              ("<backtab>" . emmet-expand-line)
+              ("\C-c TAB" . emmet-expand-line)
+              ("C-M-p" . emmet-prev-edit-point)
+              ("C-M-n" . emmet-next-edit-point))
+  :config
+  (add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
+  (add-hook 'web-mode-hook 'emmet-mode)
+  (add-hook 'css-mode-hook  'emmet-mode) ;; enable Emmet's css abbreviation.
 
-(define-key emmet-mode-keymap (kbd "<backtab>") 'emmet-expand-line)
-(define-key emmet-mode-keymap (kbd "\C-c TAB") 'emmet-expand-line)
+  (setq emmet-move-cursor-between-quotes t)
+  (setq emmet-move-cursor-after-expanding t))
 
-(define-key emmet-mode-keymap (kbd "C-M-p") 'emmet-prev-edit-point)
-(define-key emmet-mode-keymap (kbd "C-M-n") 'emmet-next-edit-point)
-;;(define-key emmet-mode-keymap (kbd "TAB") 'emmet-next-edit-point)
-
-(setq emmet-move-cursor-between-quotes t)
-(setq emmet-move-cursor-after-expanding t)
 
 (setq auto-mode-alist (rassq-delete-all 'css-mode auto-mode-alist))
 ;; css files in ccss subfolder are 'clever-css'
@@ -608,6 +642,58 @@ displayed anywhere else."
 
 ;; Enable eldoc for python
 (add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+
+
+(require 'python-test)
+;; Default backend for tests is pytest
+(setq python-test-backend 'pytest)
+
+;; Django test backend to run paessler tests
+(add-to-list 'python-test-backends 'django)
+(add-to-list 'python-test-project-root-files "manage.py")
+
+(setq python-test-django-manage.py "/home/daniel/e5/website/django-sites/paessler_com2/manage.py")
+(setq python-test-django-settings "config.test")
+(setq python-test-django-test-root "paessler_com2.site.tests")
+(setq python-test-project-root "/home/daniel/e5/website/django-sites/")
+(defun python-test-django-root-module ()
+  (python-test-path-module (python-test-capture-path (python-test-project-root))))
+
+(cl-defmethod python-test-executable ((_backend (eql django)))
+  "Python unitest executable is python itself, given that django is executed as module."
+  python-shell-interpreter)
+
+(cl-defmethod python-test-args-project ((_backend (eql django)))
+  (list python-test-django-manage.py "test" (format "--settings=%s" python-test-django-settings)
+        python-test-django-test-root))
+
+(cl-defmethod python-test-args-file ((_backend (eql django)))
+  (list python-test-django-manage.py "test" (format "--settings=%s" python-test-django-settings)
+        (python-test-django-root-module)))
+
+(cl-defmethod python-test-args-class ((_backend (eql django)))
+  (list python-test-django-manage.py
+        "test"
+        (format "--settings=%s" python-test-django-settings)
+        (format "%s.%s"
+                (python-test-django-root-module)
+                (python-test-capture-class))))
+
+(cl-defmethod python-test-args-method ((_backend (eql django)))
+  (list python-test-django-manage.py
+        "test"
+        (format "--settings=%s" python-test-django-settings)
+        (format "%s.%s.%s"
+                (python-test-django-root-module)
+                (python-test-capture-class)
+                (python-test-capture-defun))))
+
+(cl-defmethod python-test-args-defun ((_backend (eql django)))
+  (user-error "Django doesn't support testing functions"))
+
+
+;; Enable (restructured) syntax highlighting for python docstrings
+(add-hook 'python-mode-hook 'python-docstring-mode)
 
 ;; Automatically sort and format python imports
 ;;(add-hook 'before-save-hook 'py-isort-before-save)
@@ -650,8 +736,8 @@ displayed anywhere else."
 
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
 ;; when setting interpreter to 'ipython', you need additional '--simple-prompt' arg
-(setq python-shell-interpreter "python"
-      python-shell-interpreter-args "-i")
+(setq python-shell-interpreter "python")
+;;(setq python-shell-interpreter-args "-i")
 ;; FIXME: run new python interpreter on projectile-switch-project?
 ;; and only run pshell when it's a pyramid project.
 ;;(setq python-shell-interpreter "python"
@@ -808,9 +894,22 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(show-paren-mode t)
 ;;(setq show-paren-style 'expression)
 
-;; disable whitespace-mode in org-mode
+;; disable whitespace-mode in ledger
 (add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
 
+
+(use-package prettier-js
+  :ensure nil
+  :config
+  (setq prettier-args '(
+                        "--trailing-comma" "all"
+                        "--print-width" "100"
+                        "--single-quote" "true"
+                        "--bracket-spacing" "false"
+                        ))
+  (setq prettier-target-mode "js2-mode")
+  ;;(add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
+  )
 
 (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
 (setq web-mode-markup-indent-offset 2)
@@ -867,18 +966,22 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; "C-=" is not valid ascii sequence in terminals
 ;;(global-set-key (kbd "C-@") 'er/expand-region)
 
+;; Change to selected? https://github.com/Kungsgeten/selected.el
+;; https://www.reddit.com/r/emacs/comments/63mx6f/how_do_you_use_the_selectel_package_share_some/
 (require 'region-bindings-mode)
 (region-bindings-mode-enable)
 
-(define-key region-bindings-mode-map "\M-a" 'mc/mark-all-like-this)
+(define-key region-bindings-mode-map "\M-a" 'mc/mark-all-dwim)
+(define-key region-bindings-mode-map "\M-A" 'mc/mark-all-like-this)
 (define-key region-bindings-mode-map "\M-p" 'mc/mark-previous-like-this)
+(define-key region-bindings-mode-map "\M-P" 'mc/unmark-previous-like-this)
 (define-key region-bindings-mode-map "\M-n" 'mc/mark-next-like-this)
+(define-key region-bindings-mode-map "\M-N" 'mc/unmark-next-like-this)
 (define-key region-bindings-mode-map "\M-m" 'mc/mark-more-like-this-extended)
 
-(global-set-key (kbd "C-c m") 'mc/mark-next-like-this-word)
+(global-set-key (kbd "C-c m") 'mc/mark-all-dwim)
 (global-set-key (kbd "C->") 'mc/mark-next-like-this)
 (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
-(global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this-dwim)
 
 (global-unset-key (kbd "M-<down-mouse-1>"))
 (global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
@@ -1000,10 +1103,12 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; Spell check camel case strings
 (setq ispell-program-name "aspell"
-      ispell-extra-args '("--sug-mode=ultra" "--run-together" "--run-together-limit=5" "--run-together-min=2"))
+      ;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
+      ispell-extra-args '("--sug-mode=ultra"
+                          "--run-together"
+                          "--run-together-limit=5"
+                          "--run-together-min=2"))
 
-;; force the English dictionary, support Camel Case spelling check (tested with aspell 0.6)
-;;      ispell-extra-args '("--sug-mode=ultra" "--run-together" "--run-together-limit=5" "--run-together-min=2")
 ;; Javascript and ReactJS setup
 (defun js-flyspell-verify ()
   (let* ((f (get-text-property (- (point) 1) 'face)))
