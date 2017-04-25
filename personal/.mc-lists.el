@@ -17,8 +17,11 @@
         org-force-self-insert
         org-self-insert-command
         sp-backward-delete-char
+        sp-backward-kill-word
         sp-delete-char
         sp-forward-slurp-sexp
+        sp-kill-word
+        sp-splice-sexp
         whole-line-or-region-yank
         yas-expand
         ))
@@ -28,5 +31,13 @@
         handle-switch-frame
         helm-M-x
         helm-find-files
+        hydra-multiple-cursors/mc/skip-to-previous-like-this
+        hydra-multiple-cursors/mc/unmark-next-like-this
+        hydra-multiple-cursors/mc/unmark-previous-like-this
+        hydra-multiple-cursors/mc/edit-lines-and-exit
+        hydra-multiple-cursors/mc/mark-all-like-this-and-exit
+        hydra-multiple-cursors/mc/mark-next-like-this
+        hydra-multiple-cursors/mc/mark-previous-like-this
+        hydra-multiple-cursors/mc/skip-to-next-like-this
         smart-region
         ))

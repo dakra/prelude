@@ -40,14 +40,12 @@
    helm-ext  ; helm "hacks" like better path expandsion
    highlight-indent-guides
    highlight-symbol  ; highlight all symbols like the one under the cursor
-   iedit
    multiple-cursors
    origami  ; code folding
    region-bindings-mode  ; clone cursor with n,p when region selected
    smart-region
    swiper-helm  ; C-s search with helm
    whole-line-or-region  ; operate on current line if region is undefined
-   yasnippet
 
    ;; git / github
    browse-at-remote  ; "C-G" opens current buffer on github
@@ -83,7 +81,6 @@
    slime-company
    sphinx-mode
    sqlup-mode  ; make sql keywords automatically uppercase
-   systemd
    tide  ; typescript
    virtualenvwrapper
    ))
@@ -97,10 +94,6 @@
 (require 'diminish)
 (require 'bind-key)
 (setq use-package-always-ensure t)
-
-;; temporary fixes:
-;; emacs 25 -> 26 they renamed some functions that make 'which-key' fail
-(defalias 'display-buffer-in-major-side-window 'window--make-major-side-window)
 
 
 (require 'powerline)
@@ -118,8 +111,10 @@
 (set-face-attribute 'mu4e-header-highlight-face nil :background "#626262" :foreground "#eeeeee")
 
 
-(require 'back-button)
-(back-button-mode 1)
+(use-package back-button
+  :config
+  (back-button-mode 1))
+
 
 ;; save and restore buffer and cursor positions (but don't restore window layout)
 ;;(desktop-save-mode 1)
@@ -281,11 +276,181 @@ is already narrowed."
             ("\M-p" . (lambda () (interactive) (insert ?£)))
             ("\M-S" . (lambda () (interactive) (insert "SS")))))
 
+;; Hydras
+
+(use-package hydra
+  :config
+  (defhydra hydra-folding (:color red)
+    "
+  _o_pen node    _n_ext fold       toggle _f_orward
+  _c_lose node   _p_revious fold   toggle _a_ll
+  "
+    ("o" origami-open-node)
+    ("c" origami-close-node)
+    ("n" origami-next-fold)
+    ("p" origami-previous-fold)
+    ("f" origami-forward-toggle-node)
+    ("a" origami-toggle-all-nodes))
+
+  (defhydra hydra-python (python-mode-map "C-c C-t")
+    "Run Python Tests"
+    ("f" python-test-function "Function")
+    ("m" python-test-method "Method")
+    ("c" python-test-class "Class")
+    ("f" python-test-file "File")
+    ("p" python-test-project "Project")
+    ("q" nil "Cancel"))
+  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
+
+  (defhydra hydra-multiple-cursors (:hint nil)
+    "
+     ^Up^            ^Down^        ^Other^
+----------------------------------------------
+[_p_]   Next    [_n_]   Next    [_l_] Edit lines
+[_P_]   Skip    [_N_]   Skip    [_a_] Mark all
+[_M-p_] Unmark  [_M-n_] Unmark  [_r_] Mark by regexp
+^ ^             ^ ^             [_q_] Quit
+"
+  ("l" mc/edit-lines :exit t)
+  ("a" mc/mark-all-like-this :exit t)
+  ("n" mc/mark-next-like-this)
+  ("N" mc/skip-to-next-like-this)
+  ("M-n" mc/unmark-next-like-this)
+  ("p" mc/mark-previous-like-this)
+  ("P" mc/skip-to-previous-like-this)
+  ("M-p" mc/unmark-previous-like-this)
+  ("r" mc/mark-all-in-region-regexp :exit t)
+  ("q" nil))
+
+  (defun my/insert-unicode (unicode-name)
+    "Same as C-x 8 enter UNICODE-NAME."
+    (insert-char (cdr (assoc-string unicode-name (ucs-names)))))
+
+  (global-set-key
+   (kbd "C-x 9")
+   (defhydra hydra-unicode (:hint nil)
+     "
+     Unicode  _c_ €   _a_ ä   _A_ Ä
+              _d_ °   _o_ ö   _O_ Ö
+              _e_ €   _u_ Ü   _U_ Ü
+              _p_ £   _s_ ß
+              _m_ µ
+              _r_ →
+     "
+     ("a" (my/insert-unicode "LATIN SMALL LETTER A WITH DIAERESIS"))
+     ("A" (my/insert-unicode "LATIN CAPITAL LETTER A WITH DIAERESIS"))
+     ("o" (my/insert-unicode "LATIN SMALL LETTER O WITH DIAERESIS")) ;;
+     ("O" (my/insert-unicode "LATIN CAPITAL LETTER O WITH DIAERESIS"))
+     ("u" (my/insert-unicode "LATIN SMALL LETTER U WITH DIAERESIS")) ;;
+     ("U" (my/insert-unicode "LATIN CAPITAL LETTER U WITH DIAERESIS"))
+     ("s" (my/insert-unicode "LATIN SMALL LETTER SHARP S"))
+     ("c" (my/insert-unicode "COPYRIGHT SIGN"))
+     ("d" (my/insert-unicode "DEGREE SIGN"))
+     ("e" (my/insert-unicode "EURO SIGN"))
+     ("p" (my/insert-unicode "POUND SIGN"))
+     ("r" (my/insert-unicode "RIGHTWARDS ARROW"))
+     ("m" (my/insert-unicode "MICRO SIGN"))))
+
+(defhydra hydra-org-template (:color blue :hint nil)
+  "
+  _c_enter  _q_uote     _e_macs-lisp    _L_aTeX:
+  _l_atex   _E_xample   _p_erl          _i_ndex:
+  _a_scii   _v_erse     _P_erl tangled  _I_NCLUDE:
+  _s_rc     _n_ote      plant_u_ml      _H_TML:
+  _h_tml    ^ ^         ^ ^             _A_SCII:
+  "
+  ("s" (hot-expand "<s"))
+  ("E" (hot-expand "<e"))
+  ("q" (hot-expand "<q"))
+  ("v" (hot-expand "<v"))
+  ("n" (let (text) ; org-reveal speaker notes
+         (when (region-active-p)
+           (setq text (buffer-substring (region-beginning) (region-end)))
+           (delete-region (region-beginning) (region-end)))
+         (insert "#+BEGIN_NOTES\n\n#+END_NOTES")
+         (forward-line -1)
+         (when text (insert text))))
+  ("c" (hot-expand "<c"))
+  ("l" (hot-expand "<l"))
+  ("h" (hot-expand "<h"))
+  ("a" (hot-expand "<a"))
+  ("L" (hot-expand "<L"))
+  ("i" (hot-expand "<i"))
+  ("e" (hot-expand "<s" "emacs-lisp"))
+  ("p" (hot-expand "<s" "perl"))
+  ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
+  ("P" (hot-expand "<s" "perl" ":results output :exports both :shebang \"#!/usr/bin/env perl\"\n"))
+  ("I" (hot-expand "<I"))
+  ("H" (hot-expand "<H"))
+  ("A" (hot-expand "<A"))
+  ("<" self-insert-command "ins")
+  ("o" nil "quit"))
+
+(defun hot-expand (str &optional mod header)
+  "Expand org template.
+
+STR is a structure template string recognised by org like <s. MOD is a
+string with additional parameters to add the begin line of the
+structure element. HEADER string includes more parameters that are
+prepended to the element after the #+HEADERS: tag."
+  (let (text)
+    (when (region-active-p)
+      (setq text (buffer-substring (region-beginning) (region-end)))
+      (delete-region (region-beginning) (region-end))
+      (deactivate-mark))
+    (when header (insert "#+HEADERS: " header))
+    (insert str)
+    (org-try-structure-completion)
+    (when mod (insert mod) (forward-line))
+    (when text (insert text))))
+
+(define-key org-mode-map "<"
+  (lambda () (interactive)
+    (if (or (region-active-p) (looking-back "^"))
+        (hydra-org-template/body)
+      (self-insert-command 1))))
+(require 'org-link-edit)
+(defun jk/unlinkify ()
+  "Replace an org-link with the description, or if this is absent, the path."
+  (interactive)
+  (let ((eop (org-element-context)))
+    (when (eq 'link (car eop))
+      (message "%s" eop)
+      (let* ((start (org-element-property :begin eop))
+             (end (org-element-property :end eop))
+             (contents-begin (org-element-property :contents-begin eop))
+             (contents-end (org-element-property :contents-end eop))
+             (path (org-element-property :path eop))
+             (desc (and contents-begin
+                        contents-end
+                        (buffer-substring contents-begin contents-end))))
+        (setf (buffer-substring start end)
+              (concat (or desc path)
+                      (make-string (org-element-property :post-blank eop) ?\s)))))))
+
+(define-key org-mode-map (kbd "C-c )")
+  (defhydra hydra-org-link-edit (:color red)
+    "Org Link Edit"
+    (")" org-link-edit-forward-slurp "forward slurp")
+    ("}" org-link-edit-forward-barf "forward barf")
+    ("(" org-link-edit-backward-slurp "backward slurp")
+    ("{" org-link-edit-backward-barf "backward barf")
+    ("r" jk/unlinkify "remove link")
+    ("q" nil "cancel" :color blue)))
+)
+
 ;; Tramp config
 
+;; FIXME: New emacs no tramp-file-name-regexp ??
+;; Skip version control for tramp files
+;;(setq vc-ignore-dir-regexp
+;;      (format "\\(%s\\)\\|\\(%s\\)"
+;;              vc-ignore-dir-regexp
+;;              tramp-file-name-regexp))
+
 ;; Turn of auto-save for tramp files
-(add-to-list 'backup-directory-alist
-             (cons tramp-file-name-regexp nil))
+;;(add-to-list 'backup-directory-alist
+;;             (cons tramp-file-name-regexp nil))
 
 ;; Use ControlPath from .ssh/config
 (setq tramp-ssh-controlmaster-options "")
@@ -349,8 +514,10 @@ is already narrowed."
               tramp-file-name-regexp))
 
 ;; wolfram alpha queries (M-x wolfram-alpha)
-(require 'wolfram)
-(setq wolfram-alpha-app-id "KTKV36-2LRW2LELV8")
+(use-package wolfram
+  :config
+  (setq wolfram-alpha-app-id "KTKV36-2LRW2LELV8"))
+
 
 ;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
 ;; set with 'custom' since it's buffer-local variable
@@ -400,9 +567,10 @@ is already narrowed."
 ;;(add-to-list 'company-backends 'company-emoji)
 
 ;; company-mode config
+(use-package slime-company
+  :config
+  (slime-setup '(slime-fancy slime-company)))
 
-(require 'slime-company)
-(slime-setup '(slime-fancy slime-company))
 
 ;; FIXME: can't set it to lower value because of anaconda bug:
 ;; https://github.com/proofit404/anaconda-mode/issues/183
@@ -473,8 +641,9 @@ is already narrowed."
 
 (setq sml/theme 'powerline)  ; smart-mode-line theme
 
-(setq docker-keymap-prefix "C-c C-d")  ; set docker-mode prefix
-(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
+(use-package dockerfile-mode
+  :mode "Dockerfile\\'"
+  :config (setq docker-keymap-prefix "C-c C-d"))
 
 ;; XXX: never use speedbar. disable for now
 ;;(speedbar-add-supported-extension ".hs")
@@ -508,10 +677,13 @@ is already narrowed."
 
 (setq ffap-machine-p-known 'reject)  ; don't "ping Germany" when typing test.de<TAB>
 
-(require 'origami)
-(define-key origami-mode-map (kbd "C-c C-o") 'origami-recursively-toggle-node)
-(add-hook 'prog-mode-hook
-          (lambda () (origami-mode)))
+
+(use-package origami
+  :bind (:map origami-mode-map
+              ("C-c C-o" . hydra-folding/body))
+  :init (add-hook 'prog-mode-hook (lambda () (origami-mode))))
+;;(require 'origami)
+;;(define-key origami-mode-map (kbd "C-c C-o") 'origami-recursively-toggle-node)
 ;;(global-origami-mode)
 
 ;; auto kill buffer when closing window
@@ -528,10 +700,9 @@ displayed anywhere else."
 
 
 ;; use outline-cycle (from outline-magic) in outline-minor-mode
-(eval-after-load 'outline
-  '(progn
-     (require 'outline-magic)
-     (define-key outline-minor-mode-map (kbd "<C-tab>") 'outline-cycle)))
+(use-package outline-magic
+  :bind (:map outline-minor-mode-map ("<C-tab>" . outline-cycle)))
+
 
 ;; SQL
 (require 'sql)
@@ -599,12 +770,16 @@ displayed anywhere else."
 
 
 ;; Capitalize keywords in SQL mode
-(require 'sqlup-mode)
-(add-hook 'sql-mode-hook 'sqlup-mode)
-(add-hook 'sql-interactive-mode-hook 'sqlup-mode)
-;; Don't capitalize `name` or 'type' keyword
-(add-to-list 'sqlup-blacklist "name")
-(add-to-list 'sqlup-blacklist "type")
+(use-package sqlup-mode
+  :defer t
+  :init
+  (add-hook 'sql-mode-hook 'sqlup-mode)
+  (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
+  :config
+  ;; Don't capitalize `name` or 'type' keyword
+  (add-to-list 'sqlup-blacklist "name")
+  (add-to-list 'sqlup-blacklist "type"))
+
 
 ;; use tern for js autocompletion
 (add-hook 'js-mode-hook (lambda () (tern-mode t)))
@@ -619,7 +794,7 @@ displayed anywhere else."
 (use-package emmet-mode
   :bind (:map emmet-mode-map
               ("<backtab>" . emmet-expand-line)
-              ("\C-c TAB" . emmet-expand-line)
+              ("\C-c [TAB]" . emmet-expand-line)
               ("C-M-p" . emmet-prev-edit-point)
               ("C-M-n" . emmet-next-edit-point))
   :config
@@ -743,14 +918,17 @@ displayed anywhere else."
 ;;(setq python-shell-interpreter "python"
 ;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
 
-(require 'virtualenvwrapper)
-(venv-initialize-interactive-shells) ;; if you want interactive shell support
-(venv-initialize-eshell) ;; if you want eshell support
-(setq venv-location "/home/daniel/.virtualenvs/")
-(venv-workon '"atomx")  ; default venv after a starting emacs
-(setq projectile-switch-project-action '(lambda ()
-                                          (venv-projectile-auto-workon)
-                                          (helm-projectile)))
+(use-package virtualenvwrapper
+  :config
+  (venv-initialize-interactive-shells) ;; if you want interactive shell support
+  (venv-initialize-eshell) ;; if you want eshell support
+  (setq venv-location "/home/daniel/.virtualenvs/")
+  ;;(venv-workon '"atomx")  ; default venv after a starting emacs
+  (setq projectile-switch-project-action '(lambda ()
+                                            (venv-projectile-auto-workon)
+                                            (helm-projectile)))
+  )
+
 
 (defcustom python-autopep8-path (executable-find "autopep8")
   "autopep8 executable path."
@@ -851,8 +1029,14 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(crux-reopen-as-root-mode)
 
 ;; ledger-mode for bookkeeping
-(autoload 'ledger-mode "ledger-mode" "A major mode for Ledger" t)
-(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
+(use-package ledger-mode
+  :mode "\\.ledger\\'"
+  :config
+  ;; disable whitespace-mode in ledger
+  (add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
+  (setq ledger-post-amount-alignment-column 60))
+;;(autoload 'ledger-mode "ledger-mode" "A major mode for Ledger" t)
+;;(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
 
 ;; aggressive indent everywhere
@@ -866,9 +1050,12 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (add-hook 'css-mode-hook #'aggressive-indent-mode)
 (add-hook 'js2-mode-hook #'aggressive-indent-mode)
 
-;; Nicer elisp regex syntax highlighting
-(add-hook 'lisp-mode-hook 'easy-escape-minor-mode)
-(add-hook 'emacs-lisp-mode-hook 'easy-escape-minor-mode)
+(use-package easy-escape
+  :config
+  ;; Nicer elisp regex syntax highlighting
+  (add-hook 'lisp-mode-hook 'easy-escape-minor-mode)
+  (add-hook 'emacs-lisp-mode-hook 'easy-escape-minor-mode)
+  )
 
 
 ;; octave
@@ -893,9 +1080,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;;(show-paren-mode t)
 ;;(setq show-paren-style 'expression)
-
-;; disable whitespace-mode in ledger
-(add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
 
 
 (use-package prettier-js
@@ -1179,22 +1363,22 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; end spell checking
 
-(setq iedit-toggle-key-default nil)
-(require 'iedit)
-(global-set-key (kbd "C-c ;") 'iedit-mode)
+(use-package iedit
+  :init (setq iedit-toggle-key-default nil)
+  :bind ("C-c ;" . iedit-mode))
 
 
-(require 'yasnippet)
-(add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
-(yas-global-mode 1)
+(use-package yasnippet
+  :bind (:map yas-minor-mode-map
+              ("<tab>"     . nil)  ; Remove Yasnippet's default tab key binding
+              ("[TAB]"       . nil)
+              ("<backtab>" . yas-expand)  ; Set Yasnippet's key binding to shift+tab
+              ("\C-c [TAB]" . yas-expand)  ; Alternatively use Control-c + tab
+              )
+  :config
+  (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
+  (yas-global-mode 1))
 
-;; Remove Yasnippet's default tab key binding
-(define-key yas-minor-mode-map (kbd "<tab>") nil)
-(define-key yas-minor-mode-map (kbd "TAB") nil)
-;; Set Yasnippet's key binding to shift+tab
-(define-key yas-minor-mode-map (kbd "<backtab>") 'yas-expand)
-;; Alternatively use Control-c + tab
-(define-key yas-minor-mode-map (kbd "\C-c TAB") 'yas-expand)
 
 ;; Add yasnippet support for all company backends
 (defvar company-mode/enable-yas t
@@ -1206,12 +1390,11 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
             '(:with company-yasnippet))))
 (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
 
-;; Enable editorconfig mode
-(editorconfig-mode 1)
+(use-package editorconfig
+  :config
+  (editorconfig-mode 1))
 
-;; Ledger
-(setq ledger-post-amount-alignment-column 60)
-
+(use-package systemd)
 
 ;; Turn off auto rever messages
 (setq auto-revert-verbose nil)
