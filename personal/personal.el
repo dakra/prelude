@@ -10,79 +10,34 @@
 (prelude-require-packages
  '(
    moe-theme
-   color-theme-sanityinc-solarized
+   ;;color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
-   ;;quelpa  ; install/update packages from source
-   ;;sr-speedbar  ; open speedbar inside the frame
-   ;;projectile-speedbar
    eshell-git-prompt
    flyspell-correct-helm
    guess-language  ; switch ispell automatically between languages
-   wolfram
    keychain-environment  ; reload keychain info for ssh/gpg agent
-
-   docker
-   docker-tramp
-   dockerfile-mode
    dired+
 
-   noflet  ; let you locally overwrite functions
-   use-package
-
    ;; typing helpers
-   aggressive-indent
    back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
-   dumb-jump  ; Jump to definition using 'grep'
-   emmet-mode
    goto-chg  ; goto last change
-   helm-emmet
    helm-ext  ; helm "hacks" like better path expandsion
-   highlight-indent-guides
-   highlight-symbol  ; highlight all symbols like the one under the cursor
    multiple-cursors
-   origami  ; code folding
    region-bindings-mode  ; clone cursor with n,p when region selected
-   smart-region
-   swiper-helm  ; C-s search with helm
-   whole-line-or-region  ; operate on current line if region is undefined
-
-   ;; git / github
-   browse-at-remote  ; "C-G" opens current buffer on github
-   gist
-   ;;github-issues
-   magit-gh-pulls
 
    ;; coding major/minor modes
-   company-emoji
-   company-quickhelp
-   company-restclient
-   company-tern
    easy-escape  ; Nicer elisp regex syntax highlighting
-   fabric
    fish-mode
    graphviz-dot-mode
-   jira-markup-mode
    litable  ; live preview for elisp
    lua-mode
    ng2-mode
    nginx-mode
-   markdown-mode
-   outline-magic  ; better outline-mode
-   pip-requirements  ; Syntax highlighting for requirements.txt files
-   pippel  ; package-list-packages like interface for python packages
-   py-isort  ; auto sort python imports
    python-test
-   python-docstring  ;; Syntax highlighting for python docstring
    realgud
-   restclient
-   restclient-helm
    skewer-mode  ; js live reloading
-   slime-company
-   sphinx-mode
-   sqlup-mode  ; make sql keywords automatically uppercase
    tide  ; typescript
-   virtualenvwrapper
    ))
 
 ;; Bootstrap `use-package'
@@ -111,11 +66,6 @@
 (set-face-attribute 'mu4e-header-highlight-face nil :background "#626262" :foreground "#eeeeee")
 
 
-(use-package back-button
-  :config
-  (back-button-mode 1))
-
-
 ;; save and restore buffer and cursor positions (but don't restore window layout)
 ;;(desktop-save-mode 1)
 ;;(setq desktop-restore-frames nil)
@@ -129,24 +79,11 @@
 ;; display custom agenda when starting emacs
 ;;(add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
 
-;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
-(setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5")
-
 ;; recenter window after imenu jump so cursor doesn't end up on the last line
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
 
-;; Confluence uses jira syntax
-(add-to-list 'auto-mode-alist '("\\.confluence$" . jira-markup-mode))
-
-;; Firefox itsalltext config
-;; Use jira mode if 'itsalltext' hostname has 'jira' in it
-(add-to-list 'auto-mode-alist '("/itsalltext/.*jira.*\\.txt$" . jira-markup-mode))
-;; Use markdown for github or gitlab domains
-(add-to-list 'auto-mode-alist '("/itsalltext/.*\\(gitlab\\|github\\).*\\.txt$" . gfm-mode))
-
 
 ;; eshell
-
 ;;(setq eshell-list-files-after-cd t)
 ;;(setq eshell-ls-initial-args "-alh")
 
@@ -155,6 +92,7 @@
 
 ;; Show git info in prompt
 (eshell-git-prompt-use-theme 'powerline)
+
 
 (defun xah-paste-or-paste-previous ()
   "Paste. When called repeatedly, paste previous.
@@ -198,9 +136,6 @@ is already narrowed."
          (LaTeX-narrow-to-environment))
         (t (narrow-to-defun))))
 (define-key ctl-x-map "n" #'narrow-or-widen-dwim)
-
-;; C-SPC is smart-region
-(smart-region-on)
 
 ;; dired list size in human-readable format and list directories first
 (setq dired-listing-switches "-hal --group-directories-first")
@@ -297,7 +232,7 @@ is already narrowed."
     ("f" python-test-function "Function")
     ("m" python-test-method "Method")
     ("c" python-test-class "Class")
-    ("f" python-test-file "File")
+    ("F" python-test-file "File")
     ("p" python-test-project "Project")
     ("q" nil "Cancel"))
   (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
@@ -330,13 +265,13 @@ is already narrowed."
    (kbd "C-x 9")
    (defhydra hydra-unicode (:hint nil)
      "
-     Unicode  _c_ €   _a_ ä   _A_ Ä
-              _d_ °   _o_ ö   _O_ Ö
-              _e_ €   _u_ Ü   _U_ Ü
-              _p_ £   _s_ ß
-              _m_ µ
-              _r_ →
-     "
+Unicode  _c_ €   _a_ ä   _A_ Ä
+_d_ °   _o_ ö   _O_ Ö
+_e_ €   _u_ Ü   _U_ Ü
+_p_ £   _s_ ß
+_m_ µ
+_r_ →
+"
      ("a" (my/insert-unicode "LATIN SMALL LETTER A WITH DIAERESIS"))
      ("A" (my/insert-unicode "LATIN CAPITAL LETTER A WITH DIAERESIS"))
      ("o" (my/insert-unicode "LATIN SMALL LETTER O WITH DIAERESIS")) ;;
@@ -465,6 +400,14 @@ prepended to the element after the #+HEADERS: tag."
              '("localhost" nil nil))
 ;; add tramp proxy for atomx user
 (add-to-list 'tramp-default-proxies-alist '(nil "atomx" "/ssh:%h:"))
+
+
+
+(use-package back-button
+  :config (back-button-mode 1))
+
+
+
 ;; Helm config
 
 ;; keep follow-mode in between helm sessions once activated
@@ -480,7 +423,9 @@ prepended to the element after the #+HEADERS: tag."
 (global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
 
 ;; use swiper with helm backend for search
-(global-set-key "\C-s" 'swiper-helm)
+(use-package swiper-helm
+  :bind ("\C-s" . swiper-helm))
+
 
 ;; Smaller helm window
 (setq helm-autoresize-max-height 0)
@@ -507,12 +452,6 @@ prepended to the element after the #+HEADERS: tag."
 ;; Don't use minibuffer if there's something there already
 (helm-ext-minibuffer-enable-header-line-maybe t)
 
-;; Skip version control for tramp files
-(setq vc-ignore-dir-regexp
-      (format "\\(%s\\)\\|\\(%s\\)"
-              vc-ignore-dir-regexp
-              tramp-file-name-regexp))
-
 ;; wolfram alpha queries (M-x wolfram-alpha)
 (use-package wolfram
   :config
@@ -527,11 +466,16 @@ prepended to the element after the #+HEADERS: tag."
 (define-key prelude-mode-map (kbd "C-c S") nil)  ; remove default crux find-shell-init keybinding
 (global-set-key (kbd "C-c S") 'eww-search-words)
 
+(define-key prelude-mode-map (kbd "C-c u") 'browse-url-at-point)
+
+
 (setq eww-search-prefix "https://google.com/search?q=")
 
 ;; Do action that normally works on a region to the whole line if no region active.
 ;; That way you can just C-w to copy the whole line for example.
-(whole-line-or-region-mode t)
+(use-package whole-line-or-region
+  :diminish whole-line-or-region-mode
+  :config (whole-line-or-region-mode t))
 
 ;; cache projectile project files
 ;; projectile-find-files will be much faster for large projects.
@@ -539,13 +483,14 @@ prepended to the element after the #+HEADERS: tag."
 (setq projectile-enable-caching t)
 
 ;; highlight indentations in python
-(setq highlight-indent-guides-method 'character)
-(add-hook 'python-mode-hook 'highlight-indent-guides-mode)
-;;(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
-(setq highlight-indent-guides-character ?\|)
-(setq highlight-indent-guides-auto-odd-face-perc 15)
-(setq highlight-indent-guides-auto-even-face-perc 15)
-(setq highlight-indent-guides-auto-character-face-perc 20)
+(use-package highlight-indent-guides
+  :init (add-hook 'python-mode-hook 'highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'character)
+  (setq highlight-indent-guides-character ?\|)
+  (setq highlight-indent-guides-auto-odd-face-perc 15)
+  (setq highlight-indent-guides-auto-even-face-perc 15)
+  (setq highlight-indent-guides-auto-character-face-perc 20))
 
 ;; activate character folding in searches i.e. searching for 'a' matches 'ä' as well
 (setq search-default-mode 'char-fold-to-regexp)
@@ -556,34 +501,75 @@ prepended to the element after the #+HEADERS: tag."
 (defun --set-emoji-font (frame)
   "Adjust the font settings of FRAME so Emacs can display emoji properly."
   (set-fontset-font t 'symbol (font-spec :family "Symbola") frame 'prepend))
-
 ;; For when Emacs is started in GUI mode:
 (--set-emoji-font nil)
 ;; Hook for when a frame is created with emacsclient
 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Frames.html
 (add-hook 'after-make-frame-functions '--set-emoji-font)
 
-;;(require 'company-emoji)
-;;(add-to-list 'company-backends 'company-emoji)
-
-;; company-mode config
-(use-package slime-company
+(use-package company
+  :demand t
+  :diminish company-mode
+  :bind (:map company-active-map
+              ([return] . nil)
+              ("RET" . nil)
+              ("TAB" . company-complete-selection)
+              ([tab] . company-complete-selection)
+              ("C-j" . company-complete-selection))
   :config
-  (slime-setup '(slime-fancy slime-company)))
+  (setq company-idle-delay 0.2)
+  (setq company-tooltip-limit 10)
+  (setq company-minimum-prefix-length 2)
+  ;;(setq company-dabbrev-downcase nil)
+  ;; invert the navigation direction if the the completion popup-isearch-match
+  ;; is displayed on top (happens near the bottom of windows)
+  (setq company-tooltip-flip-when-above t)
+  ;; start autocompletion only after typing
+  (setq company-begin-commands '(self-insert-command))
+  (global-company-mode 1)
 
+  (use-package company-emoji
+    :disabled t
+    :config (add-to-list 'company-backends 'company-emoji))
 
-;; FIXME: can't set it to lower value because of anaconda bug:
-;; https://github.com/proofit404/anaconda-mode/issues/183
-(setq company-idle-delay 0.2)  ; show auto completion almost instantly
-(setq company-begin-commands '(self-insert-command)) ; start autocompletion only after typing
-;; don't auto complete with <return> but with C-j
-(with-eval-after-load 'company
-  (define-key company-active-map (kbd "<return>") nil)
-  (define-key company-active-map (kbd "RET") nil)
-  (define-key company-active-map (kbd "C-j") #'company-complete-selection))
+  (use-package company-quickhelp
+    :config (company-quickhelp-mode 1))
 
-;; show help popup when completing with company
-(company-quickhelp-mode 1)
+  (use-package slime-company
+    :config (slime-setup '(slime-fancy slime-company)))
+
+  (use-package company-tern
+    :config
+    (setq company-tern-property-marker "")  ; don't show circles for properties
+    (add-to-list 'company-backends 'company-tern))
+
+  (use-package company-restclient
+    :config (add-to-list 'company-backends 'company-restclient))
+
+  ;; Add yasnippet support for all company backends
+  (defvar company-mode/enable-yas t
+    "Enable yasnippet for all backends.")
+  (defun company-mode/backend-with-yas (backend)
+    (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+        backend
+      (append (if (consp backend) backend (list backend))
+              '(:with company-yasnippet))))
+  (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
+
+(use-package fabric
+  :defer t)
+
+(use-package fish-mode
+  :mode "\\.fish\\'")
+
+(use-package jira-markup-mode
+  :mode ("\\.confluence\\'" "/itsalltext/.*jira.*\\.txt$"))
+
+(use-package markdown-mode
+  :mode "/itsalltext/.*\\(gitlab\\|github\\).*\\.txt$"
+  :config
+  ;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
+  (setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5"))
 
 ;; always loop GIF images
 (setq image-animate-loop t)
@@ -602,6 +588,37 @@ prepended to the element after the #+HEADERS: tag."
   (i3-advise-visible-frame-list-on)
   )
 
+
+(defmacro dakra-define-up/downcase-dwim (case)
+  (let ((func (intern (concat "dakra-" case "-dwim")))
+        (doc (format "Like `%s-dwim' but %s from beginning when no region is active." case case))
+        (case-region (intern (concat case "-region")))
+        (case-word (intern (concat case "-word"))))
+    `(defun ,func (arg)
+       ,doc
+       (interactive "*p")
+       (save-excursion
+         (if (use-region-p)
+             (,case-region (region-beginning) (region-end))
+           (beginning-of-thing 'symbol)
+           (,case-word arg)))
+       )))
+(dakra-define-up/downcase-dwim "upcase")
+(dakra-define-up/downcase-dwim "downcase")
+(dakra-define-up/downcase-dwim "capitalize")
+(global-set-key (kbd "M-u") 'dakra-upcase-dwim)
+(global-set-key (kbd "M-l") 'dakra-downcase-dwim)
+(global-set-key (kbd "M-c") 'dakra-capitalize-dwim)
+
+
+(defun dakra-other-window-or-frame ()
+  "Call `other-window' if more than one window is visible, `other-frame' otherwise."
+  (interactive)
+  (if (one-window-p)
+      (other-frame 1)
+    (other-window 1)))
+
+(global-set-key (kbd "C-x o") 'dakra-other-window-or-frame)
 ;; since i3-mode always creates new frames instead of windows
 ;; rebind "C-x o" to switch frames if we use X11
 ;;(global-set-key (kbd "C-x o") (lambda ()
@@ -641,17 +658,15 @@ prepended to the element after the #+HEADERS: tag."
 
 (setq sml/theme 'powerline)  ; smart-mode-line theme
 
-(use-package dockerfile-mode
-  :mode "Dockerfile\\'"
+(use-package docker
   :config (setq docker-keymap-prefix "C-c C-d"))
+(use-package dockerfile-mode
+  :mode "Dockerfile\\'")
+(use-package docker-tramp)
 
-;; XXX: never use speedbar. disable for now
-;;(speedbar-add-supported-extension ".hs")
-;;(speedbar-add-supported-extension ".scala")
-;;(speedbar-add-supported-extension ".md")
-;;(require 'projectile-speedbar)
-;;(global-set-key [f5] 'projectile-speedbar-toggle)
-
+(use-package smart-region
+  ;; C-SPC is smart-region
+  :bind (([remap set-mark-command] . smart-region)))
 
 
 ;; XXX: not sure if git gutter is really nicer than diff-hl
@@ -783,8 +798,6 @@ displayed anywhere else."
 
 ;; use tern for js autocompletion
 (add-hook 'js-mode-hook (lambda () (tern-mode t)))
-(add-to-list 'company-backends 'company-tern)
-(setq company-tern-property-marker "")  ; don't show circles for properties
 
 (setq httpd-port 8079)  ; set port for simple-httpd used by skewer
 (add-hook 'js2-mode-hook 'skewer-mode)
@@ -792,25 +805,29 @@ displayed anywhere else."
 (add-hook 'html-mode-hook 'skewer-html-mode)
 
 (use-package emmet-mode
-  :bind (:map emmet-mode-map
+  :bind (:map emmet-mode-keymap
               ("<backtab>" . emmet-expand-line)
-              ("\C-c [TAB]" . emmet-expand-line)
+              ("\C-c TAB" . emmet-expand-line)
               ("C-M-p" . emmet-prev-edit-point)
               ("C-M-n" . emmet-next-edit-point))
-  :config
+  :init
   (add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
   (add-hook 'web-mode-hook 'emmet-mode)
   (add-hook 'css-mode-hook  'emmet-mode) ;; enable Emmet's css abbreviation.
-
+  :config
   (setq emmet-move-cursor-between-quotes t)
-  (setq emmet-move-cursor-after-expanding t))
+  (setq emmet-move-cursor-after-expanding t)
+
+  (use-package helm-emmet))
 
 
-(setq auto-mode-alist (rassq-delete-all 'css-mode auto-mode-alist))
-;; css files in ccss subfolder are 'clever-css'
-(add-to-list 'auto-mode-alist '("/ccss/.*\\.css\\'" . clevercss-mode))
 
 ;; python
+
+;; Syntax highlighting for requirements.txt files
+(use-package pip-requirements)
+
+(use-package sphinx-mode)
 
 ;; Xonsh scripts are python files
 (add-to-list 'auto-mode-alist '("\\.xsh$" . python-mode))
@@ -868,19 +885,29 @@ displayed anywhere else."
 
 
 ;; Enable (restructured) syntax highlighting for python docstrings
-(add-hook 'python-mode-hook 'python-docstring-mode)
+(use-package python-docstring
+  :init (add-hook 'python-mode-hook 'python-docstring-mode))
 
 ;; Automatically sort and format python imports
-;;(add-hook 'before-save-hook 'py-isort-before-save)
-(setq py-isort-options '("--line-width=100"
-                         "--multi_line=3"
-                         "--trailing-comma"
-                         "--force-grid-wrap"
-                         "--thirdparty=rethinkdb"))
+(use-package py-isort
+  :config
+  ;;(add-hook 'before-save-hook 'py-isort-before-save)
+  (setq py-isort-options '("--line-width=100"
+                           "--multi_line=3"
+                           "--trailing-comma"
+                           "--force-grid-wrap"
+                           "--thirdparty=rethinkdb")))
 
+;; package-list-packages like interface for python packages
+(use-package pippel
+  :defer t)
 
 ;; accept 'UTF-8' (uppercase) as a valid encoding in the coding header
 (define-coding-system-alias 'UTF-8 'utf-8)
+
+(use-package restclient
+  :mode "\\.rest\\'"
+  :config (use-package restclient-helm))
 
 ;; activate virtualenv for flycheck
 ;; (from https://github.com/lunaryorn/.emacs.d/blob/master/lisp/flycheck-virtualenv.el)
@@ -906,7 +933,7 @@ displayed anywhere else."
 
 ;; use both pylint and flake8 in flycheck
 ;;(flycheck-add-next-checker 'python-flake8 'python-pylint 'python-mypy)
-(flycheck-add-next-checker 'python-flake8 'python-mypy)
+;;(flycheck-add-next-checker 'python-flake8 'python-mypy)
 (setq flycheck-flake8-maximum-line-length 110)
 
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
@@ -926,8 +953,7 @@ displayed anywhere else."
   ;;(venv-workon '"atomx")  ; default venv after a starting emacs
   (setq projectile-switch-project-action '(lambda ()
                                             (venv-projectile-auto-workon)
-                                            (helm-projectile)))
-  )
+                                            (helm-projectile))))
 
 
 (defcustom python-autopep8-path (executable-find "autopep8")
@@ -956,19 +982,21 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(define-key importmagic-mode-map (kbd "C-c C-i") 'importmagic-fix-symbol-at-point)
 ;;(add-to-list 'helm-boring-buffer-regexp-list "\\*epc con")
 
-;; auto completion in restclient-mode
-(add-to-list 'company-backends 'company-restclient)
 
 ;; disable auto escape quote feature of smartparens
 (setq sp-escape-quotes-after-insert nil
       sp-escape-wrapped-region nil)
 
 ;; open current line/region/dired/commit in github
-(define-key prelude-mode-map (kbd "C-c G") 'browse-at-remote)
+(use-package browse-at-remote
+  :bind (:map prelude-mode-map ("C-c G" . browse-at-remote)))
 
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
 ;; just type 'fixes #' and get github issue autocompletion
-;;(add-hook 'git-commit-mode-hook 'git-commit-insert-issue-mode)
+(use-package github-issues
+  :disabled t
+  :defer t
+  :init (add-hook 'git-commit-mode-hook 'git-commit-insert-issue-mode))
 
 ;; Nicer diff (should be taken from global .config/git/config)
 (setq vc-git-diff-switches '("--indent-heuristic"))
@@ -976,37 +1004,40 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; Always highlight word differences in diff
 (setq magit-diff-refine-hunk 'all)
 
+(use-package gist
+  :defer t)
+
 ;; github pull request support for magit
-;;(require 'magit-gh-pulls)
-(add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
+(use-package magit-gh-pulls
+  :defer t
+  :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
+
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
-;; auto highlight all occurences of symbol under cursor
-(require 'highlight-symbol)
 
-;; Make highlight symbol use overlay-put instead of font-lock
-;; https://github.com/nschum/highlight-symbol.el/issues/26#issuecomment-233168193
-(defun highlight-symbol-add-symbol-with-face (symbol face)
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward symbol nil t)
-      (let ((ov (make-overlay (match-beginning 0)
-                              (match-end 0))))
-        (overlay-put ov 'highlight-symbol t)
-        (overlay-put ov 'face face)))))
+(use-package symbol-overlay
+  :commands symbol-overlay-mode
+  ;;:preface (defvar symbol-overlay-mode-map nil)
+  :init
+  (add-hook 'prog-mode-hook 'symbol-overlay-mode)
+  (setq symbol-overlay-temp-in-scope t)
+  :bind (("M-n" . symbol-overlay-switch-forward)
+         ("M-p" . symbol-overlay-switch-backward)
+         :map prelude-mode-map
+         ("C-c s" . symbol-overlay-put)
+         :map symbol-overlay-map
+         ("M-n" . symbol-overlay-jump-next)
+         ("M-p" . symbol-overlay-jump-prev)
+         ("C-c C-s r" . symbol-overlay-rename)
+         ("C-c C-s k" . symbol-overlay-remove-all)
+         ("C-c C-s q" . symbol-overlay-query-replace)
+         ("C-c C-s t" . symbol-overlay-toggle-in-scope)
+         ("C-c C-s n" . symbol-overlay-jump-next)
+         ("C-c C-s p" . symbol-overlay-jump-prev))
 
-(defun highlight-symbol-remove-symbol (_symbol)
-  (dolist (ov (overlays-in (point-min) (point-max)))
-    (when (overlay-get ov 'highlight-symbol)
-      (delete-overlay ov))))
-
-(add-hook 'prog-mode-hook #'highlight-symbol-mode)
-(setq highlight-symbol-idle-delay 0.5)
-(set-face-attribute 'highlight-symbol-face nil :background "gray30")
-(define-key prelude-mode-map (kbd "C-c s") 'highlight-symbol)
-
-(add-hook 'prog-mode-hook #'highlight-symbol-nav-mode)
-(setq highlight-symbol-on-navigation-p t)
+  :config
+  (setq symbol-overlay-map (make-sparse-keymap)  ;; Remove all default bindings
+        symbol-overlay-temp-face '((:background "gray30"))))
 
 
 ;; more useful frame title, that show either a file or a
@@ -1039,23 +1070,20 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
 
-;; aggressive indent everywhere
-;;(global-aggressive-indent-mode 1)
-;; disable for modes where proper indentation can't be reliably determined
-;;(add-to-list 'aggressive-indent-excluded-modes 'python-mode)
-;;(add-to-list 'aggressive-indent-excluded-modes 'haml-mode)
-;; or opt-in for some only with:
-(add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
-(add-hook 'lisp-mode #'aggressive-indent-mode)
-(add-hook 'css-mode-hook #'aggressive-indent-mode)
-(add-hook 'js2-mode-hook #'aggressive-indent-mode)
+(use-package aggressive-indent
+  :init
+  (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
+  (add-hook 'lisp-mode #'aggressive-indent-mode)
+  (add-hook 'css-mode-hook #'aggressive-indent-mode)
+  (add-hook 'js2-mode-hook #'aggressive-indent-mode))
 
 (use-package easy-escape
-  :config
+  :defer t
+  :diminish easy-escape-minor-mode
+  :init
   ;; Nicer elisp regex syntax highlighting
   (add-hook 'lisp-mode-hook 'easy-escape-minor-mode)
-  (add-hook 'emacs-lisp-mode-hook 'easy-escape-minor-mode)
-  )
+  (add-hook 'emacs-lisp-mode-hook 'easy-escape-minor-mode))
 
 
 ;; octave
@@ -1203,8 +1231,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (global-set-key (kbd "C-c |") 'goto-last-change-reverse)
 
 ;; scroll 4 lines up/down w/o moving pointer
-(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
-(global-set-key "\M-p"  (lambda () (interactive) (scroll-down 1)) )
+;;(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
+;;(global-set-key "\M-p"  (lambda () (interactive) (scroll-down 1)) )
 
 ;; remove flyspess 'C-;' keybinding so we can use it for avy jump
 (eval-after-load "flyspell"
@@ -1369,30 +1397,23 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 
 (use-package yasnippet
+  :demand t
+  :diminish yas-minor-mode
   :bind (:map yas-minor-mode-map
-              ("<tab>"     . nil)  ; Remove Yasnippet's default tab key binding
-              ("[TAB]"       . nil)
+              ;; Complete yasnippets with company. No need for extra bindings
+              ;;("TAB"     . nil)  ; Remove Yasnippet's default tab key binding
+              ;;([tab]     . nil)
               ("<backtab>" . yas-expand)  ; Set Yasnippet's key binding to shift+tab
-              ("\C-c [TAB]" . yas-expand)  ; Alternatively use Control-c + tab
+              ("\C-c TAB" . yas-expand)  ; Alternatively use Control-c + tab
               )
   :config
   (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
   (yas-global-mode 1))
 
 
-;; Add yasnippet support for all company backends
-(defvar company-mode/enable-yas t
-  "Enable yasnippet for all backends.")
-(defun company-mode/backend-with-yas (backend)
-  (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
-      backend
-    (append (if (consp backend) backend (list backend))
-            '(:with company-yasnippet))))
-(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
-
 (use-package editorconfig
-  :config
-  (editorconfig-mode 1))
+  :diminish editorconfig-mode
+  :config (editorconfig-mode 1))
 
 (use-package systemd)
 
@@ -1404,8 +1425,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (diminish 'auto-revert-mode)
 (diminish 'back-button-mode)
 (diminish 'beacon-mode)
-(diminish 'company-mode)
-(diminish 'editorconfig-mode)
 (diminish 'flyspell-mode)
 (diminish 'guru-mode)
 (diminish 'helm-mode)
@@ -1413,13 +1432,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (diminish 'smartparens-mode)
 (diminish 'which-key-mode)
 (diminish 'whitespace-mode)
-(diminish 'whole-line-or-region-mode)
-(diminish 'yas-minor-mode)
-
-;; Not always on but doesn't help much in the modeline:
 (diminish 'anaconda-mode)
-(diminish 'easy-escape-minor-mode)
-(diminish 'highlight-symbol-mode)
 
 
 ;; backup

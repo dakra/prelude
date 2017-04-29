@@ -18,6 +18,28 @@
    ox-jira
    ))
 
+(use-package org-mode
+  :mode "\\.org\\'"
+  :bind (("\C-cl" . org-store-link)
+         ("\C-ca" . org-agenda)
+         ("\C-cb" . org-iswitchb))
+  :config
+  (setq org-log-done 'note)
+
+  (defun prelude-org-mode-defaults ()
+    (let ((oldmap (cdr (assoc 'prelude-mode minor-mode-map-alist)))
+          (newmap (make-sparse-keymap)))
+      (set-keymap-parent newmap oldmap)
+      (define-key newmap (kbd "C-c +") nil)
+      (define-key newmap (kbd "C-c -") nil)
+      (define-key newmap (kbd "C-a") nil)  ; C-a is smarter in org-mode
+      (define-key newmap [(control shift return)] nil)  ; C-S-return adds new TODO
+      (make-local-variable 'minor-mode-overriding-map-alist)
+      (push `(prelude-mode . ,newmap) minor-mode-overriding-map-alist))
+    )
+  (add-hook 'org-mode-hook 'prelude-org-mode-defaults)
+
+  )
 ;; Install newest org and org-plus-contrib packages
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
@@ -194,7 +216,7 @@
         ("p" "Protocol" entry (file ,(concat org-directory "refile.org"))
          "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
         ("L" "Protocol Link" entry (file ,(concat org-directory "refile.org"))
-         "* %?\nCaptured On: %U\n[[%:link][%:description]]\n")
+         "* %?\n[[%:link][%:description]]\n")
         ("h" "Habit" entry (file ,(concat org-directory "refile.org"))
          "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
@@ -212,8 +234,7 @@
   (if (equal "capture" (frame-parameter nil 'name))
       (delete-frame)))
 
-(use-package noflet
-  :ensure t )
+(use-package noflet)  ; let you locally overwrite functions
 (defun make-capture-frame ()
   "Create a new frame and run org-capture."
   (interactive)

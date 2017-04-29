@@ -31,13 +31,13 @@
         handle-switch-frame
         helm-M-x
         helm-find-files
-        hydra-multiple-cursors/mc/skip-to-previous-like-this
-        hydra-multiple-cursors/mc/unmark-next-like-this
-        hydra-multiple-cursors/mc/unmark-previous-like-this
         hydra-multiple-cursors/mc/edit-lines-and-exit
         hydra-multiple-cursors/mc/mark-all-like-this-and-exit
         hydra-multiple-cursors/mc/mark-next-like-this
         hydra-multiple-cursors/mc/mark-previous-like-this
         hydra-multiple-cursors/mc/skip-to-next-like-this
+        hydra-multiple-cursors/mc/skip-to-previous-like-this
+        hydra-multiple-cursors/mc/unmark-next-like-this
+        hydra-multiple-cursors/mc/unmark-previous-like-this
         smart-region
         ))
