@@ -28,13 +28,8 @@
 
    ;; coding major/minor modes
    easy-escape  ; Nicer elisp regex syntax highlighting
-   fish-mode
    graphviz-dot-mode
    litable  ; live preview for elisp
-   lua-mode
-   ng2-mode
-   nginx-mode
-   python-test
    realgud
    skewer-mode  ; js live reloading
    tide  ; typescript
@@ -50,6 +45,11 @@
 (require 'bind-key)
 (setq use-package-always-ensure t)
 
+
+(use-package lua-mode :defer t)
+(use-package ng2-mode :defer t)
+(use-package nginx-mode :defer t)
+(use-package fish-mode :defer t)
 
 (require 'powerline)
 (require 'moe-theme)
@@ -821,13 +821,26 @@ displayed anywhere else."
   (use-package helm-emmet))
 
 
+(use-package scss-mode
+  :defer t
+  :config
+  ;; turn off annoying auto-compile on save
+  (setq scss-compile-at-save nil)
+  (prelude-css-mode-defaults))
+
 
 ;; python
+
+;; package-list-packages like interface for python packages
+(use-package pippel :defer t)
 
 ;; Syntax highlighting for requirements.txt files
 (use-package pip-requirements)
 
 (use-package sphinx-mode)
+
+;; FIXME: change stuff from prelude-python.el to here
+;;(use-package anaconda-mode  :mode ("\\.py\\'" "\\.xsh\\'"))
 
 ;; Xonsh scripts are python files
 (add-to-list 'auto-mode-alist '("\\.xsh$" . python-mode))
@@ -836,52 +849,8 @@ displayed anywhere else."
 (add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 
 
-(require 'python-test)
-;; Default backend for tests is pytest
-(setq python-test-backend 'pytest)
-
-;; Django test backend to run paessler tests
-(add-to-list 'python-test-backends 'django)
-(add-to-list 'python-test-project-root-files "manage.py")
-
-(setq python-test-django-manage.py "/home/daniel/e5/website/django-sites/paessler_com2/manage.py")
-(setq python-test-django-settings "config.test")
-(setq python-test-django-test-root "paessler_com2.site.tests")
-(setq python-test-project-root "/home/daniel/e5/website/django-sites/")
-(defun python-test-django-root-module ()
-  (python-test-path-module (python-test-capture-path (python-test-project-root))))
-
-(cl-defmethod python-test-executable ((_backend (eql django)))
-  "Python unitest executable is python itself, given that django is executed as module."
-  python-shell-interpreter)
-
-(cl-defmethod python-test-args-project ((_backend (eql django)))
-  (list python-test-django-manage.py "test" (format "--settings=%s" python-test-django-settings)
-        python-test-django-test-root))
-
-(cl-defmethod python-test-args-file ((_backend (eql django)))
-  (list python-test-django-manage.py "test" (format "--settings=%s" python-test-django-settings)
-        (python-test-django-root-module)))
-
-(cl-defmethod python-test-args-class ((_backend (eql django)))
-  (list python-test-django-manage.py
-        "test"
-        (format "--settings=%s" python-test-django-settings)
-        (format "%s.%s"
-                (python-test-django-root-module)
-                (python-test-capture-class))))
-
-(cl-defmethod python-test-args-method ((_backend (eql django)))
-  (list python-test-django-manage.py
-        "test"
-        (format "--settings=%s" python-test-django-settings)
-        (format "%s.%s.%s"
-                (python-test-django-root-module)
-                (python-test-capture-class)
-                (python-test-capture-defun))))
-
-(cl-defmethod python-test-args-defun ((_backend (eql django)))
-  (user-error "Django doesn't support testing functions"))
+(use-package python-test :defer t :load-path "repos/python-test.el"
+  :init (setq python-test-backend 'pytest))
 
 
 ;; Enable (restructured) syntax highlighting for python docstrings
@@ -889,7 +858,7 @@ displayed anywhere else."
   :init (add-hook 'python-mode-hook 'python-docstring-mode))
 
 ;; Automatically sort and format python imports
-(use-package py-isort
+(use-package py-isort :defer t
   :config
   ;;(add-hook 'before-save-hook 'py-isort-before-save)
   (setq py-isort-options '("--line-width=100"
@@ -897,10 +866,6 @@ displayed anywhere else."
                            "--trailing-comma"
                            "--force-grid-wrap"
                            "--thirdparty=rethinkdb")))
-
-;; package-list-packages like interface for python packages
-(use-package pippel
-  :defer t)
 
 ;; accept 'UTF-8' (uppercase) as a valid encoding in the coding header
 (define-coding-system-alias 'UTF-8 'utf-8)
@@ -1112,6 +1077,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 (use-package prettier-js
   :ensure nil
+  ;;:init (add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
   :config
   (setq prettier-args '(
                         "--trailing-comma" "all"
@@ -1119,18 +1085,22 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                         "--single-quote" "true"
                         "--bracket-spacing" "false"
                         ))
-  (setq prettier-target-mode "js2-mode")
-  ;;(add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
+  (setq prettier-target-mode "js2-mode"))
+
+(use-package json-mode
+  :mode "\\.json\\'")
+
+(use-package js2-mode
+  :mode ("\\.js\\'" "\\.pac\\'" "node")
+  :config
+  ;; electric-layout-mode doesn't play nice with smartparens
+  (setq-local electric-layout-rules '((?\; . after)))
+  (setq mode-name "JS2")
+  (js2-imenu-extras-mode +1)
+
+  (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
   )
 
-(setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
-(setq web-mode-markup-indent-offset 2)
-;; auto close tags in web-mode
-(setq web-mode-enable-auto-closing t)
-;;(setq web-mode-enable-auto-pairing t)  ; doesn't play nice with smartparens
-;; FIXME: do dir-locals
-(setq web-mode-engines-alist
-      '(("django"  . "/templates/.*\\.html\\'")))
 
 ;; TypeScript
 (setq typescript-indent-level 2)
@@ -1260,58 +1230,84 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(add-hook 'mu4e-compose-mode-hook (lambda () (guess-language-mode 1)))
 
 
-;; Flyspell setup
-;;http://blog.binchen.org/posts/effective-spell-check-in-emacs.html
 
-;; {{ flyspell setup for web-mode
-(defun web-mode-flyspell-verify ()
-  (let* ((f (get-text-property (- (point) 1) 'face))
-         rlt)
-    (cond
-     ;; Check the words with these font faces, possibly.
-     ;; this *blacklist* will be tweaked in next condition
-     ((not (memq f '(web-mode-html-attr-value-face
-                     web-mode-html-tag-face
-                     web-mode-html-attr-name-face
-                     web-mode-constant-face
-                     web-mode-doctype-face
-                     web-mode-keyword-face
-                     web-mode-comment-face ;; focus on get html label right
-                     web-mode-function-name-face
-                     web-mode-variable-name-face
-                     web-mode-css-property-name-face
-                     web-mode-css-selector-face
-                     web-mode-css-color-face
-                     web-mode-type-face
-                     web-mode-block-control-face)))
-      (setq rlt t))
-     ;; check attribute value under certain conditions
-     ((memq f '(web-mode-html-attr-value-face))
-      (save-excursion
-        (search-backward-regexp "=['\"]" (line-beginning-position) t)
-        (backward-char)
-        (setq rlt (string-match "^\\(value\\|class\\|ng[A-Za-z0-9-]*\\)$"
-                                (thing-at-point 'symbol)))))
-     ;; finalize the blacklist
-     (t
-      (setq rlt nil)))
-    rlt))
-(put 'web-mode 'flyspell-mode-predicate 'web-mode-flyspell-verify)
+(use-package web-mode
+  :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
+         "\\.erb\\'" "\\.html?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'")
+  :config
+  ;; make web-mode play nice with smartparens
+  (setq web-mode-enable-auto-pairing nil)
 
-;; Don't display doublon (double word) as error
-(defvar flyspell-check-doublon t
-  "Check doublon (double word) when calling `flyspell-highlight-incorrect-region'.")
-(make-variable-buffer-local 'flyspell-check-doublon)
+  (sp-with-modes '(web-mode)
+    (sp-local-pair "%" "%"
+                   :unless '(sp-in-string-p)
+                   :post-handlers '(((lambda (&rest _ignored)
+                                       (just-one-space)
+                                       (save-excursion (insert " ")))
+                                     "SPC" "=" "#")))
+    (sp-local-tag "%" "<% "  " %>")
+    (sp-local-tag "=" "<%= " " %>")
+    (sp-local-tag "#" "<%# " " %>"))
 
-(defadvice flyspell-highlight-incorrect-region (around flyspell-highlight-incorrect-region-hack activate)
-  (if (or flyspell-check-doublon (not (eq 'doublon (ad-get-arg 2))))
-      ad-do-it))
+  ;; Flyspell setup
+  ;;http://blog.binchen.org/posts/effective-spell-check-in-emacs.html
 
-(defun web-mode-hook-setup ()
-  (flyspell-mode 1)
-  (setq flyspell-check-doublon nil))
+  ;; {{ flyspell setup for web-mode
+  (defun web-mode-flyspell-verify ()
+    (let* ((f (get-text-property (- (point) 1) 'face))
+           rlt)
+      (cond
+       ;; Check the words with these font faces, possibly.
+       ;; this *blacklist* will be tweaked in next condition
+       ((not (memq f '(web-mode-html-attr-value-face
+                       web-mode-html-tag-face
+                       web-mode-html-attr-name-face
+                       web-mode-constant-face
+                       web-mode-doctype-face
+                       web-mode-keyword-face
+                       web-mode-comment-face ;; focus on get html label right
+                       web-mode-function-name-face
+                       web-mode-variable-name-face
+                       web-mode-css-property-name-face
+                       web-mode-css-selector-face
+                       web-mode-css-color-face
+                       web-mode-type-face
+                       web-mode-block-control-face)))
+        (setq rlt t))
+       ;; check attribute value under certain conditions
+       ((memq f '(web-mode-html-attr-value-face))
+        (save-excursion
+          (search-backward-regexp "=['\"]" (line-beginning-position) t)
+          (backward-char)
+          (setq rlt (string-match "^\\(value\\|class\\|ng[A-Za-z0-9-]*\\)$"
+                                  (thing-at-point 'symbol)))))
+       ;; finalize the blacklist
+       (t
+        (setq rlt nil)))
+      rlt))
+  (put 'web-mode 'flyspell-mode-predicate 'web-mode-flyspell-verify)
 
-(add-hook 'web-mode-hook 'web-mode-hook-setup)
+  ;; Don't display doublon (double word) as error
+  (defvar flyspell-check-doublon t
+    "Check doublon (double word) when calling `flyspell-highlight-incorrect-region'.")
+  (make-variable-buffer-local 'flyspell-check-doublon)
+
+  (defadvice flyspell-highlight-incorrect-region (around flyspell-highlight-incorrect-region-hack activate)
+    (if (or flyspell-check-doublon (not (eq 'doublon (ad-get-arg 2))))
+        ad-do-it))
+
+  (defun web-mode-hook-setup ()
+    (flyspell-mode 1)
+    (setq flyspell-check-doublon nil))
+
+  (add-hook 'web-mode-hook 'web-mode-hook-setup)
+  ;; } flyspell setup
+
+  ;;(setq web-mode-engines-alist '(("django"  . "/templates/.*\\.html\\'")))
+  (setq web-mode-markup-indent-offset 2)
+  ;; auto close tags in web-mode
+  (setq web-mode-enable-auto-closing t))
+
 
 ;; Spell check camel case strings
 (setq ispell-program-name "aspell"
@@ -1410,6 +1406,14 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
   (yas-global-mode 1))
 
+
+(use-package yaml-mode
+  :mode "\\.yaml\\'"
+  :config
+  (add-hook 'yaml-mode-hook 'whitespace-mode)
+  (add-hook 'yaml-mode-hook 'subword-mode)
+  (add-hook 'yaml-mode-hook
+            (lambda () (add-hook 'before-save-hook 'whitespace-cleanup nil t))))
 
 (use-package editorconfig
   :diminish editorconfig-mode
