@@ -577,17 +577,40 @@ prepended to the element after the #+HEADERS: tag."
 ;; send alerts by default to D-Bus
 (setq alert-default-style 'notifications)
 
+(defun dakra-other-window-or-frame (count)
+  "Call `other-window' if more than one window is visible, `other-frame' otherwise."
+  (interactive)
+  (if (one-window-p)
+      (other-frame count)
+    (other-window count)))
+(global-set-key (kbd "C-x o") (lambda () (interactive) (dakra-other-window-or-frame 1)))
+(global-set-key (kbd "C-x O") (lambda () (interactive) (dakra-other-window-or-frame -1)))
+
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
 ;; used together with i3 keyboard shortcut (S-e) to `emacsclient -cn -e '(switch-to-buffer nil)`
 (use-package i3
-  :ensure nil)
-(use-package i3-integration
+  :if (or (daemonp) window-system)
   :ensure nil
   :config
-  (i3-one-window-per-frame-mode-on)
-  (i3-advise-visible-frame-list-on)
-  )
-
+  (use-package i3-integration
+    :ensure nil
+    :config
+    (i3-one-window-per-frame-mode-on)
+    (i3-advise-visible-frame-list-on)
+    :config
+    ;; C-x 2/3 should create a new frame in X
+    (global-set-key (kbd "C-x 2") (lambda ()
+                                    (interactive)
+                                    (if (display-graphic-p)
+                                        (progn (i3-command 0 "split vertical")
+                                               (new-frame))
+                                      (split-window-horizontally))))
+    (global-set-key (kbd "C-x 3") (lambda ()
+                                    (interactive)
+                                    (if (display-graphic-p)
+                                        (progn (i3-command 0 "split horizontal")
+                                               (new-frame))
+                                      (split-window-horizontally))))))
 
 (defmacro dakra-define-up/downcase-dwim (case)
   (let ((func (intern (concat "dakra-" case "-dwim")))
@@ -610,40 +633,6 @@ prepended to the element after the #+HEADERS: tag."
 (global-set-key (kbd "M-l") 'dakra-downcase-dwim)
 (global-set-key (kbd "M-c") 'dakra-capitalize-dwim)
 
-
-(defun dakra-other-window-or-frame ()
-  "Call `other-window' if more than one window is visible, `other-frame' otherwise."
-  (interactive)
-  (if (one-window-p)
-      (other-frame 1)
-    (other-window 1)))
-
-(global-set-key (kbd "C-x o") 'dakra-other-window-or-frame)
-;; since i3-mode always creates new frames instead of windows
-;; rebind "C-x o" to switch frames if we use X11
-;;(global-set-key (kbd "C-x o") (lambda ()
-;;                                (interactive)
-;;                                (if (display-graphic-p)
-;;                                    (other-frame 1)
-;;                                  (other-window 1))))
-;;(global-set-key (kbd "C-x O") (lambda ()
-;;                                (interactive)
-;;                                (if (display-graphic-p)
-;;                                    (other-frame -1)
-;;                                  (other-window -1))))
-;; C-x 2/3 should create a new frame in X
-(global-set-key (kbd "C-x 2") (lambda ()
-                                (interactive)
-                                (if (display-graphic-p)
-                                    (progn (i3-command 0 "split vertical")
-                                           (new-frame))
-                                  (split-window-horizontally))))
-(global-set-key (kbd "C-x 3") (lambda ()
-                                (interactive)
-                                (if (display-graphic-p)
-                                    (progn (i3-command 0 "split horizontal")
-                                           (new-frame))
-                                  (split-window-horizontally))))
 
 (setq browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "firefox")
@@ -783,10 +772,12 @@ displayed anywhere else."
           (lambda ()
             (setq sql-set-product 'mysql)))
 
+;; Smart indentation for SQL files
+(use-package sql-indent :defer t :load-path "repos/emacs-sql-indent"
+  :init (add-hook 'sql-mode-hook 'sqlind-setup))
 
 ;; Capitalize keywords in SQL mode
-(use-package sqlup-mode
-  :defer t
+(use-package sqlup-mode :defer t
   :init
   (add-hook 'sql-mode-hook 'sqlup-mode)
   (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
@@ -821,8 +812,7 @@ displayed anywhere else."
   (use-package helm-emmet))
 
 
-(use-package scss-mode
-  :defer t
+(use-package scss-mode :defer t
   :config
   ;; turn off annoying auto-compile on save
   (setq scss-compile-at-save nil)
@@ -835,7 +825,7 @@ displayed anywhere else."
 (use-package pippel :defer t)
 
 ;; Syntax highlighting for requirements.txt files
-(use-package pip-requirements)
+(use-package pip-requirements :defer t)
 
 (use-package sphinx-mode)
 
@@ -856,6 +846,8 @@ displayed anywhere else."
 ;; Enable (restructured) syntax highlighting for python docstrings
 (use-package python-docstring
   :init (add-hook 'python-mode-hook 'python-docstring-mode))
+
+(use-package pydoc :defer t)
 
 ;; Automatically sort and format python imports
 (use-package py-isort :defer t
