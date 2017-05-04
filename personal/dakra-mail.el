@@ -251,6 +251,12 @@
 
 (setq mu4e-msg2pdf "/usr/bin/msg2pdf")  ; to display html messages as pdf
 
+(defun dakra-mu4e-action-attachment-import-gcalcli (msg attachnum)
+  "Import ical attachments with gcalcli"
+  (mu4e-view-open-attachment-with msg attachnum "~/bin/icalimport.sh"))
+
+(add-to-list 'mu4e-view-attachment-actions '("iImport ical" . dakra-mu4e-action-attachment-import-gcalcli) t)
+
 ;; View mail in browser with "a V"
 (add-to-list 'mu4e-view-actions
              '("ViewInBrowser" . mu4e-action-view-in-browser) t)
