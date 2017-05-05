@@ -8,8 +8,7 @@
 (require 'prelude-packages nil 'noerror)
 
 (prelude-require-packages
- '(
-   moe-theme
+ '(moe-theme
    ;;color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
@@ -20,19 +19,14 @@
    dired+
 
    ;; typing helpers
-   back-button  ; nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
-   goto-chg  ; goto last change
    helm-ext  ; helm "hacks" like better path expandsion
    multiple-cursors
    region-bindings-mode  ; clone cursor with n,p when region selected
 
    ;; coding major/minor modes
-   easy-escape  ; Nicer elisp regex syntax highlighting
    graphviz-dot-mode
-   litable  ; live preview for elisp
    realgud
    skewer-mode  ; js live reloading
-   tide  ; typescript
    ))
 
 ;; Bootstrap `use-package'
@@ -50,6 +44,14 @@
 (use-package ng2-mode :defer t)
 (use-package nginx-mode :defer t)
 (use-package fish-mode :defer t)
+(use-package litable :defer t)  ; live preview for elisp
+
+;; Goto last change
+(use-package goto-chg
+  :demand t
+  :bind (("C-c \\" . goto-last-change)
+         ("C-c |" . goto-last-change-reverse)))
+
 
 (require 'powerline)
 (require 'moe-theme)
@@ -227,7 +229,7 @@ is already narrowed."
     ("f" origami-forward-toggle-node)
     ("a" origami-toggle-all-nodes))
 
-  (defhydra hydra-python (python-mode-map "C-c C-t")
+  (defhydra hydra-python (python-mode-map "C-c C-t" :color blue)
     "Run Python Tests"
     ("f" python-test-function "Function")
     ("m" python-test-method "Method")
@@ -239,23 +241,23 @@ is already narrowed."
 
   (defhydra hydra-multiple-cursors (:hint nil)
     "
-     ^Up^            ^Down^        ^Other^
-----------------------------------------------
-[_p_]   Next    [_n_]   Next    [_l_] Edit lines
-[_P_]   Skip    [_N_]   Skip    [_a_] Mark all
-[_M-p_] Unmark  [_M-n_] Unmark  [_r_] Mark by regexp
-^ ^             ^ ^             [_q_] Quit
-"
-  ("l" mc/edit-lines :exit t)
-  ("a" mc/mark-all-like-this :exit t)
-  ("n" mc/mark-next-like-this)
-  ("N" mc/skip-to-next-like-this)
-  ("M-n" mc/unmark-next-like-this)
-  ("p" mc/mark-previous-like-this)
-  ("P" mc/skip-to-previous-like-this)
-  ("M-p" mc/unmark-previous-like-this)
-  ("r" mc/mark-all-in-region-regexp :exit t)
-  ("q" nil))
+         ^Up^            ^Down^        ^Other^
+    ----------------------------------------------
+    [_p_]   Next    [_n_]   Next    [_l_] Edit lines
+    [_P_]   Skip    [_N_]   Skip    [_a_] Mark all
+    [_M-p_] Unmark  [_M-n_] Unmark  [_r_] Mark by regexp
+    ^ ^             ^ ^             [_q_] Quit
+    "
+    ("l" mc/edit-lines :exit t)
+    ("a" mc/mark-all-like-this :exit t)
+    ("n" mc/mark-next-like-this)
+    ("N" mc/skip-to-next-like-this)
+    ("M-n" mc/unmark-next-like-this)
+    ("p" mc/mark-previous-like-this)
+    ("P" mc/skip-to-previous-like-this)
+    ("M-p" mc/unmark-previous-like-this)
+    ("r" mc/mark-all-in-region-regexp :exit t)
+    ("q" nil))
 
   (defun my/insert-unicode (unicode-name)
     "Same as C-x 8 enter UNICODE-NAME."
@@ -265,13 +267,13 @@ is already narrowed."
    (kbd "C-x 9")
    (defhydra hydra-unicode (:hint nil)
      "
-Unicode  _c_ €   _a_ ä   _A_ Ä
-_d_ °   _o_ ö   _O_ Ö
-_e_ €   _u_ Ü   _U_ Ü
-_p_ £   _s_ ß
-_m_ µ
-_r_ →
-"
+     Unicode  _c_ €   _a_ ä   _A_ Ä
+              _d_ °   _o_ ö   _O_ Ö
+              _e_ €   _u_ Ü   _U_ Ü
+              _p_ £   _s_ ß
+              _m_ µ
+              _r_ →
+     "
      ("a" (my/insert-unicode "LATIN SMALL LETTER A WITH DIAERESIS"))
      ("A" (my/insert-unicode "LATIN CAPITAL LETTER A WITH DIAERESIS"))
      ("o" (my/insert-unicode "LATIN SMALL LETTER O WITH DIAERESIS")) ;;
@@ -286,93 +288,93 @@ _r_ →
      ("r" (my/insert-unicode "RIGHTWARDS ARROW"))
      ("m" (my/insert-unicode "MICRO SIGN"))))
 
-(defhydra hydra-org-template (:color blue :hint nil)
-  "
-  _c_enter  _q_uote     _e_macs-lisp    _L_aTeX:
-  _l_atex   _E_xample   _p_erl          _i_ndex:
-  _a_scii   _v_erse     _P_erl tangled  _I_NCLUDE:
-  _s_rc     _n_ote      plant_u_ml      _H_TML:
-  _h_tml    ^ ^         ^ ^             _A_SCII:
-  "
-  ("s" (hot-expand "<s"))
-  ("E" (hot-expand "<e"))
-  ("q" (hot-expand "<q"))
-  ("v" (hot-expand "<v"))
-  ("n" (let (text) ; org-reveal speaker notes
-         (when (region-active-p)
-           (setq text (buffer-substring (region-beginning) (region-end)))
-           (delete-region (region-beginning) (region-end)))
-         (insert "#+BEGIN_NOTES\n\n#+END_NOTES")
-         (forward-line -1)
-         (when text (insert text))))
-  ("c" (hot-expand "<c"))
-  ("l" (hot-expand "<l"))
-  ("h" (hot-expand "<h"))
-  ("a" (hot-expand "<a"))
-  ("L" (hot-expand "<L"))
-  ("i" (hot-expand "<i"))
-  ("e" (hot-expand "<s" "emacs-lisp"))
-  ("p" (hot-expand "<s" "perl"))
-  ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
-  ("P" (hot-expand "<s" "perl" ":results output :exports both :shebang \"#!/usr/bin/env perl\"\n"))
-  ("I" (hot-expand "<I"))
-  ("H" (hot-expand "<H"))
-  ("A" (hot-expand "<A"))
-  ("<" self-insert-command "ins")
-  ("o" nil "quit"))
+  (defhydra hydra-org-template (:color blue :hint nil)
+    "
+    _c_enter  _q_uote     _e_macs-lisp    _L_aTeX:
+    _l_atex   _E_xample   _p_erl          _i_ndex:
+    _a_scii   _v_erse     _P_erl tangled  _I_NCLUDE:
+    _s_rc     _n_ote      plant_u_ml      _H_TML:
+    _h_tml    ^ ^         ^ ^             _A_SCII:
+    "
+    ("s" (hot-expand "<s"))
+    ("E" (hot-expand "<e"))
+    ("q" (hot-expand "<q"))
+    ("v" (hot-expand "<v"))
+    ("n" (let (text) ; org-reveal speaker notes
+           (when (region-active-p)
+             (setq text (buffer-substring (region-beginning) (region-end)))
+             (delete-region (region-beginning) (region-end)))
+           (insert "#+BEGIN_NOTES\n\n#+END_NOTES")
+           (forward-line -1)
+           (when text (insert text))))
+    ("c" (hot-expand "<c"))
+    ("l" (hot-expand "<l"))
+    ("h" (hot-expand "<h"))
+    ("a" (hot-expand "<a"))
+    ("L" (hot-expand "<L"))
+    ("i" (hot-expand "<i"))
+    ("e" (hot-expand "<s" "emacs-lisp"))
+    ("p" (hot-expand "<s" "perl"))
+    ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
+    ("P" (hot-expand "<s" "perl" ":results output :exports both :shebang \"#!/usr/bin/env perl\"\n"))
+    ("I" (hot-expand "<I"))
+    ("H" (hot-expand "<H"))
+    ("A" (hot-expand "<A"))
+    ("<" self-insert-command "ins")
+    ("o" nil "quit"))
 
-(defun hot-expand (str &optional mod header)
-  "Expand org template.
+  (defun hot-expand (str &optional mod header)
+    "Expand org template.
 
 STR is a structure template string recognised by org like <s. MOD is a
 string with additional parameters to add the begin line of the
 structure element. HEADER string includes more parameters that are
 prepended to the element after the #+HEADERS: tag."
-  (let (text)
-    (when (region-active-p)
-      (setq text (buffer-substring (region-beginning) (region-end)))
-      (delete-region (region-beginning) (region-end))
-      (deactivate-mark))
-    (when header (insert "#+HEADERS: " header))
-    (insert str)
-    (org-try-structure-completion)
-    (when mod (insert mod) (forward-line))
-    (when text (insert text))))
+         (let (text)
+           (when (region-active-p)
+             (setq text (buffer-substring (region-beginning) (region-end)))
+             (delete-region (region-beginning) (region-end))
+             (deactivate-mark))
+           (when header (insert "#+HEADERS: " header))
+           (insert str)
+           (org-try-structure-completion)
+           (when mod (insert mod) (forward-line))
+           (when text (insert text))))
 
-(define-key org-mode-map "<"
-  (lambda () (interactive)
-    (if (or (region-active-p) (looking-back "^"))
-        (hydra-org-template/body)
-      (self-insert-command 1))))
-(require 'org-link-edit)
-(defun jk/unlinkify ()
-  "Replace an org-link with the description, or if this is absent, the path."
-  (interactive)
-  (let ((eop (org-element-context)))
-    (when (eq 'link (car eop))
-      (message "%s" eop)
-      (let* ((start (org-element-property :begin eop))
-             (end (org-element-property :end eop))
-             (contents-begin (org-element-property :contents-begin eop))
-             (contents-end (org-element-property :contents-end eop))
-             (path (org-element-property :path eop))
-             (desc (and contents-begin
-                        contents-end
-                        (buffer-substring contents-begin contents-end))))
-        (setf (buffer-substring start end)
-              (concat (or desc path)
-                      (make-string (org-element-property :post-blank eop) ?\s)))))))
+  (define-key org-mode-map "<"
+    (lambda () (interactive)
+      (if (or (region-active-p) (looking-back "^"))
+          (hydra-org-template/body)
+        (self-insert-command 1))))
+  (require 'org-link-edit)
+  (defun jk/unlinkify ()
+    "Replace an org-link with the description, or if this is absent, the path."
+    (interactive)
+    (let ((eop (org-element-context)))
+      (when (eq 'link (car eop))
+        (message "%s" eop)
+        (let* ((start (org-element-property :begin eop))
+               (end (org-element-property :end eop))
+               (contents-begin (org-element-property :contents-begin eop))
+               (contents-end (org-element-property :contents-end eop))
+               (path (org-element-property :path eop))
+               (desc (and contents-begin
+                          contents-end
+                          (buffer-substring contents-begin contents-end))))
+          (setf (buffer-substring start end)
+                (concat (or desc path)
+                        (make-string (org-element-property :post-blank eop) ?\s)))))))
 
-(define-key org-mode-map (kbd "C-c )")
-  (defhydra hydra-org-link-edit (:color red)
-    "Org Link Edit"
-    (")" org-link-edit-forward-slurp "forward slurp")
-    ("}" org-link-edit-forward-barf "forward barf")
-    ("(" org-link-edit-backward-slurp "backward slurp")
-    ("{" org-link-edit-backward-barf "backward barf")
-    ("r" jk/unlinkify "remove link")
-    ("q" nil "cancel" :color blue)))
-)
+  (define-key org-mode-map (kbd "C-c )")
+    (defhydra hydra-org-link-edit (:color red)
+      "Org Link Edit"
+      (")" org-link-edit-forward-slurp "forward slurp")
+      ("}" org-link-edit-forward-barf "forward barf")
+      ("(" org-link-edit-backward-slurp "backward slurp")
+      ("{" org-link-edit-backward-barf "backward barf")
+      ("r" jk/unlinkify "remove link")
+      ("q" nil "cancel" :color blue)))
+  )
 
 ;; Tramp config
 
@@ -402,10 +404,10 @@ prepended to the element after the #+HEADERS: tag."
 (add-to-list 'tramp-default-proxies-alist '(nil "atomx" "/ssh:%h:"))
 
 
-
+;; Nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
 (use-package back-button
+  :diminish back-button-mode
   :config (back-button-mode 1))
-
 
 
 ;; Helm config
@@ -722,7 +724,8 @@ displayed anywhere else."
                           (sql-server "127.0.0.1")
                           (sql-port 3307)
                           (sql-user "root")
-                          (sql-database "api"))
+                          (sql-database "api")
+                          (sql-mysql-options '("-A")))
         (paessler-docker (sql-product 'mysql)
                          (sql-server "127.0.0.1")
                          (sql-port 3308)
@@ -978,8 +981,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   :init
   (add-hook 'prog-mode-hook 'symbol-overlay-mode)
   (setq symbol-overlay-temp-in-scope t)
-  :bind (("M-n" . symbol-overlay-switch-forward)
-         ("M-p" . symbol-overlay-switch-backward)
+  :bind (("M-n" . symbol-overlay-jump-next)
+         ("M-p" . symbol-overlay-jump-prev)
          :map prelude-mode-map
          ("C-c s" . symbol-overlay-put)
          :map symbol-overlay-map
@@ -1093,31 +1096,35 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
   )
 
-
 ;; TypeScript
-(setq typescript-indent-level 2)
+(use-package tide :defer t
+  :init
+  (setq typescript-indent-level 2)
+  (defun setup-tide-mode ()
+    (interactive)
+    (tide-setup)
+    (flycheck-mode +1)
+    (setq flycheck-check-syntax-automatically '(save mode-enabled))
+    (eldoc-mode +1)
+    (tide-hl-identifier-mode +1)
+    (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))  ; add tide yasnippets as company backend
+    (company-mode +1))
+  (add-hook 'typescript-mode-hook #'setup-tide-mode)
 
-(defun setup-tide-mode ()
-  (interactive)
-  (tide-setup)
-  (flycheck-mode +1)
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (eldoc-mode +1)
-  (company-mode +1)
-  (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))  ; add tide yasnippets as company backend
+  ;; https://www.reddit.com/r/emacs/comments/68zacv/using_tidemode_to_typecheck_javascript/
+  (add-hook 'js2-mode-hook #'setup-tide-mode)
+
+  :config
+  ;; formats the buffer before saving
+  (add-hook 'before-save-hook 'tide-format-before-save)
+  ;; format options
+  (setq tide-format-options '(:insertSpaceAfterFunctionKeywordForAnonymousFunctions t :placeOpenBraceOnNewLineForFunctions nil))
+  ;; see https://github.com/Microsoft/TypeScript/blob/cc58e2d7eb144f0b2ff89e6a6685fb4deaa24fde/src/server/protocol.d.ts#L421-473 for the full list available options
   )
 
 ;; aligns annotation to the right hand side
 ;;(setq company-tooltip-align-annotations t)
 
-;; formats the buffer before saving
-(add-hook 'before-save-hook 'tide-format-before-save)
-
-;; format options
-(setq tide-format-options '(:insertSpaceAfterFunctionKeywordForAnonymousFunctions t :placeOpenBraceOnNewLineForFunctions nil))
-;; see https://github.com/Microsoft/TypeScript/blob/cc58e2d7eb144f0b2ff89e6a6685fb4deaa24fde/src/server/protocol.d.ts#L421-473 for the full list available options
-
-(add-hook 'typescript-mode-hook #'setup-tide-mode)
 
 
 (setq undo-tree-visualizer-timestamps t)  ; show timestamps in undo-tree
@@ -1187,10 +1194,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                       'box)))
 (add-hook 'god-mode-enabled-hook 'god-update-cursor)
 (add-hook 'god-mode-disabled-hook 'god-update-cursor)
-
-;; goto last change
-(global-set-key (kbd "C-c \\") 'goto-last-change)
-(global-set-key (kbd "C-c |") 'goto-last-change-reverse)
 
 ;; scroll 4 lines up/down w/o moving pointer
 ;;(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
@@ -1419,7 +1422,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;;; don't show some modes that are always on in the mode line
 (diminish 'auto-revert-mode)
-(diminish 'back-button-mode)
 (diminish 'beacon-mode)
 (diminish 'flyspell-mode)
 (diminish 'guru-mode)
