@@ -5,6 +5,7 @@
       '(
         crux-move-beginning-of-line
         crux-smart-open-line
+        dakra-upcase-dwim
         electric-newline-and-maybe-indent
         haml-electric-backspace
         helm-show-kill-ring
@@ -15,6 +16,7 @@
         org-delete-char
         org-end-of-line
         org-force-self-insert
+        org-kill-line
         org-self-insert-command
         sp-backward-delete-char
         sp-backward-kill-word

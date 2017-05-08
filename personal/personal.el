@@ -1030,20 +1030,32 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;;(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
 
-(use-package aggressive-indent
+(use-package aggressive-indent :defer t
   :init
   (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
   (add-hook 'lisp-mode #'aggressive-indent-mode)
   (add-hook 'css-mode-hook #'aggressive-indent-mode)
   (add-hook 'js2-mode-hook #'aggressive-indent-mode))
 
-(use-package easy-escape
-  :defer t
+(use-package easy-escape :defer t
   :diminish easy-escape-minor-mode
   :init
   ;; Nicer elisp regex syntax highlighting
   (add-hook 'lisp-mode-hook 'easy-escape-minor-mode)
   (add-hook 'emacs-lisp-mode-hook 'easy-escape-minor-mode))
+
+
+;; Only remove trailing whitespaces that I put there
+(use-package ws-butler :defer t
+  :diminish ws-butler-mode
+  :init
+  (add-hook 'text-mode-hook 'ws-butler-mode)
+  (add-hook 'prog-mode-hook 'ws-butler-mode))
+
+(setq whitespace-line-column 110)  ; highlight lines with more than 110 characters
+
+;;(show-paren-mode t)
+;;(setq show-paren-style 'expression)
 
 
 ;; octave
@@ -1063,11 +1075,6 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
             (eldoc-mode 1)
             (if (eq window-system 'x)
                 (font-lock-mode 1))))
-
-(setq whitespace-line-column 110)  ; highlight lines with more than 110 characters
-
-;;(show-paren-mode t)
-;;(setq show-paren-style 'expression)
 
 
 (use-package prettier-js
