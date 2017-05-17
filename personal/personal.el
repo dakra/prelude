@@ -39,6 +39,8 @@
 (require 'bind-key)
 (setq use-package-always-ensure t)
 
+(setq user-full-name "Daniel Kraus"
+      user-mail-address "daniel@kraus.tk")
 
 (use-package lua-mode :defer t)
 (use-package ng2-mode :defer t)
@@ -291,10 +293,10 @@ is already narrowed."
   (defhydra hydra-org-template (:color blue :hint nil)
     "
     _c_enter  _q_uote     _e_macs-lisp    _L_aTeX:
-    _l_atex   _E_xample   _p_erl          _i_ndex:
-    _a_scii   _v_erse     _P_erl tangled  _I_NCLUDE:
-    _s_rc     _n_ote      plant_u_ml      _H_TML:
-    _h_tml    ^ ^         ^ ^             _A_SCII:
+    _l_atex   _E_xample   _p_ython        inde_x_:
+    _a_scii   _v_erse     _P_yton session _I_NCLUDE:
+    _s_rc     _n_ote      _i_python       _H_TML:
+    _h_tml    ^ ^         plant_u_ml      _A_SCII:
     "
     ("s" (hot-expand "<s"))
     ("E" (hot-expand "<e"))
@@ -312,11 +314,12 @@ is already narrowed."
     ("h" (hot-expand "<h"))
     ("a" (hot-expand "<a"))
     ("L" (hot-expand "<L"))
-    ("i" (hot-expand "<i"))
+    ("x" (hot-expand "<i"))
     ("e" (hot-expand "<s" "emacs-lisp"))
-    ("p" (hot-expand "<s" "perl"))
+    ("p" (hot-expand "<s" "python"))
+    ("P" (hot-expand "<s" "python" ":session :exports both"))
+    ("i" (hot-expand "<s" "ipython"))
     ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
-    ("P" (hot-expand "<s" "perl" ":results output :exports both :shebang \"#!/usr/bin/env perl\"\n"))
     ("I" (hot-expand "<I"))
     ("H" (hot-expand "<H"))
     ("A" (hot-expand "<A"))
@@ -579,15 +582,6 @@ prepended to the element after the #+HEADERS: tag."
 ;; send alerts by default to D-Bus
 (setq alert-default-style 'notifications)
 
-(defun dakra-other-window-or-frame (count)
-  "Call `other-window' if more than one window is visible, `other-frame' otherwise."
-  (interactive)
-  (if (one-window-p)
-      (other-frame count)
-    (other-window count)))
-(global-set-key (kbd "C-x o") (lambda () (interactive) (dakra-other-window-or-frame 1)))
-(global-set-key (kbd "C-x O") (lambda () (interactive) (dakra-other-window-or-frame -1)))
-
 ;; let emacs work nicely with i3; i3-emacs is not on melpa; manually installed
 ;; used together with i3 keyboard shortcut (S-e) to `emacsclient -cn -e '(switch-to-buffer nil)`
 (use-package i3
@@ -614,37 +608,8 @@ prepended to the element after the #+HEADERS: tag."
                                                (new-frame))
                                       (split-window-horizontally))))))
 
-(defmacro dakra-define-up/downcase-dwim (case)
-  (let ((func (intern (concat "dakra-" case "-dwim")))
-        (doc (format "Like `%s-dwim' but %s from beginning when no region is active." case case))
-        (case-region (intern (concat case "-region")))
-        (case-word (intern (concat case "-word"))))
-    `(defun ,func (arg)
-       ,doc
-       (interactive "*p")
-       (save-excursion
-         (if (use-region-p)
-             (,case-region (region-beginning) (region-end))
-           (beginning-of-thing 'symbol)
-           (,case-word arg)))
-       )))
-(dakra-define-up/downcase-dwim "upcase")
-(dakra-define-up/downcase-dwim "downcase")
-(dakra-define-up/downcase-dwim "capitalize")
-(global-set-key (kbd "M-u") 'dakra-upcase-dwim)
-(global-set-key (kbd "M-l") 'dakra-downcase-dwim)
-(global-set-key (kbd "M-c") 'dakra-capitalize-dwim)
-
-
 (setq browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "firefox")
-
-(defun dakra-toggle-browser ()
-  (interactive)
-  (if (eq browse-url-browser-function 'eww-browse-url)
-      (setq browse-url-browser-function 'browse-url-generic
-            browse-url-generic-program "firefox")
-    (setq browse-url-browser-function 'eww-browse-url)))
 
 
 (setq sml/theme 'powerline)  ; smart-mode-line theme
@@ -654,10 +619,6 @@ prepended to the element after the #+HEADERS: tag."
 (use-package dockerfile-mode
   :mode "Dockerfile\\'")
 (use-package docker-tramp)
-
-(use-package smart-region
-  ;; C-SPC is smart-region
-  :bind (([remap set-mark-command] . smart-region)))
 
 
 ;; XXX: not sure if git gutter is really nicer than diff-hl
@@ -776,7 +737,8 @@ displayed anywhere else."
             (setq sql-set-product 'mysql)))
 
 ;; Smart indentation for SQL files
-(use-package sql-indent :defer t :load-path "repos/emacs-sql-indent"
+(use-package sql-indent :defer t :ensure nil :load-path "repos/emacs-sql-indent"
+  :commands sqlind-setup
   :init (add-hook 'sql-mode-hook 'sqlind-setup))
 
 ;; Capitalize keywords in SQL mode
@@ -972,6 +934,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   :defer t
   :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 
+;; Display magit status in full fram
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
 
@@ -1151,42 +1114,73 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; Paste with middle mouse button doesn't move the curser
 (setq mouse-yank-at-point t)
 
+(use-package smart-region
+  ;; C-SPC is smart-region
+  :bind (([remap set-mark-command] . smart-region)))
+
+
 ;; "C-=" is not valid ascii sequence in terminals
 ;;(global-set-key (kbd "C-@") 'er/expand-region)
 
+(use-package selected
+  :demand t
+  :commands selected-minor-mode
+  :init (setq selected-org-mode-map (make-sparse-keymap))
+  :config (selected-global-mode)
+  :bind (:map selected-keymap
+              ("q" . selected-off)
+              ("u" . upcase-region)
+              ("d" . downcase-region)
+              ("w" . count-words-region)
+              ("m" . apply-macro-to-region-lines)
+              ;; multiple cursors
+              ("a" . mc/mark-all-dwim)
+              ("A" . mc/mark-all-like-this)
+              ("m" . mc/mark-more-like-this-extended)
+              ("p" . mc/mark-previous-like-this)
+              ("P" . mc/unmark-previous-like-this)
+              ("n" . mc/mark-next-like-this)
+              ("N" . mc/unmark-next-like-this)
+              ("r" . mc/edit-lines)
+              :map selected-org-mode-map
+              ("t" . org-table-convert-region)))
 ;; Change to selected? https://github.com/Kungsgeten/selected.el
 ;; https://www.reddit.com/r/emacs/comments/63mx6f/how_do_you_use_the_selectel_package_share_some/
-(require 'region-bindings-mode)
-(region-bindings-mode-enable)
+;; (require 'region-bindings-mode)
+;; (region-bindings-mode-enable)
 
-(define-key region-bindings-mode-map "\M-a" 'mc/mark-all-dwim)
-(define-key region-bindings-mode-map "\M-A" 'mc/mark-all-like-this)
-(define-key region-bindings-mode-map "\M-p" 'mc/mark-previous-like-this)
-(define-key region-bindings-mode-map "\M-P" 'mc/unmark-previous-like-this)
-(define-key region-bindings-mode-map "\M-n" 'mc/mark-next-like-this)
-(define-key region-bindings-mode-map "\M-N" 'mc/unmark-next-like-this)
-(define-key region-bindings-mode-map "\M-m" 'mc/mark-more-like-this-extended)
+;; (define-key region-bindings-mode-map "\M-a" 'mc/mark-all-dwim)
+;; (define-key region-bindings-mode-map "\M-A" 'mc/mark-all-like-this)
+;; (define-key region-bindings-mode-map "\M-p" 'mc/mark-previous-like-this)
+;; (define-key region-bindings-mode-map "\M-P" 'mc/unmark-previous-like-this)
+;; (define-key region-bindings-mode-map "\M-n" 'mc/mark-next-like-this)
+;; (define-key region-bindings-mode-map "\M-N" 'mc/unmark-next-like-this)
+;; (define-key region-bindings-mode-map "\M-m" 'mc/mark-more-like-this-extended)
 
-(global-set-key (kbd "C-c m") 'mc/mark-all-dwim)
-(global-set-key (kbd "C->") 'mc/mark-next-like-this)
-(global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
+(use-package multiple-cursors
+  :bind (("C-c m" . mc/mark-all-dwim)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this))
+  :config
+  (global-unset-key (kbd "M-<down-mouse-1>"))
+  (global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
 
-(global-unset-key (kbd "M-<down-mouse-1>"))
-(global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
+  (with-eval-after-load 'multiple-cursors-core
+    (define-key mc/keymap (kbd "M-T") 'mc/reverse-regions)
+    (define-key mc/keymap (kbd "C-,") 'mc/unmark-next-like-this)
+    (define-key mc/keymap (kbd "C-.") 'mc/skip-to-next-like-this))  
+  )
 
-(with-eval-after-load 'multiple-cursors-core
-  (define-key mc/keymap (kbd "M-T") 'mc/reverse-regions)
-  (define-key mc/keymap (kbd "C-,") 'mc/unmark-next-like-this)
-  (define-key mc/keymap (kbd "C-.") 'mc/skip-to-next-like-this))
 
 ;; key bindings - misc
 
-;; Normally "C-x k" prompts you which buffer to kill. Remap to always kill the current buffer
-(defun dakra-kill-this-buffer ()
-  "Like (kill-this-buffer) but independent of the menu bar."
-  (interactive)
-  (kill-buffer (current-buffer)))
-(global-set-key (kbd "C-x k") 'dakra-kill-this-buffer)
+(use-package dakra :load-path "repos/dakra.el" :ensure nil
+  :bind (("C-x k" . dakra-kill-this-buffer) ; Don't prompt which buffer to kill. Always use current-buffer
+         ("M-u" . dakra-upcase-dwim)
+         ("M-l" . dakra-downcase-dwim)
+         ("M-c" . dakra-capitalize-dwim)
+         ("C-x o" . dakra-next-window-or-frame)
+         ("C-x O" . dakra-previous-window-or-frame)))
 
 (require 'god-mode)
 ;; Make god-mode a little bit more vi-like
@@ -1209,8 +1203,10 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; remove flyspess 'C-;' keybinding so we can use it for avy jump
 (eval-after-load "flyspell"
   '(define-key flyspell-mode-map (kbd "C-;") nil))
-(setq avy-timeout-seconds 0.3)  ; only wait 0.3 seconds for char timeout (default 0.5)
-(global-set-key (kbd "C-;") 'avy-goto-char-timer)
+
+(use-package avy
+  :bind ("C-;" . avy-goto-char-timer)
+  :config (setq avy-timeout-seconds 0.3))
 
 
 ;; Spellcheck setup
