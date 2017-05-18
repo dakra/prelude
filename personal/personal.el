@@ -721,7 +721,8 @@ displayed anywhere else."
 
   ;; connect to database
   (setq sql-product product)
-  (sql-connect connection))
+  (sql-connect connection)
+  (rename-buffer (format "*SQL-%s*" connection)))
 
 (setq sql-mysql-login-params
       '((user :default "daniel")
@@ -974,6 +975,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   :bind (("M-g o" . dumb-jump-go-other-window)
          ("M-g j" . dumb-jump-go)
          ("M-g p" . dumb-jump-back)
+         ("M-g q" . dumb-jump-quick-look)
          ("M-g x" . dumb-jump-go-prefer-external)
          ("M-g z" . dumb-jump-go-prefer-external-other-window))
   :config (setq dumb-jump-selector 'helm))
