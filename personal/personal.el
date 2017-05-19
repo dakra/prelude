@@ -565,6 +565,33 @@ prepended to the element after the #+HEADERS: tag."
               '(:with company-yasnippet))))
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
+;; Rust
+(use-package rust-mode
+  :mode "\\.rs\\'"
+  :config
+  (use-package racer
+    :init
+    (add-hook 'rust-mode-hook #'racer-mode)
+    (add-hook 'racer-mode-hook #'eldoc-mode)
+
+    (add-hook 'racer-mode-hook #'company-mode)
+    (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
+    (setq company-tooltip-align-annotations t)))
+
+;; C/C++
+(use-package irony
+  :init
+  (add-hook 'c++-mode-hook 'irony-mode)
+  (add-hook 'c-mode-hook 'irony-mode)
+  (add-hook 'objc-mode-hook 'irony-mode)
+  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+  :config
+  (use-package company-irony
+    :after company
+    :config (add-to-list 'company-backends 'company-irony))
+  (use-package irony-eldoc
+    :init (add-hook 'irony-mode-hook 'irony-eldoc)))
+
 (use-package fabric
   :defer t)
 
