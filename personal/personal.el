@@ -48,6 +48,10 @@
 (use-package fish-mode :defer t)
 (use-package litable :defer t)  ; live preview for elisp
 
+
+;; Debugging
+(use-package realgud :defer t)
+
 ;; Goto last change
 (use-package goto-chg
   :demand t
@@ -588,25 +592,42 @@ prepended to the element after the #+HEADERS: tag."
   :if (or (daemonp) window-system)
   :ensure nil
   :config
+  ;; C-x 2/3 should create a new frame in X
+  (global-set-key (kbd "C-x 2") (lambda ()
+                                  (interactive)
+                                  (if (display-graphic-p)
+                                      (progn (i3-command 0 "split vertical")
+                                             (new-frame))
+                                    (split-window-horizontally))))
+  (global-set-key (kbd "C-x 3") (lambda ()
+                                  (interactive)
+                                  (if (display-graphic-p)
+                                      (progn (i3-command 0 "split horizontal")
+                                             (new-frame))
+                                    (split-window-horizontally))))
   (use-package i3-integration
     :ensure nil
+    :disabled t
     :config
-    (i3-one-window-per-frame-mode-on)
-    (i3-advise-visible-frame-list-on)
-    :config
-    ;; C-x 2/3 should create a new frame in X
-    (global-set-key (kbd "C-x 2") (lambda ()
-                                    (interactive)
-                                    (if (display-graphic-p)
-                                        (progn (i3-command 0 "split vertical")
-                                               (new-frame))
-                                      (split-window-horizontally))))
-    (global-set-key (kbd "C-x 3") (lambda ()
-                                    (interactive)
-                                    (if (display-graphic-p)
-                                        (progn (i3-command 0 "split horizontal")
-                                               (new-frame))
-                                      (split-window-horizontally))))))
+    (i3-one-window-per-frame-mode-off)
+    (i3-advise-visible-frame-list-off)))
+
+(use-package frames-only-mode
+  :init
+  ;; Set config because magit-commit-show-diff defaults to nil
+  (setq frames-only-mode-configuration-variables
+        (list (list 'pop-up-frames 'graphic-only)
+              (list 'mouse-autoselect-window nil)
+              (list 'focus-follows-mouse nil)
+              (list 'frame-auto-hide-function 'delete-frame)
+              (list 'org-agenda-window-setup 'other-frame)
+              (list 'org-src-window-setup 'other-frame)
+              (list 'ediff-window-setup-function 'ediff-setup-windows-plain)
+              (list 'ido-default-buffer-method 'selected-window)
+              (list 'magit-commit-show-diff t)
+              (list 'flycheck-display-errors-function #'frames-only-mode-flycheck-display-errors))
+        )
+  :config (frames-only-mode))
 
 (setq browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "firefox")
