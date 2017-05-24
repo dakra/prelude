@@ -12,7 +12,6 @@
    ;;color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
-   eshell-git-prompt
    flyspell-correct-helm
    guess-language  ; switch ispell automatically between languages
    keychain-environment  ; reload keychain info for ssh/gpg agent
@@ -20,12 +19,10 @@
 
    ;; typing helpers
    helm-ext  ; helm "hacks" like better path expandsion
-   multiple-cursors
-   region-bindings-mode  ; clone cursor with n,p when region selected
+   ;;region-bindings-mode  ; clone cursor with n,p when region selected
 
    ;; coding major/minor modes
    graphviz-dot-mode
-   realgud
    skewer-mode  ; js live reloading
    ))
 
@@ -40,12 +37,11 @@
 (setq use-package-always-ensure t)
 
 (setq user-full-name "Daniel Kraus"
-      user-mail-address "daniel@kraus.tk")
+      user-mail-address "daniel@kraus.my")
 
 (use-package lua-mode :defer t)
 (use-package ng2-mode :defer t)
 (use-package nginx-mode :defer t)
-(use-package fish-mode :defer t)
 (use-package litable :defer t)  ; live preview for elisp
 
 
@@ -99,7 +95,8 @@
 (setenv "PAGER" "cat")
 
 ;; Show git info in prompt
-(eshell-git-prompt-use-theme 'powerline)
+(use-package eshell-git-prompt
+  :config (eshell-git-prompt-use-theme 'powerline))
 
 
 (defun xah-paste-or-paste-previous ()
@@ -320,6 +317,7 @@ is already narrowed."
     ("L" (hot-expand "<L"))
     ("x" (hot-expand "<i"))
     ("e" (hot-expand "<s" "emacs-lisp"))
+    ("t" (hot-expand "<s" "emacs-lisp :tangle yes"))
     ("p" (hot-expand "<s" "python"))
     ("P" (hot-expand "<s" "python" ":session :exports both"))
     ("i" (hot-expand "<s" "ipython"))
@@ -337,16 +335,16 @@ STR is a structure template string recognised by org like <s. MOD is a
 string with additional parameters to add the begin line of the
 structure element. HEADER string includes more parameters that are
 prepended to the element after the #+HEADERS: tag."
-         (let (text)
-           (when (region-active-p)
-             (setq text (buffer-substring (region-beginning) (region-end)))
-             (delete-region (region-beginning) (region-end))
-             (deactivate-mark))
-           (when header (insert "#+HEADERS: " header))
-           (insert str)
-           (org-try-structure-completion)
-           (when mod (insert mod) (forward-line))
-           (when text (insert text))))
+    (let (text)
+      (when (region-active-p)
+        (setq text (buffer-substring (region-beginning) (region-end)))
+        (delete-region (region-beginning) (region-end))
+        (deactivate-mark))
+      (when header (insert "#+HEADERS: " header))
+      (insert str)
+      (org-try-structure-completion)
+      (when mod (insert mod) (forward-line))
+      (when text (insert text))))
 
   (define-key org-mode-map "<"
     (lambda () (interactive)
@@ -422,8 +420,12 @@ prepended to the element after the #+HEADERS: tag."
 ;; keep follow-mode in between helm sessions once activated
 (setq helm-follow-mode-persistent t)
 
-(define-key prelude-mode-map (kbd "C-c i") 'helm-imenu-anywhere)
+(use-package imenu-anywhere
+  :bind (:map prelude-mode-map
+              ("C-c i" . helm-imenu-anywhere)))
+
 (define-key prelude-mode-map (kbd "C-c j") 'helm-imenu)
+(define-key prelude-mode-map (kbd "C-c C-r") 'helm-resume)
 
 (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)  ; rebind tab to run persistent action
 (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)  ; make TAB work in terminal
@@ -801,14 +803,6 @@ displayed anywhere else."
   (add-to-list 'sqlup-blacklist "type"))
 
 
-;; use tern for js autocompletion
-(add-hook 'js-mode-hook (lambda () (tern-mode t)))
-
-(setq httpd-port 8079)  ; set port for simple-httpd used by skewer
-(add-hook 'js2-mode-hook 'skewer-mode)
-(add-hook 'css-mode-hook 'skewer-css-mode)
-(add-hook 'html-mode-hook 'skewer-html-mode)
-
 (use-package emmet-mode
   :bind (:map emmet-mode-keymap
               ("<backtab>" . emmet-expand-line)
@@ -948,6 +942,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 ;; FIXME: very buggy yet 15.12.2016
 ;; importmagic itself buggy: https://github.com/alecthomas/importmagic
 ;; Always reorder imports; No way to put each import on a new line..
+;; maybe always call py-isort after calling importmagic?
 ;;(require 'importmagic)
 ;;(add-hook 'python-mode-hook 'importmagic-mode)
 ;;(define-key importmagic-mode-map (kbd "C-c C-i") 'importmagic-fix-symbol-at-point)
@@ -960,7 +955,20 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 ;; open current line/region/dired/commit in github
 (use-package browse-at-remote
-  :bind (:map prelude-mode-map ("C-c G" . browse-at-remote)))
+  :init
+  (defun dakra-browse-at-remote (p)
+    "Like (browse-at-remote) but when called with one prefix argument
+copy the url in the kill ring instead of opening in the brower
+and when called with 2 prefix arguments copy url and open in browser."
+    (interactive "P*")
+    (if (eq (car p) 4)
+        (browse-at-remote-kill)
+      (if (eq (car p) 16)
+          (progn
+            (browse-at-remote-kill)
+            (browse-at-remote))
+        (browse-at-remote))))
+  :bind (:map prelude-mode-map ("C-c G" . dakra-browse-at-remote)))
 
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
 ;; just type 'fixes #' and get github issue autocompletion
@@ -1036,7 +1044,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (use-package ledger-mode
   :mode "\\.ledger\\'"
   :config
-  ;; disable whitespace-mode in ledger
+  (setq ledger-use-iso-dates t)  ; Use YYYY-MM-DD format
+  ;; disable whitespace-mode in ledger reports
   (add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
   (setq ledger-post-amount-alignment-column 60))
 ;;(autoload 'ledger-mode "ledger-mode" "A major mode for Ledger" t)
@@ -1090,8 +1099,7 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
                 (font-lock-mode 1))))
 
 
-(use-package prettier-js
-  :ensure nil
+(use-package prettier-js :ensure nil
   ;;:init (add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
   :config
   (setq prettier-args '(
@@ -1115,6 +1123,39 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
   (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
   )
+
+;; Connect to chrome
+;; chromium --remote-debugging-port=9222 https://localhost:3000
+;; then in emacs
+;; M-x indium-connect-to-chrome
+
+;; or node
+;; node --inspect myfile.js
+;; node with breakpoint at first line
+;; node --inspect --debug-brk myfile.js
+;; then open the url that node prints:
+;; chrome-devtools://inspector.html?...&ws=127.0.0.1:PORT/PATH
+;; then in emacs:
+;; M-x indium-connect-to-nodejs RET 127.0.0.1 RET PORT RET PATH, PORT, PATH
+
+;; place `.indium' file in static root folder.
+
+(use-package indium :defer t
+  :init (add-hook 'js-mode-hook #'indium-interaction-mode)
+  :config (setq indium-update-script-on-save t))
+
+;; use tern for js autocompletion
+(use-package tern :defer t
+  :init (add-hook 'js-mode-hook (lambda () (tern-mode t))))
+
+(use-package skewer-mode :defer t
+  :disabled t  ; Use indium
+  :init
+  (setq httpd-port 8079)  ; set port for simple-httpd used by skewer
+  (add-hook 'js2-mode-hook 'skewer-mode)
+  (add-hook 'css-mode-hook 'skewer-css-mode)
+  (add-hook 'html-mode-hook 'skewer-html-mode))
+
 
 ;; TypeScript
 (use-package tide :defer t
@@ -1467,7 +1508,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
   :diminish editorconfig-mode
   :config (editorconfig-mode 1))
 
-(use-package systemd)
+(use-package systemd
+  :mode ("\\.service\\'" "\\.timer\\'"))
 
 ;; Turn off auto rever messages
 (setq auto-revert-verbose nil)
