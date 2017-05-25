@@ -36,13 +36,19 @@
 (require 'bind-key)
 (setq use-package-always-ensure t)
 
+;; If we start in daemon mode, load all modules straight away
+(if (daemonp)
+    (setq use-package-always-demand t))
+
 (setq user-full-name "Daniel Kraus"
       user-mail-address "daniel@kraus.my")
 
-(use-package lua-mode :defer t)
+(use-package lua-mode
+  :mode "\\.lua\\'")
 (use-package ng2-mode :defer t)
 (use-package nginx-mode :defer t)
-(use-package litable :defer t)  ; live preview for elisp
+(use-package litable  ; live preview for elisp
+  :commands litable-mode)
 
 
 ;; Debugging
@@ -415,53 +421,63 @@ prepended to the element after the #+HEADERS: tag."
   :config (back-button-mode 1))
 
 
-;; Helm config
-
-;; keep follow-mode in between helm sessions once activated
-(setq helm-follow-mode-persistent t)
-
 (use-package imenu-anywhere
   :bind (:map prelude-mode-map
-              ("C-c i" . helm-imenu-anywhere)))
+              ("C-c i" . helm-imenu-anywhere))
+  :config
+  (defun imenu-use-package ()
+    (add-to-list 'imenu-generic-expression
+                 '("Packages" "\\(^\\s-*(use-package +\\)\\(\\_<.+\\_>\\)" 2)))
+  (add-hook 'emacs-lisp-mode-hook #'imenu-use-package))
 
-(define-key prelude-mode-map (kbd "C-c j") 'helm-imenu)
-(define-key prelude-mode-map (kbd "C-c C-r") 'helm-resume)
+;;; Helm config
+(use-package helm
+  :commands (helm-imenu helm-resume helm-execute-persistent-action helm-select-action)
+  :diminish helm-mode
+  :bind (("C-x r b" . helm-filtered-bookmarks)  ; Use helm bookmarks
+         :map prelude-mode-map
+         ("C-c j" . helm-imenu)
+         ("C-c C-r" . helm-resume)
+         :map helm-map
+         ("<tab>" . helm-execute-persistent-action)  ; Rebind tab to run persistent action
+         ("C-i" . helm-execute-persistent-action)  ; Make TAB work in terminals
+         ("C-z" . helm-select-action)  ; List actions
+         )
+  :config
+  ;; keep follow-mode in between helm sessions once activated
+  (setq helm-follow-mode-persistent t)
 
-(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)  ; rebind tab to run persistent action
-(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)  ; make TAB work in terminal
-(define-key helm-map (kbd "C-z")  'helm-select-action)  ; list actions using C-z
-;; use helm bookmarks
-(global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+  ;; Smaller helm window
+  (setq helm-autoresize-max-height 0)
+  (setq helm-autoresize-min-height 30)
+  (helm-autoresize-mode 1)
+
+  ;; Don't show details in helm-mini for tramp buffers
+  (setq helm-buffer-skip-remote-checking t)
+
+  ;; Show bookmarks (and create bookmarks) in helm-mini
+  (setq helm-mini-default-sources '(helm-source-buffers-list
+                                    helm-source-recentf
+                                    helm-source-bookmarks
+                                    helm-source-bookmark-set
+                                    helm-source-buffer-not-found))
+
+  (use-package helm-ext
+    :config
+    ;; Skip . and .. for non empty dirs
+    (helm-ext-ff-enable-skipping-dots t)
+
+    ;; Enable zsh/fish shell like path expansion
+    (helm-ext-ff-enable-zsh-path-expansion t)
+    (helm-ext-ff-enable-auto-path-expansion t)
+
+    ;; Don't use minibuffer if there's something there already
+    (helm-ext-minibuffer-enable-header-line-maybe t)))
 
 ;; use swiper with helm backend for search
 (use-package swiper-helm
   :bind ("\C-s" . swiper-helm))
 
-
-;; Smaller helm window
-(setq helm-autoresize-max-height 0)
-(setq helm-autoresize-min-height 30)
-(helm-autoresize-mode 1)
-
-;; Don't show details in helm-mini for tramp buffers
-(setq helm-buffer-skip-remote-checking t)
-
-;; Show bookmarks (and create bookmarks) in helm-mini
-(setq helm-mini-default-sources '(helm-source-buffers-list
-                                  helm-source-recentf
-                                  helm-source-bookmarks
-                                  helm-source-bookmark-set
-                                  helm-source-buffer-not-found))
-
-;; Skip . and .. for non empty dirs
-(helm-ext-ff-enable-skipping-dots t)
-
-;; Enable zsh/fish shell like path expansion
-(helm-ext-ff-enable-zsh-path-expansion t)
-(helm-ext-ff-enable-auto-path-expansion t)
-
-;; Don't use minibuffer if there's something there already
-(helm-ext-minibuffer-enable-header-line-maybe t)
 
 ;; wolfram alpha queries (M-x wolfram-alpha)
 (use-package wolfram
@@ -718,7 +734,64 @@ displayed anywhere else."
 
 ;; use outline-cycle (from outline-magic) in outline-minor-mode
 (use-package outline-magic
+  :disabled t  ; outshine is the newer version
   :bind (:map outline-minor-mode-map ("<C-tab>" . outline-cycle)))
+
+(use-package navi-mode
+  :commands navi-mode)
+(use-package outshine
+  :bind (:map outline-minor-mode-map ("<C-tab>" . outline-cycle))
+  :init
+  ;;(defvar outline-minor-mode-prefix "\M-#")
+
+  (add-hook 'outline-minor-mode-hook 'outshine-hook-function)
+
+  (add-hook 'emacs-lisp-mode-hook 'outline-minor-mode)
+  (add-hook 'clojure-mode-hook 'outline-minor-mode)
+  (add-hook 'ledger-mode-hook 'outline-minor-mode)
+  (add-hook 'message-mode-hook 'outline-minor-mode)
+
+  ;; https://stackoverflow.com/questions/4079648/combine-python-mode-with-org-mode-for-emacs/29057808#29057808
+  (defun python-mode-outline-hook ()
+    (outline-minor-mode)
+    (setq outline-level 'python-outline-level)
+    (setq outline-regexp
+          (rx (or
+               ;; Commented outline heading
+               (group
+                (* space)  ; 0 or more spaces
+                (one-or-more (syntax comment-start))
+                (one-or-more space)
+                ;; Heading level
+                (group (repeat 1 8 "\*"))  ; Outline stars
+                (one-or-more space))
+
+               ;; Python keyword heading
+               (group
+                ;; Heading level
+                (group (* space)) ; 0 or more spaces
+                bow
+                ;; Keywords
+                (or "class" "def" "else" "elif" "except" "for" "if" "try" "while")
+                eow)))))
+
+  (defun python-outline-level ()
+    (or
+     ;; Commented outline heading
+     (and (string-match (rx
+                         (* space)
+                         (one-or-more (syntax comment-start))
+                         (one-or-more space)
+                         (group (one-or-more "\*"))
+                         (one-or-more space))
+                        (match-string 0))
+          (- (match-end 0) (match-beginning 0)))
+
+     ;; Python keyword heading, set by number of indentions
+     ;; Add 8 (the highest standard outline level) to every Python keyword heading
+     (+ 8 (- (match-end 0) (match-beginning 0)))))
+
+  (add-hook 'python-mode-hook 'python-mode-outline-hook))
 
 
 ;; SQL
@@ -788,12 +861,13 @@ displayed anywhere else."
             (setq sql-set-product 'mysql)))
 
 ;; Smart indentation for SQL files
-(use-package sql-indent :defer t :ensure nil :load-path "repos/emacs-sql-indent"
+(use-package sql-indent :ensure nil :load-path "repos/emacs-sql-indent"
   :commands sqlind-setup
   :init (add-hook 'sql-mode-hook 'sqlind-setup))
 
 ;; Capitalize keywords in SQL mode
-(use-package sqlup-mode :defer t
+(use-package sqlup-mode
+  :commands sqlup-mode
   :init
   (add-hook 'sql-mode-hook 'sqlup-mode)
   (add-hook 'sql-interactive-mode-hook 'sqlup-mode)
@@ -804,6 +878,7 @@ displayed anywhere else."
 
 
 (use-package emmet-mode
+  :commands emmet-mode
   :bind (:map emmet-mode-keymap
               ("<backtab>" . emmet-expand-line)
               ("\C-c TAB" . emmet-expand-line)
@@ -820,7 +895,8 @@ displayed anywhere else."
   (use-package helm-emmet))
 
 
-(use-package scss-mode :defer t
+(use-package scss-mode
+  :commands scss-mode
   :config
   ;; turn off annoying auto-compile on save
   (setq scss-compile-at-save nil)
@@ -830,12 +906,17 @@ displayed anywhere else."
 ;; python
 
 ;; package-list-packages like interface for python packages
-(use-package pippel :defer t)
+(use-package pippel
+  :commands (pippel-list-packages pippel-install-package))
 
 ;; Syntax highlighting for requirements.txt files
-(use-package pip-requirements :defer t)
+(use-package pip-requirements
+  :mode (("\\.pip\\'" . pip-requirements-mode)
+         ("requirements.*\\.txt\\'" . pip-requirements-mode)
+         ("requirements\\.in" . pip-requirements-mode)))
 
-(use-package sphinx-mode)
+(use-package sphinx-mode
+  :commands sphinx-mode)
 
 ;; FIXME: change stuff from prelude-python.el to here
 ;;(use-package anaconda-mode  :mode ("\\.py\\'" "\\.xsh\\'"))
@@ -853,12 +934,16 @@ displayed anywhere else."
 
 ;; Enable (restructured) syntax highlighting for python docstrings
 (use-package python-docstring
-  :init (add-hook 'python-mode-hook 'python-docstring-mode))
+  :commands python-docstring-mode
+  :init (add-hook 'python-mode-hook 'python-docstring-mode)
+  :diminish python-docstring-mode)
 
-(use-package pydoc :defer t)
+(use-package pydoc
+  :commands (pydoc-at-point pydoc-browse))
 
 ;; Automatically sort and format python imports
-(use-package py-isort :defer t
+(use-package py-isort
+  :commands (py-isort-buffer py-isort-region)
   :config
   ;;(add-hook 'before-save-hook 'py-isort-before-save)
   (setq py-isort-options '("--line-width=100"
@@ -1017,7 +1102,8 @@ and when called with 2 prefix arguments copy url and open in browser."
 
   :config
   (setq symbol-overlay-map (make-sparse-keymap)  ;; Remove all default bindings
-        symbol-overlay-temp-face '((:background "gray30"))))
+        symbol-overlay-temp-face '((:background "gray30")))
+  :diminish symbol-overlay-mode)
 
 
 ;; more useful frame title, that show either a file or a
@@ -1052,14 +1138,16 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;;(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
 
-(use-package aggressive-indent :defer t
+(use-package aggressive-indent
+  :commands aggressive-indent-mode
   :init
   (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
   (add-hook 'lisp-mode #'aggressive-indent-mode)
   (add-hook 'css-mode-hook #'aggressive-indent-mode)
   (add-hook 'js2-mode-hook #'aggressive-indent-mode))
 
-(use-package easy-escape :defer t
+(use-package easy-escape
+  :commands easy-escape-minor-mode
   :diminish easy-escape-minor-mode
   :init
   ;; Nicer elisp regex syntax highlighting
@@ -1068,7 +1156,8 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 
 ;; Only remove trailing whitespaces that I put there
-(use-package ws-butler :defer t
+(use-package ws-butler
+  :commands ws-butler-mode
   :diminish ws-butler-mode
   :init
   (add-hook 'text-mode-hook 'ws-butler-mode)
@@ -1140,16 +1229,19 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 ;; place `.indium' file in static root folder.
 
-(use-package indium :defer t
+(use-package indium
+  :commands indium-interaction-mode
   :init (add-hook 'js-mode-hook #'indium-interaction-mode)
   :config (setq indium-update-script-on-save t))
 
 ;; use tern for js autocompletion
-(use-package tern :defer t
+(use-package tern
+  :commands tern-mode
   :init (add-hook 'js-mode-hook (lambda () (tern-mode t))))
 
-(use-package skewer-mode :defer t
+(use-package skewer-mode
   :disabled t  ; Use indium
+  :commands skewer-mode
   :init
   (setq httpd-port 8079)  ; set port for simple-httpd used by skewer
   (add-hook 'js2-mode-hook 'skewer-mode)
@@ -1158,7 +1250,8 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 
 ;; TypeScript
-(use-package tide :defer t
+(use-package tide
+  :commands (setup-tide-mode tide-mode)
   :init
   (setq typescript-indent-level 2)
   (defun setup-tide-mode ()
@@ -1218,23 +1311,25 @@ and when called with 2 prefix arguments copy url and open in browser."
   :commands selected-minor-mode
   :init (setq selected-org-mode-map (make-sparse-keymap))
   :config (selected-global-mode)
-  :bind (:map selected-keymap
-              ("q" . selected-off)
-              ("u" . upcase-region)
-              ("d" . downcase-region)
-              ("w" . count-words-region)
-              ("m" . apply-macro-to-region-lines)
-              ;; multiple cursors
-              ("a" . mc/mark-all-dwim)
-              ("A" . mc/mark-all-like-this)
-              ("m" . mc/mark-more-like-this-extended)
-              ("p" . mc/mark-previous-like-this)
-              ("P" . mc/unmark-previous-like-this)
-              ("n" . mc/mark-next-like-this)
-              ("N" . mc/unmark-next-like-this)
-              ("r" . mc/edit-lines)
-              :map selected-org-mode-map
-              ("t" . org-table-convert-region)))
+  :bind (
+         :map selected-keymap
+         ("q" . selected-off)
+         ("u" . upcase-region)
+         ("d" . downcase-region)
+         ("w" . count-words-region)
+         ("m" . apply-macro-to-region-lines)
+         ;; multiple cursors
+         ("a" . mc/mark-all-dwim)
+         ("A" . mc/mark-all-like-this)
+         ("m" . mc/mark-more-like-this-extended)
+         ("p" . mc/mark-previous-like-this)
+         ("P" . mc/unmark-previous-like-this)
+         ("n" . mc/mark-next-like-this)
+         ("N" . mc/unmark-next-like-this)
+         ("r" . mc/edit-lines)
+         :map selected-org-mode-map
+         ("t" . org-table-convert-region))
+  :diminish selected-minor-mode)
 ;; Change to selected? https://github.com/Kungsgeten/selected.el
 ;; https://www.reddit.com/r/emacs/comments/63mx6f/how_do_you_use_the_selectel_package_share_some/
 ;; (require 'region-bindings-mode)
@@ -1252,6 +1347,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   :bind (("C-c m" . mc/mark-all-dwim)
          ("C->" . mc/mark-next-like-this)
          ("C-<" . mc/mark-previous-like-this))
+  :init (setq mc/list-file "~/.emacs.d/personal/.mc-lists.el")
   :config
   (global-unset-key (kbd "M-<down-mouse-1>"))
   (global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
@@ -1259,8 +1355,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   (with-eval-after-load 'multiple-cursors-core
     (define-key mc/keymap (kbd "M-T") 'mc/reverse-regions)
     (define-key mc/keymap (kbd "C-,") 'mc/unmark-next-like-this)
-    (define-key mc/keymap (kbd "C-.") 'mc/skip-to-next-like-this))  
-  )
+    (define-key mc/keymap (kbd "C-.") 'mc/skip-to-next-like-this)))
 
 
 ;; key bindings - misc
@@ -1520,7 +1615,6 @@ and when called with 2 prefix arguments copy url and open in browser."
 (diminish 'beacon-mode)
 (diminish 'flyspell-mode)
 (diminish 'guru-mode)
-(diminish 'helm-mode)
 (diminish 'prelude-mode)
 (diminish 'smartparens-mode)
 (diminish 'which-key-mode)

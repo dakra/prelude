@@ -18,6 +18,7 @@
         org-force-self-insert
         org-kill-line
         org-self-insert-command
+        outshine-self-insert-command
         selected-off
         sp-backward-delete-char
         sp-backward-kill-word
