@@ -43,19 +43,21 @@
 ;; Install newest org and org-plus-contrib packages
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
-(require 'org-habit)  ; track habits
+(use-package org-habit)  ; track habits
 
-(require 'org-man)  ; make org-links work with man pages
-(setq org-man-command 'woman)  ; open org-link man pages with woman
+(use-package org-man  ; make org-links work with man pages
+  :config
+  (setq org-man-command 'woman))  ; open org-link man pages with woman
 
 (require 'ox-jira)  ; for jira export (then copy&paste to ticket)
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 
 ;; Automatically add a CREATED property when inserting a new headline
-(require 'org-expiry)
-(setq org-expiry-inactive-timestamps t)
-(org-expiry-insinuate)
+(use-package org-expiry
+  :config
+  (setq org-expiry-inactive-timestamps t)
+  (org-expiry-insinuate))
 
 ;;(setq org-list-indent-offset 1)
 
@@ -189,8 +191,8 @@
 
 (setq org-clock-idle-time 15)  ; idle after 15 minutes
 
-(require 'org-id)
-(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+(use-package org-id
+  :config (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id))
 
 (require 'org-protocol)
 ;; org-capture chrome plugin: https://chrome.google.com/webstore/detail/org-capture/kkkjlfejijcjgjllecmnejhogpbcigdc?hl=en
@@ -371,14 +373,15 @@
 (setq org-show-hierarchy-above t)
 (setq org-show-siblings (quote ((default))))
 
-(require 'org-crypt)
-;; Encrypt all entries before saving
-(org-crypt-use-before-save-magic)
-(setq org-tags-exclude-from-inheritance (quote ("crypt")))
-;; GPG key to use for encryption
-(setq org-crypt-key "C1C8D63F884EF9C9")
-;; don't ask to disable auto-save
-(setq org-crypt-disable-auto-save nil)
+(use-package org-crypt
+  :config
+  ;; Encrypt all entries before saving
+  (org-crypt-use-before-save-magic)
+  (setq org-tags-exclude-from-inheritance (quote ("crypt")))
+  ;; GPG key to use for encryption
+  (setq org-crypt-key "C1C8D63F884EF9C9")
+  ;; don't ask to disable auto-save
+  (setq org-crypt-disable-auto-save nil))
 
 
 ;; don't show * / = etc
@@ -400,20 +403,21 @@
 (add-hook 'org-mode-hook (lambda () (auto-fill-mode 1)))
 
 
-(require 'org-pomodoro)
+(use-package org-pomodoro
+  :config
+  ;; called with py3status in ~/.config/i3status/config with emacsclient --eval
+  (defun dakra/org-pomodoro-i3-bar-time ()
+    "Display remaining pomodoro time in i3 status bar."
+    (if (org-pomodoro-active-p)
+        (format "Pomodoro: %d minutes - %s" (/ org-pomodoro-countdown 60) org-clock-heading)
+      (if (org-clock-is-active)
+          (org-no-properties (org-clock-get-clock-string))
+        "No active pomodoro or tasks")))
 
-;; called with py3status in ~/.config/i3status/config with emacsclient --eval
-(defun dakra/org-pomodoro-i3-bar-time ()
-  "Display remaining pomodoro time in i3 status bar."
-  (if (org-pomodoro-active-p)
-      (format "Pomodoro: %d minutes - %s" (/ org-pomodoro-countdown 60) org-clock-heading)
-    (if (org-clock-is-active)
-        (org-no-properties (org-clock-get-clock-string))
-      "No active pomodoro or tasks")))
-
-;;(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
-;;(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
-;;(setq org-pomodoro-killed-hook 'dakra/org-pomodoro-i3-bar-time)
+  ;;(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
+  ;;(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
+  ;;(setq org-pomodoro-killed-hook 'dakra/org-pomodoro-i3-bar-time)
+  )
 
 
 ;; Automatically copy orgit link to last commit after commit

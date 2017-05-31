@@ -938,70 +938,71 @@ displayed anywhere else."
 
 
 ;; SQL
-(require 'sql)
-(sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\|mysql\\) ?\\[?[_a-zA-Z0-9]*\\]?> ")
+(use-package sql
+  :config
+  (sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\|mysql\\) ?\\[?[_a-zA-Z0-9]*\\]?> ")
 
-(setq sql-product 'mysql)
-(setq sql-connection-alist
-      '((atomx-local-api (sql-product 'mysql)
-                         (sql-server "localhost")
-                         (sql-user "root")
-                         (sql-database "api"))
-        (atomx-remote-api (sql-product 'mysql)
-                          (sql-server "127.0.0.1")
-                          (sql-port 3307)
-                          (sql-user "root")
-                          (sql-database "api")
-                          (sql-mysql-options '("-A")))
-        (paessler-docker (sql-product 'mysql)
-                         (sql-server "127.0.0.1")
-                         (sql-port 3308)
-                         (sql-user "root")
-                         (sql-database "paessler_com2"))))
+  (setq sql-product 'mysql)
+  (setq sql-connection-alist
+        '((atomx-local-api (sql-product 'mysql)
+                           (sql-server "localhost")
+                           (sql-user "root")
+                           (sql-database "api"))
+          (atomx-remote-api (sql-product 'mysql)
+                            (sql-server "127.0.0.1")
+                            (sql-port 3307)
+                            (sql-user "root")
+                            (sql-database "api")
+                            (sql-mysql-options '("-A")))
+          (paessler-docker (sql-product 'mysql)
+                           (sql-server "127.0.0.1")
+                           (sql-port 3308)
+                           (sql-user "root")
+                           (sql-database "paessler_com2"))))
 
-(setq sql-mysql-login-params (append sql-mysql-login-params '(port)))
+  (setq sql-mysql-login-params (append sql-mysql-login-params '(port)))
 
-(defun dakra/sql-atomx-local-api ()
-  (interactive)
-  (dakra/sql-connect 'mysql 'atomx-local-api))
+  (defun dakra/sql-atomx-local-api ()
+    (interactive)
+    (dakra/sql-connect 'mysql 'atomx-local-api))
 
-(defun dakra/sql-atomx-remote-api ()
-  (interactive)
-  (dakra/sql-connect 'mysql 'atomx-remote-api))
+  (defun dakra/sql-atomx-remote-api ()
+    (interactive)
+    (dakra/sql-connect 'mysql 'atomx-remote-api))
 
-(defun dakra/sql-paessler-docker ()
-  (interactive)
-  (dakra/sql-connect 'mysql 'paessler-docker))
+  (defun dakra/sql-paessler-docker ()
+    (interactive)
+    (dakra/sql-connect 'mysql 'paessler-docker))
 
-(defun dakra/sql-connect (product connection)
-  ;; load the password
-  (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")
+  (defun dakra/sql-connect (product connection)
+    ;; load the password
+    (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")
 
-  ;; update the password to the sql-connection-alist
-  (let ((connection-info (assoc connection sql-connection-alist))
-        (sql-password (car (last (assoc connection dakra-sql-passwords)))))
-    (delete sql-password connection-info)
-    (nconc connection-info `((sql-password ,sql-password)))
-    (setq sql-connection-alist (assq-delete-all connection sql-connection-alist))
-    (add-to-list 'sql-connection-alist connection-info))
+    ;; update the password to the sql-connection-alist
+    (let ((connection-info (assoc connection sql-connection-alist))
+          (sql-password (car (last (assoc connection dakra-sql-passwords)))))
+      (delete sql-password connection-info)
+      (nconc connection-info `((sql-password ,sql-password)))
+      (setq sql-connection-alist (assq-delete-all connection sql-connection-alist))
+      (add-to-list 'sql-connection-alist connection-info))
 
-  ;; connect to database
-  (setq sql-product product)
-  (sql-connect connection)
-  (rename-buffer (format "*SQL-%s*" connection)))
+    ;; connect to database
+    (setq sql-product product)
+    (sql-connect connection)
+    (rename-buffer (format "*SQL-%s*" connection)))
 
-(setq sql-mysql-login-params
-      '((user :default "daniel")
-        (database :default "api")
-        (server :default "localhost")))
+  (setq sql-mysql-login-params
+        '((user :default "daniel")
+          (database :default "api")
+          (server :default "localhost")))
 
-(add-hook 'sql-interactive-mode-hook
-          (lambda ()
-            (toggle-truncate-lines t)
-            ))
-(add-hook 'sql-mode
-          (lambda ()
-            (setq sql-set-product 'mysql)))
+  (add-hook 'sql-interactive-mode-hook
+            (lambda ()
+              (toggle-truncate-lines t)
+              ))
+  (add-hook 'sql-mode
+            (lambda ()
+              (setq sql-set-product 'mysql))))
 
 ;; Smart indentation for SQL files
 (use-package sql-indent :ensure nil :load-path "repos/emacs-sql-indent"
@@ -1263,19 +1264,19 @@ and when called with 2 prefix arguments copy url and open in browser."
   :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 
 (use-package magithub
-  :disabled t  ; doesn't work to well yet. 'api not responding'. gitlab etc
+  :disabled t  ; doesn't work to well yet. 'api not responding'. gitlab etc. 1.6.2017
   :after magit
   :config
   ;;(setq magithub-api-timeout 5)
   (magithub-feature-autoinject t)
 
+  ;;(setq ghub-username "dakra")
   ;; FIXME: .authinfo not working?
   ;; (setq ghub-username "dakra"
   ;;       ghub-token "token")
 
   ;; Fix for emacs 26
-  (defun ghubp--post-process (object &optional preserve-objects)
-    object)
+  ;;(defun ghubp--post-process (object &optional preserve-objects) object)
   )
 
 ;; Display magit status in full fram
