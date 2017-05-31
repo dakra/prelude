@@ -12,18 +12,8 @@
    ;;color-theme-sanityinc-solarized
    smart-mode-line-powerline-theme
 
-   flyspell-correct-helm
-   guess-language  ; switch ispell automatically between languages
-   keychain-environment  ; reload keychain info for ssh/gpg agent
-   dired+
-
-   ;; typing helpers
-   helm-ext  ; helm "hacks" like better path expandsion
-   ;;region-bindings-mode  ; clone cursor with n,p when region selected
-
    ;; coding major/minor modes
    graphviz-dot-mode
-   skewer-mode  ; js live reloading
    ))
 
 ;; Bootstrap `use-package'
@@ -34,14 +24,24 @@
   (require 'use-package))
 (require 'diminish)
 (require 'bind-key)
-(setq use-package-always-ensure t)
 
 ;; If we start in daemon mode, load all modules straight away
+;; and ensure that all packages are installed
 (if (daemonp)
-    (setq use-package-always-demand t))
+    (progn
+      (setq use-package-always-demand t)
+      (setq use-package-always-ensure t)))
 
 (setq user-full-name "Daniel Kraus"
       user-mail-address "daniel@kraus.my")
+
+(use-package which-key
+  :config (which-key-mode 1)
+  :diminish which-key-mode)
+
+(use-package beacon
+  :config (beacon-mode 1)
+  :diminish beacon-mode)
 
 (use-package lua-mode
   :mode "\\.lua\\'")
@@ -54,9 +54,15 @@
 ;; Debugging
 (use-package realgud :defer t)
 
+
+(use-package color-identifiers-mode
+  :disabled t  ; TODO: play with and see if I like it
+  :commands global-color-identifiers-mode
+  :init (add-hook 'after-init-hook 'global-color-identifiers-mode))
+
 ;; Goto last change
 (use-package goto-chg
-  :demand t
+  :commands (goto-last-change goto-last-change-reverse)
   :bind (("C-c \\" . goto-last-change)
          ("C-c |" . goto-last-change-reverse)))
 
@@ -89,9 +95,47 @@
 ;; display custom agenda when starting emacs
 ;;(add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
 
-;; recenter window after imenu jump so cursor doesn't end up on the last line
+;; imenu
+
+;; Recenter window after imenu jump so cursor doesn't end up on the last line
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
 
+;; imenu for dired
+;; https://fuco1.github.io/2017-05-01-Support-for-imenu-in-dired.html
+(defun my-dired-imenu-prev-index-position (&optional arg)
+  "Go to the header line of previous directory."
+  (interactive "p")
+  (unless (= (line-number-at-pos) 1)
+    (call-interactively 'dired-prev-subdir)
+    t))
+
+(defun my-dired-extract-index-name ()
+  "Extract name of the current item for imenu."
+  (save-excursion
+    (back-to-indentation)
+    (buffer-substring-no-properties
+     (point)
+     (1- (re-search-forward ":$")))))
+
+(defun my-dired-imenu-create-index ()
+  "Create `imenu' index for dired."
+  (let* ((alist (imenu-default-create-index-function))
+         (uniquified (f-uniquify-alist (-map 'car alist))))
+    (--remove
+     (= 0 (length (car it)))
+     (--map (cons (cdr (assoc (car it) uniquified)) (cdr it))
+            alist))))
+
+(defun my-dired-imenu-init ()
+  "Initialize `imenu' variables in current buffer."
+  (setq-local imenu-prev-index-position-function
+              'my-dired-imenu-prev-index-position)
+  (setq-local imenu-extract-index-name-function
+              'my-dired-extract-index-name)
+  (setq-local imenu-create-index-function
+              'my-dired-imenu-create-index))
+
+(add-hook 'dired-mode-hook 'my-dired-imenu-init)
 
 ;; eshell
 ;;(setq eshell-list-files-after-cd t)
@@ -151,8 +195,15 @@ is already narrowed."
 ;; dired list size in human-readable format and list directories first
 (setq dired-listing-switches "-hal --group-directories-first")
 (setq dired-dwim-target t)
-(setq diredp-dwim-any-frame-flag t)
-(diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
+
+(use-package dired+
+  :init
+  ;; Show details by default  (diredp hides it)
+  (setq diredp-hide-details-initially-flag nil)
+
+  (diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
+  (setq diredp-dwim-any-frame-flag t)
+  )
 
 ;; Easily diff 2 marked files in dired
 (defun ora-ediff-files ()
@@ -237,16 +288,6 @@ is already narrowed."
     ("p" origami-previous-fold)
     ("f" origami-forward-toggle-node)
     ("a" origami-toggle-all-nodes))
-
-  (defhydra hydra-python (python-mode-map "C-c C-t" :color blue)
-    "Run Python Tests"
-    ("f" python-test-function "Function")
-    ("m" python-test-method "Method")
-    ("c" python-test-class "Class")
-    ("F" python-test-file "File")
-    ("p" python-test-project "Project")
-    ("q" nil "Cancel"))
-  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
 
   (defhydra hydra-multiple-cursors (:hint nil)
     "
@@ -422,8 +463,9 @@ prepended to the element after the #+HEADERS: tag."
 
 
 (use-package imenu-anywhere
-  :bind (:map prelude-mode-map
-              ("C-c i" . helm-imenu-anywhere))
+  :bind (("M-i" . helm-imenu-anywhere)
+         :map prelude-mode-map
+         ("C-c i" . helm-imenu-anywhere))
   :config
   (defun imenu-use-package ()
     (add-to-list 'imenu-generic-expression
@@ -435,7 +477,6 @@ prepended to the element after the #+HEADERS: tag."
   :commands (helm-imenu helm-resume helm-execute-persistent-action helm-select-action)
   :diminish helm-mode
   :bind (("C-x r b" . helm-filtered-bookmarks)  ; Use helm bookmarks
-         :map prelude-mode-map
          ("C-c j" . helm-imenu)
          ("C-c C-r" . helm-resume)
          :map helm-map
@@ -462,6 +503,7 @@ prepended to the element after the #+HEADERS: tag."
                                     helm-source-bookmark-set
                                     helm-source-buffer-not-found))
 
+  ;; helm "hacks" like better path expandsion
   (use-package helm-ext
     :config
     ;; Skip . and .. for non empty dirs
@@ -487,7 +529,14 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
 ;; set with 'custom' since it's buffer-local variable
-;; (setq fill-column 80)
+(setq fill-column 80)
+(setq comment-auto-fill-only-comments t)  ; Onlu auto-fill comments
+;; Use auto-fill in all modes
+(add-hook 'text-mode-hook 'turn-on-auto-fill)
+
+(font-lock-add-keywords
+ nil '(("\\<\\(\\(FIX\\(ME\\)?\\|XXX\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
+        1 font-lock-warning-face t)))
 
 ;; Use 'C-c S' or 'M-s M-w' for 'eww-search-words' current region
 (define-key prelude-mode-map (kbd "C-c S") nil)  ; remove default crux find-shell-init keybinding
@@ -497,6 +546,18 @@ prepended to the element after the #+HEADERS: tag."
 
 
 (setq eww-search-prefix "https://google.com/search?q=")
+
+;; comment-dwim-2 is a replacement for the Emacs' built-in command
+;; comment-dwim which includes more comment features, including:
+;; - commenting/uncommenting the current line (or region, if active)
+;; - inserting an inline comment
+;; - killing the inline comment
+;; - reindenting the inline comment
+;; comment-dwim-2 picks one behavior depending on the context but
+;; contrary to comment-dwim can also be repeated several times to
+;; switch between the different behaviors
+(use-package comment-dwim-2
+  :bind ("M-;" . comment-dwim-2))
 
 ;; Do action that normally works on a region to the whole line if no region active.
 ;; That way you can just C-w to copy the whole line for example.
@@ -560,6 +621,7 @@ prepended to the element after the #+HEADERS: tag."
     :config (add-to-list 'company-backends 'company-emoji))
 
   (use-package company-quickhelp
+    :disabled t
     :config (company-quickhelp-mode 1))
 
   (use-package slime-company
@@ -636,20 +698,27 @@ prepended to the element after the #+HEADERS: tag."
 (use-package i3
   :if (or (daemonp) window-system)
   :ensure nil
+  :commands i3-command
+  :bind (("C-x 2" . i3-split-vertically)
+         ("C-x 3" . i3-split-horizontally))
+  :init
+  (defun i3-split-vertically ()
+    "Like (split-window-vertically) but when in graphic mode
+split via i3 and create a new Emacs frame."
+    (interactive)
+    (if (display-graphic-p)
+        (progn (i3-command 0 "split vertical")
+               (make-frame))
+      (split-window-vertically)))
+  (defun i3-split-horizontally ()
+    "Like (split-window-horizontally) but when in graphic mode
+split via i3 and create a new Emacs frame."
+    (interactive)
+    (if (display-graphic-p)
+        (progn (i3-command 0 "split horizontal")
+               (make-frame))
+      (split-window-horizontally)))
   :config
-  ;; C-x 2/3 should create a new frame in X
-  (global-set-key (kbd "C-x 2") (lambda ()
-                                  (interactive)
-                                  (if (display-graphic-p)
-                                      (progn (i3-command 0 "split vertical")
-                                             (new-frame))
-                                    (split-window-horizontally))))
-  (global-set-key (kbd "C-x 3") (lambda ()
-                                  (interactive)
-                                  (if (display-graphic-p)
-                                      (progn (i3-command 0 "split horizontal")
-                                             (new-frame))
-                                    (split-window-horizontally))))
   (use-package i3-integration
     :ensure nil
     :disabled t
@@ -658,6 +727,7 @@ prepended to the element after the #+HEADERS: tag."
     (i3-advise-visible-frame-list-off)))
 
 (use-package frames-only-mode
+  :if (or (daemonp) window-system)
   :init
   ;; Set config because magit-commit-show-diff defaults to nil
   (setq frames-only-mode-configuration-variables
@@ -686,6 +756,19 @@ prepended to the element after the #+HEADERS: tag."
   :mode "Dockerfile\\'")
 (use-package docker-tramp)
 
+;; Replace zap-to-char functionaity with the more powerful zop-to-char
+(use-package zop-to-char
+  :bind (("M-z" . zop-up-to-char)
+         ("M-Z" . zop-to-char)))
+
+(use-package diff-hl
+  :commands (turn-on-diff-hl-mode diff-hl-dired-mode diff-hl-magit-post-refresh)
+  :init
+  (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
+  (add-hook 'conf-mode-hook 'turn-on-diff-hl-mode)
+  (add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode)
+  (add-hook 'dired-mode-hook 'diff-hl-dired-mode)
+  (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh))
 
 ;; XXX: not sure if git gutter is really nicer than diff-hl
 ;; diff-hl comes pre-packaged with prelude but doesn't
@@ -733,23 +816,15 @@ displayed anywhere else."
 
 
 ;; use outline-cycle (from outline-magic) in outline-minor-mode
+;; Tried outshine (and navi) but seems buggy and all
+;; features I don't use
 (use-package outline-magic
-  :disabled t  ; outshine is the newer version
-  :bind (:map outline-minor-mode-map ("<C-tab>" . outline-cycle)))
-
-(use-package navi-mode
-  :commands navi-mode)
-(use-package outshine
+  ;;:disabled nil  ; outshine is the newer version
+  :commands outline-cycle
   :bind (:map outline-minor-mode-map ("<C-tab>" . outline-cycle))
   :init
-  ;;(defvar outline-minor-mode-prefix "\M-#")
-
-  (add-hook 'outline-minor-mode-hook 'outshine-hook-function)
-
-  (add-hook 'emacs-lisp-mode-hook 'outline-minor-mode)
-  (add-hook 'clojure-mode-hook 'outline-minor-mode)
-  (add-hook 'ledger-mode-hook 'outline-minor-mode)
   (add-hook 'message-mode-hook 'outline-minor-mode)
+  (add-hook 'emacs-lisp-mode-hook 'outline-minor-mode)
 
   ;; https://stackoverflow.com/questions/4079648/combine-python-mode-with-org-mode-for-emacs/29057808#29057808
   (defun python-mode-outline-hook ()
@@ -791,7 +866,75 @@ displayed anywhere else."
      ;; Add 8 (the highest standard outline level) to every Python keyword heading
      (+ 8 (- (match-end 0) (match-beginning 0)))))
 
-  (add-hook 'python-mode-hook 'python-mode-outline-hook))
+  (add-hook 'python-mode-hook 'python-mode-outline-hook)
+  )
+
+(use-package navi-mode
+  :disabled t
+  :commands navi-mode)
+(use-package outshine
+  :disabled t
+  :bind (:map outline-minor-mode-map ("<C-tab>" . outline-cycle))
+  :init
+  ;;(defvar outline-minor-mode-prefix "\M-#")
+
+  (add-hook 'outline-minor-mode-hook 'outshine-hook-function)
+
+  (add-hook 'emacs-lisp-mode-hook 'outline-minor-mode)
+  (add-hook 'clojure-mode-hook 'outline-minor-mode)
+  (add-hook 'ledger-mode-hook 'outline-minor-mode)
+  (add-hook 'message-mode-hook 'outline-minor-mode)
+
+  (defun restclient-mode-outline-hook ()
+    (outline-minor-mode)
+    (setq outline-regexp "#+"))
+  (add-hook 'restclient-mode-hook 'restclient-mode-outline-hook)
+
+  ;; https://stackoverflow.com/questions/4079648/combine-python-mode-with-org-mode-for-emacs/29057808#29057808
+  (defun python-mode-outline-hook ()
+    (outline-minor-mode)
+    (setq outline-level 'python-outline-level)
+    (setq outline-regexp
+          (rx (or
+               ;; Commented outline heading
+               (group
+                (* space)  ; 0 or more spaces
+                (one-or-more (syntax comment-start))
+                (one-or-more space)
+                ;; Heading level
+                (group (repeat 1 8 "\*"))  ; Outline stars
+                (one-or-more space))
+
+               ;; Python keyword heading
+               (group
+                ;; Heading level
+                (group (* space)) ; 0 or more spaces
+                bow
+                ;; Keywords
+                (or "class" "def" "else" "elif" "except" "for" "if" "try" "while")
+                eow)))))
+
+  (defun python-outline-level ()
+    (or
+     ;; Commented outline heading
+     (and (string-match (rx
+                         (* space)
+                         (one-or-more (syntax comment-start))
+                         (one-or-more space)
+                         (group (one-or-more "\*"))
+                         (one-or-more space))
+                        (match-string 0))
+          (- (match-end 0) (match-beginning 0)))
+
+     ;; Python keyword heading, set by number of indentions
+     ;; Add 8 (the highest standard outline level) to every Python keyword heading
+     (+ 8 (- (match-end 0) (match-beginning 0)))))
+
+  (add-hook 'python-mode-hook 'python-mode-outline-hook)
+  ;;:config
+  ;; Call `outshine-speed-command-help' to get an overview of speed commands
+  ;;(setq outshine-use-speed-commands t)
+  )
 
 
 ;; SQL
@@ -894,16 +1037,60 @@ displayed anywhere else."
 
   (use-package helm-emmet))
 
+(use-package rainbow-mode
+  :commands rainbow-mode)
 
 (use-package scss-mode
   :commands scss-mode
   :config
+  ;;(setq css-indent-offset 2)
+  (rainbow-mode +1)
   ;; turn off annoying auto-compile on save
   (setq scss-compile-at-save nil)
   (prelude-css-mode-defaults))
 
 
-;; python
+;;; python
+
+;; FIXME: change stuff from prelude-python.el to here
+(use-package python
+  :mode (("\\.py\\'" . python-mode)
+         ("\\.xsh\\'" . python-mode))  ; Xonsh script files
+  :config
+  (defhydra hydra-python (python-mode-map "C-c C-t" :color blue)
+    "Run Python Tests"
+    ("f" python-test-function "Function")
+    ("m" python-test-method "Method")
+    ("c" python-test-class "Class")
+    ("F" python-test-file "File")
+    ("p" python-test-project "Project")
+    ("q" nil "Cancel"))
+  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
+
+  :init
+  (add-hook 'python-mode-hook
+            '(lambda ()
+               (setq-local imenu-create-index-function
+                           #'python-imenu-create-flat-index)
+
+               (subword-mode)
+               (anaconda-mode)
+               (anaconda-eldoc-mode)
+               ))
+  ;;(add-hook 'python-mode-hook 'subword-mode)
+  ;;(add-hook 'python-mode-hook 'which-function-mode)
+  ;;(add-hook 'python-mode-hook 'anaconda-mode)
+  ;; Enable eldoc for python
+  ;;(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
+  )
+
+(use-package anaconda-mode
+  :commands (anaconda-mode anaconda-eldoc-mode)
+  :config
+  (use-package company-anaconda
+    :config (add-to-list 'company-backends 'company-anaconda))
+  :diminish anaconda-mode)
+
 
 ;; package-list-packages like interface for python packages
 (use-package pippel
@@ -917,15 +1104,6 @@ displayed anywhere else."
 
 (use-package sphinx-mode
   :commands sphinx-mode)
-
-;; FIXME: change stuff from prelude-python.el to here
-;;(use-package anaconda-mode  :mode ("\\.py\\'" "\\.xsh\\'"))
-
-;; Xonsh scripts are python files
-(add-to-list 'auto-mode-alist '("\\.xsh$" . python-mode))
-
-;; Enable eldoc for python
-(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
 
 
 (use-package python-test :defer t :load-path "repos/python-test.el"
@@ -956,7 +1134,13 @@ displayed anywhere else."
 (define-coding-system-alias 'UTF-8 'utf-8)
 
 (use-package restclient
-  :mode "\\.rest\\'"
+  :commands restclient-mode
+  :mode ("\\.rest\\'" . restclient-mode)
+  :init
+  (defun restclient-mode-outline-hook ()
+    (outline-minor-mode)
+    (setq outline-regexp "##+"))
+  (add-hook 'restclient-mode-hook 'restclient-mode-outline-hook)
   :config (use-package restclient-helm))
 
 ;; activate virtualenv for flycheck
@@ -1071,10 +1255,28 @@ and when called with 2 prefix arguments copy url and open in browser."
 (use-package gist
   :defer t)
 
+;; use magithub instead
 ;; github pull request support for magit
 (use-package magit-gh-pulls
+  :disabled t
   :defer t
   :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
+
+(use-package magithub
+  :disabled t  ; doesn't work to well yet. 'api not responding'. gitlab etc
+  :after magit
+  :config
+  ;;(setq magithub-api-timeout 5)
+  (magithub-feature-autoinject t)
+
+  ;; FIXME: .authinfo not working?
+  ;; (setq ghub-username "dakra"
+  ;;       ghub-token "token")
+
+  ;; Fix for emacs 26
+  (defun ghubp--post-process (object &optional preserve-objects)
+    object)
+  )
 
 ;; Display magit status in full fram
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
@@ -1129,14 +1331,25 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; ledger-mode for bookkeeping
 (use-package ledger-mode
   :mode "\\.ledger\\'"
+  :init
+  (defun ledger-mode-outline-hook ()
+    (outline-minor-mode)
+    (setq outline-regexp "[#;]+"))
+  (add-hook 'ledger-mode-hook 'ledger-mode-outline-hook)
   :config
   (setq ledger-use-iso-dates t)  ; Use YYYY-MM-DD format
   ;; disable whitespace-mode in ledger reports
   (add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
   (setq ledger-post-amount-alignment-column 60))
-;;(autoload 'ledger-mode "ledger-mode" "A major mode for Ledger" t)
-;;(add-to-list 'auto-mode-alist '("\\.ledger$" . ledger-mode))
 
+
+;;; Lisp in python vm
+(use-package hy-mode
+  :mode "\\.hy\\'"
+  :init
+  (add-hook 'hy-mode-hook 'paredit-mode)
+  (add-hook 'hy-mode-hook #'rainbow-delimiters-mode)
+  (add-hook 'hy-mode-hook #'aggressive-indent-mode))
 
 (use-package aggressive-indent
   :commands aggressive-indent-mode
@@ -1189,6 +1402,7 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 
 (use-package prettier-js :ensure nil
+  :commands prettier
   ;;:init (add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
   :config
   (setq prettier-args '(
@@ -1203,7 +1417,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   :mode "\\.json\\'")
 
 (use-package js2-mode
-  :mode ("\\.js\\'" "\\.pac\\'" "node")
+  :mode ("\\.js\\'" "\\.pac\\'" "\\.node\\'")
   :config
   ;; electric-layout-mode doesn't play nice with smartparens
   (setq-local electric-layout-rules '((?\; . after)))
@@ -1237,7 +1451,7 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; use tern for js autocompletion
 (use-package tern
   :commands tern-mode
-  :init (add-hook 'js-mode-hook (lambda () (tern-mode t))))
+  :init (add-hook 'js-mode-hook 'tern-mode))
 
 (use-package skewer-mode
   :disabled t  ; Use indium
@@ -1270,7 +1484,8 @@ and when called with 2 prefix arguments copy url and open in browser."
 
   :config
   ;; formats the buffer before saving
-  (add-hook 'before-save-hook 'tide-format-before-save)
+  ;; FIXME: auto indent doesn't respect editorconfig
+  ;;(add-hook 'before-save-hook 'tide-format-before-save)
   ;; format options
   (setq tide-format-options '(:insertSpaceAfterFunctionKeywordForAnonymousFunctions t :placeOpenBraceOnNewLineForFunctions nil))
   ;; see https://github.com/Microsoft/TypeScript/blob/cc58e2d7eb144f0b2ff89e6a6685fb4deaa24fde/src/server/protocol.d.ts#L421-473 for the full list available options
@@ -1280,8 +1495,20 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;;(setq company-tooltip-align-annotations t)
 
 
+(use-package undo-tree
+  :demand t
+  :bind ("C-z" . undo-tree-undo)  ;; Don't (suspend-frame)
+  :config
+  (setq undo-tree-visualizer-timestamps t)  ; show timestamps in undo-tree
 
-(setq undo-tree-visualizer-timestamps t)  ; show timestamps in undo-tree
+  ;; autosave the undo-tree history
+  (setq undo-tree-history-directory-alist
+        `((".*" . ,temporary-file-directory)))
+  (setq undo-tree-auto-save-history t)
+
+  (global-undo-tree-mode)
+  :diminish undo-tree-mode)
+
 
 ;; Keep region when undoing in region
 (defadvice undo-tree-undo (around keep-region activate)
@@ -1298,6 +1525,14 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; Paste with middle mouse button doesn't move the curser
 (setq mouse-yank-at-point t)
 
+
+;; Smart region guesses what you want to select by one command:
+;; - If you call this command multiple times at the same position, it
+;;   expands the selected region (with `er/expand-region').
+;; - Else, if you move from the mark and call this command, it selects
+;;   the region rectangular (with `rectangle-mark-mode').
+;; - Else, if you move from the mark and call this command at the same
+;;   column as mark, it adds a cursor to each line (with `mc/edit-lines').
 (use-package smart-region
   ;; C-SPC is smart-region
   :bind (([remap set-mark-command] . smart-region)))
@@ -1392,27 +1627,34 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 (use-package avy
   :bind ("C-;" . avy-goto-char-timer)
-  :config (setq avy-timeout-seconds 0.3))
+  :config
+  (setq avy-background t)
+  (setq avy-style 'at-full)
+  (setq avy-timeout-seconds 0.3))
 
 
 ;; Spellcheck setup
 
 ;; Show helm-list of correct spelling suggesions
-(require 'flyspell-correct-helm)
-(define-key flyspell-mode-map (kbd "C-.") 'flyspell-correct-previous-word-generic)
+(use-package flyspell-correct-helm
+  :bind (:map flyspell-mode-map
+              ("C-." . flyspell-correct-previous-word-generic)))
 
-;; Automatically guess languages
-(require 'guess-language)
-(setq guess-language-langcodes '((en . ("en_GB" "English"))
-                                 (de . ("de_DE" "German"))))
-(setq guess-language-languages '(en de))
-(setq guess-language-min-paragraph-length 35)
-;; Only guess language for emails
-(add-hook 'mu4e-compose-mode-hook (lambda () (guess-language-mode 1)))
-;;(add-hook 'text-mode-hook (lambda () (guess-language-mode 1)))
-;;(add-hook 'org-mode-hook (lambda () (guess-language-mode 1)))
-;;(add-hook 'mu4e-compose-mode-hook (lambda () (guess-language-mode 1)))
+;; Automatically guess languages and switch ispell
 
+(use-package guess-language
+  :commands guess-language-mode
+  :init
+  ;; Only guess language for emails
+  (add-hook 'mu4e-compose-mode-hook 'guess-language-mode)
+  ;;(add-hook 'text-mode-hook (lambda () (guess-language-mode 1)))
+  ;;(add-hook 'org-mode-hook (lambda () (guess-language-mode 1)))
+  :config
+  (setq guess-language-langcodes '((en . ("en_GB" "English"))
+                                   (de . ("de_DE" "German"))))
+  (setq guess-language-languages '(en de))
+  (setq guess-language-min-paragraph-length 35)
+  )
 
 
 (use-package web-mode
@@ -1576,6 +1818,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   :bind ("C-c ;" . iedit-mode))
 
 
+;; FIXME: Don't always load yasnippet
 (use-package yasnippet
   :demand t
   :diminish yas-minor-mode
@@ -1600,8 +1843,8 @@ and when called with 2 prefix arguments copy url and open in browser."
             (lambda () (add-hook 'before-save-hook 'whitespace-cleanup nil t))))
 
 (use-package editorconfig
-  :diminish editorconfig-mode
-  :config (editorconfig-mode 1))
+  :config (editorconfig-mode 1)
+  :diminish editorconfig-mode)
 
 (use-package systemd
   :mode ("\\.service\\'" "\\.timer\\'"))
@@ -1612,14 +1855,11 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 ;;; don't show some modes that are always on in the mode line
 (diminish 'auto-revert-mode)
-(diminish 'beacon-mode)
 (diminish 'flyspell-mode)
 (diminish 'guru-mode)
 (diminish 'prelude-mode)
 (diminish 'smartparens-mode)
-(diminish 'which-key-mode)
 (diminish 'whitespace-mode)
-(diminish 'anaconda-mode)
 
 
 ;; backup
@@ -1632,12 +1872,15 @@ and when called with 2 prefix arguments copy url and open in browser."
       backup-by-copying t               ; don't clobber symlinks
       version-control t                 ; version numbers for backup files
       delete-old-versions t             ; delete excess backup files silently
-      delete-by-moving-to-trash t
       kept-old-versions 6               ; oldest versions to keep when a new numbered backup is made (default: 2)
       kept-new-versions 9               ; newest versions to keep when a new numbered backup is made (default: 2)
       )
 
-;; Load ssh/gpg agent environment after 2 minutes. If the agent isn't started yet (not entered password),
-;; we have to call (keychain-refresh-environment) interactively later
-(run-at-time "2 min" nil 'keychain-refresh-environment)
+(use-package keychain-environment
+  :commands keychain-refresh-environment
+  :init
+  ;; Load ssh/gpg agent environment after 2 minutes. If the agent isn't started yet (not entered password),
+  ;; we have to call (keychain-refresh-environment) interactively later
+  (if (daemonp)
+      (run-at-time "2 min" nil 'keychain-refresh-environment)))
 ;;; personal.el ends here

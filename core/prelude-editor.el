@@ -58,9 +58,9 @@
       `((".*" ,temporary-file-directory t)))
 
 ;; autosave the undo-tree history
-(setq undo-tree-history-directory-alist
-      `((".*" . ,temporary-file-directory)))
-(setq undo-tree-auto-save-history t)
+;; (setq undo-tree-history-directory-alist
+;;       `((".*" . ,temporary-file-directory)))
+;; (setq undo-tree-auto-save-history t)
 
 ;; revert buffers automatically when underlying files are changed externally
 (global-auto-revert-mode t)
@@ -98,7 +98,7 @@
 (setq blink-matching-paren nil)
 
 ;; diminish keeps the modeline tidy
-(require 'diminish)
+;;(require 'diminish)
 
 ;; meaningful names for buffers with the same name
 (require 'uniquify)
@@ -245,7 +245,7 @@ The body of the advice is in BODY."
 ;; enable erase-buffer command
 (put 'erase-buffer 'disabled nil)
 
-(require 'expand-region)
+;;(require 'expand-region)
 
 ;; bookmarks
 (require 'bookmark)
@@ -258,9 +258,9 @@ The body of the advice is in BODY."
 (projectile-global-mode t)
 
 ;; avy allows us to effectively navigate to visible things
-(require 'avy)
-(setq avy-background t)
-(setq avy-style 'at-full)
+;; (require 'avy)
+;; (setq avy-background t)
+;; (setq avy-style 'at-full)
 
 ;; anzu-mode enhances isearch & query-replace by showing total matches and current match position
 (require 'anzu)
@@ -380,19 +380,19 @@ indent yanked text (with prefix arg don't indent)."
 (prelude-global-mode t)
 
 ;; sensible undo
-(global-undo-tree-mode)
-(diminish 'undo-tree-mode)
+;;(global-undo-tree-mode)
+;;(diminish 'undo-tree-mode)
 
 ;; enable winner-mode to manage window configurations
 (winner-mode +1)
 
 ;; diff-hl
 ;;(global-diff-hl-mode +1)
-(add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
-(add-hook 'conf-mode-hook 'turn-on-diff-hl-mode)
-(add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode)
-(add-hook 'dired-mode-hook 'diff-hl-dired-mode)
-(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
+;; (add-hook 'conf-mode-hook 'turn-on-diff-hl-mode)
+;; (add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode)
+;; (add-hook 'dired-mode-hook 'diff-hl-dired-mode)
+;; (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
 
 ;; easy-kill
 (global-set-key [remap kill-ring-save] 'easy-kill)
@@ -435,8 +435,8 @@ and file 'filename' will be opened and cursor set on line 'linenumber'"
                             fn))) files)))
 
 ;; use settings from .editorconfig file when present
-(require 'editorconfig)
-(editorconfig-mode 1)
+;;(require 'editorconfig)
+;;(editorconfig-mode 1)
 
 (provide 'prelude-editor)
 

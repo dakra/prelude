@@ -39,6 +39,7 @@
     (define-key map (kbd "C-c y") 'dakra-youtube)
     (define-key map (kbd "C-c U") 'dakra-duckduckgo)
     ;; mimic popular IDEs binding, note that it doesn't work in a terminal session
+    ;; FIXME: C-a in org mode [[file:~/.emacs.d/personal/dakra-org.el::(setq%20org-special-ctrl-a/e%20t)][org special ctrl a/e]]
     (define-key map (kbd "C-a") 'crux-move-beginning-of-line)
     (define-key map [(shift return)] 'crux-smart-open-line)
     (define-key map (kbd "M-o") 'crux-smart-open-line)
@@ -131,18 +132,28 @@
 
 (defun dakra-other-window-or-frame (count)
   "Call `other-window' if more than one window is visible, `other-frame' otherwise."
-  (interactive)
   (if (one-window-p)
       (other-frame count)
     (other-window count)))
 
 (defun dakra-next-window-or-frame ()
   "Focus next window or frame."
+  (interactive)
   (dakra-other-window-or-frame 1))
 
 (defun dakra-previous-window-or-frame ()
   "Focus previous window or frame."
+  (interactive)
   (dakra-other-window-or-frame -1))
 
+(defun dakra-anaconda-mode-find-definitions ()
+  "Like `anaconda-mode-find-definitions' but when called with a prefix argument
+open definition in other frame."
+  (interactive)
+  (anaconda-mode-find-definitions)
+  (when current-prefix-arg
+    (message "change frame")
+    (dakra-next-window-or-frame))
+  )
 (provide 'dakra)
 ;;; dakra.el ends here

@@ -6,8 +6,6 @@
 ;;; Code:
 
 (require 'prelude-packages nil 'noerror)
-(prelude-require-packages
- '(helm-mu))
 
 ;; mu package (includes mu4e) must be installed in the system
 (require 'mu4e)
@@ -72,12 +70,19 @@
 (setq mu4e-headers-include-related nil)
 
 ;; use helm-mu for search
-;; FIXME helm search broken
-;; default search only inbox, archive or sent mail
-;;(setq helm-mu-default-search-string "(maildir:/private/Inbox OR maildir:/private/Archive OR maildir:/private/Sent)")
-;;(define-key mu4e-main-mode-map "s" 'helm-mu)
-;;(define-key mu4e-headers-mode-map "s" 'helm-mu)
-;;(define-key mu4e-view-mode-map "s" 'helm-mu)
+(use-package helm-mu
+  :disabled t  ; FIXME helm search broken
+  :commands helm-mu
+  :bind (
+         :map mu4e-main-mode-map ("s" . helm-mu)
+         :map mu4e-headers-mode-map ("s" . helm-mu)
+         :map mu4e-view-mode-map ("s" . helm-mu)
+         )
+  :config
+  ;; default search only inbox, archive or sent mail
+  (setq helm-mu-default-search-string (concat "(maildir:/private/Inbox OR "
+                                              "maildir:/private/Archive OR "
+                                              "maildir:/private/Sent)")))
 
 ;; (See the documentation for `mu4e-sent-messages-behavior' if you have
 ;; additional non-Gmail addresses and want assign them different

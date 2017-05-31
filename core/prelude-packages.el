@@ -54,28 +54,28 @@
 
 (defvar prelude-packages
   '(ace-window
-    avy
+    ;;avy
     anzu
-    beacon
+    ;;beacon
     browse-kill-ring
     crux
     dash
     discover-my-major
-    diff-hl
-    diminish
+    ;;diff-hl
+    ;;diminish
     easy-kill
-    editorconfig
+    ;;editorconfig
     epl
     expand-region
     flycheck
-    gist
+    ;;gist
     git-timemachine
     gitconfig-mode
     gitignore-mode
     god-mode
     grizzl
     guru-mode
-    imenu-anywhere
+    ;;imenu-anywhere
     ov
     projectile
     magit
@@ -84,11 +84,12 @@
     smart-mode-line
     smartparens
     smartrep
-    undo-tree
+    ;;undo-tree
     volatile-highlights
-    which-key
-    zenburn-theme
-    zop-to-char)
+    ;;which-key
+    ;;zenburn-theme
+    ;;zop-to-char
+    )
   "A list of packages to ensure are installed at launch.")
 
 (defun prelude-packages-installed-p ()
