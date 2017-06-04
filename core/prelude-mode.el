@@ -56,7 +56,7 @@
     (define-key map (kbd "C-M-z") 'crux-indent-defun)
     (define-key map (kbd "C-c u") 'crux-view-url)
     (define-key map (kbd "C-c e") 'crux-eval-and-replace)
-    (define-key map (kbd "C-c s") 'crux-swap-windows)
+    ;;(define-key map (kbd "C-c s") 'crux-swap-windows)
     (define-key map (kbd "C-c D") 'crux-delete-file-and-buffer)
     (define-key map (kbd "C-c d") 'crux-duplicate-current-line-or-region)
     (define-key map (kbd "C-c M-d") 'crux-duplicate-and-comment-current-line-or-region)

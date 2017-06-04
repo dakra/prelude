@@ -1285,14 +1285,13 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 (use-package symbol-overlay
   :commands symbol-overlay-mode
-  ;;:preface (defvar symbol-overlay-mode-map nil)
   :init
   (add-hook 'prog-mode-hook 'symbol-overlay-mode)
   (setq symbol-overlay-temp-in-scope t)
-  :bind (("M-n" . symbol-overlay-jump-next)
+  :bind (("C-c s" . symbol-overlay-put)
+         :map symbol-overlay-mode-map
+         ("M-n" . symbol-overlay-jump-next)
          ("M-p" . symbol-overlay-jump-prev)
-         :map prelude-mode-map
-         ("C-c s" . symbol-overlay-put)
          :map symbol-overlay-map
          ("M-n" . symbol-overlay-jump-next)
          ("M-p" . symbol-overlay-jump-prev)
@@ -1302,10 +1301,9 @@ and when called with 2 prefix arguments copy url and open in browser."
          ("C-c C-s t" . symbol-overlay-toggle-in-scope)
          ("C-c C-s n" . symbol-overlay-jump-next)
          ("C-c C-s p" . symbol-overlay-jump-prev))
-
   :config
-  (setq symbol-overlay-map (make-sparse-keymap)  ;; Remove all default bindings
-        symbol-overlay-temp-face '((:background "gray30")))
+  (setq symbol-overlay-map (make-sparse-keymap))  ; Remove all default bindings
+  (set-face-background 'symbol-overlay-temp-face "gray30")
   :diminish symbol-overlay-mode)
 
 
