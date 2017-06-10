@@ -205,6 +205,13 @@ is already narrowed."
   (setq diredp-dwim-any-frame-flag t)
   )
 
+;; Display the recursive size of directories in Dired
+(use-package dired-du
+  :commands dired-du-mode
+  :config
+  ;; human readable size format
+  (setq dired-du-size-format t))
+
 ;; Easily diff 2 marked files in dired
 (defun ora-ediff-files ()
   (interactive)
@@ -1270,13 +1277,8 @@ and when called with 2 prefix arguments copy url and open in browser."
   ;;(setq magithub-api-timeout 5)
   (magithub-feature-autoinject t)
 
-  ;;(setq ghub-username "dakra")
-  ;; FIXME: .authinfo not working?
-  ;; (setq ghub-username "dakra"
-  ;;       ghub-token "token")
-
   ;; Fix for emacs 26
-  ;;(defun ghubp--post-process (object &optional preserve-objects) object)
+  (defun ghubp--post-process (object &optional preserve-objects) object)
   )
 
 ;; Display magit status in full fram
@@ -1286,7 +1288,8 @@ and when called with 2 prefix arguments copy url and open in browser."
 (use-package symbol-overlay
   :commands symbol-overlay-mode
   :init
-  (add-hook 'prog-mode-hook 'symbol-overlay-mode)
+  (dolist (hook '(prog-mode-hook html-mode-hook css-mode-hook))
+    (add-hook hook 'symbol-overlay-mode))
   (setq symbol-overlay-temp-in-scope t)
   :bind (("C-c s" . symbol-overlay-put)
          :map symbol-overlay-mode-map
@@ -1303,7 +1306,7 @@ and when called with 2 prefix arguments copy url and open in browser."
          ("C-c C-s p" . symbol-overlay-jump-prev))
   :config
   (setq symbol-overlay-map (make-sparse-keymap))  ; Remove all default bindings
-  (set-face-background 'symbol-overlay-temp-face "gray30")
+  ;;(set-face-background 'symbol-overlay-temp-face "gray30")
   :diminish symbol-overlay-mode)
 
 
@@ -1400,8 +1403,8 @@ and when called with 2 prefix arguments copy url and open in browser."
                 (font-lock-mode 1))))
 
 
-(use-package prettier-js :ensure nil
-  :commands prettier
+(use-package prettier-js
+  :commands prettier-js
   ;;:init (add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
   :config
   (setq prettier-args '(
@@ -1499,6 +1502,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   :bind ("C-z" . undo-tree-undo)  ;; Don't (suspend-frame)
   :config
   (setq undo-tree-visualizer-timestamps t)  ; show timestamps in undo-tree
+  ;;(setq undo-tree-visualizer-diff t)
 
   ;; autosave the undo-tree history
   (setq undo-tree-history-directory-alist
