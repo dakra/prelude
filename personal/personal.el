@@ -35,6 +35,9 @@
 (setq user-full-name "Daniel Kraus"
       user-mail-address "daniel@kraus.my")
 
+;; Always just use left-to-right text
+(setq bidi-display-reordering nil)
+
 (use-package which-key
   :config (which-key-mode 1)
   :diminish which-key-mode)
@@ -46,9 +49,13 @@
 (use-package lua-mode
   :mode "\\.lua\\'")
 (use-package ng2-mode :defer t)
-(use-package nginx-mode :defer t)
+(use-package nginx-mode
+  :mode ("/etc/nginx/conf.d/.*" "/etc/nginx/.*\\.conf\\'"))
 (use-package litable  ; live preview for elisp
   :commands litable-mode)
+
+(use-package pkgbuild-mode
+  :mode "PKGBUILD\\'")
 
 
 ;; Debugging
@@ -523,6 +530,12 @@ prepended to the element after the #+HEADERS: tag."
     ;; Don't use minibuffer if there's something there already
     (helm-ext-minibuffer-enable-header-line-maybe t)))
 
+(use-package helm-backup
+  :commands (helm-backup-versioning helm-backup)
+  :init
+  (setq helm-backup-path "~/.emacs.d/.helm-backup")
+  (add-hook 'after-save-hook 'helm-backup-versioning))
+
 ;; use swiper with helm backend for search
 (use-package swiper-helm
   :bind ("\C-s" . swiper-helm))
@@ -536,10 +549,15 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
 ;; set with 'custom' since it's buffer-local variable
-(setq fill-column 80)
-(setq comment-auto-fill-only-comments t)  ; Onlu auto-fill comments
+(setq-default fill-column 80)
+(setq comment-auto-fill-only-comments t)  ; Only auto-fill comments
 ;; Use auto-fill in all modes
 (add-hook 'text-mode-hook 'turn-on-auto-fill)
+
+;; Increase fill-column for programming to 100
+(defun dakra-prog-mode-init ()
+  (setq fill-column 100))
+(add-hook 'prog-mode-hook 'dakra-prog-mode-init)
 
 (font-lock-add-keywords
  nil '(("\\<\\(\\(FIX\\(ME\\)?\\|XXX\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
@@ -689,10 +707,13 @@ prepended to the element after the #+HEADERS: tag."
   :mode ("\\.confluence\\'" "/itsalltext/.*jira.*\\.txt$"))
 
 (use-package markdown-mode
-  :mode "/itsalltext/.*\\(gitlab\\|github\\).*\\.txt$"
+  :mode (("/itsalltext/.*\\(gitlab\\|github\\).*\\.txt$" . gfm-mode)
+         ("\\.markdown\\'" . gfm-mode)
+         ("\\.md\\'" . gfm-mode))
   :config
   ;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
   (setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5"))
+
 
 ;; always loop GIF images
 (setq image-animate-loop t)
@@ -751,8 +772,16 @@ split via i3 and create a new Emacs frame."
         )
   :config (frames-only-mode))
 
+(use-package edit-server
+  :if (daemonp)
+  :config
+  (edit-server-start)
+  (setq edit-server-url-major-mode-alist
+        '(("github\\.com" . markdown-mode))))
+
+
 (setq browse-url-browser-function 'browse-url-generic
-      browse-url-generic-program "firefox")
+      browse-url-generic-program "firefox-developer")
 
 
 (setq sml/theme 'powerline)  ; smart-mode-line theme
@@ -943,6 +972,11 @@ displayed anywhere else."
   ;;(setq outshine-use-speed-commands t)
   )
 
+(use-package cython-mode
+  :mode ("\\.pyd\\'" "\\.pyi\\'" "\\.pyx\\'")
+  :config
+  (use-package flycheck-cython))
+
 
 ;; SQL
 (use-package sql
@@ -1064,6 +1098,7 @@ displayed anywhere else."
 (use-package python
   :mode (("\\.py\\'" . python-mode)
          ("\\.xsh\\'" . python-mode))  ; Xonsh script files
+  :interpreter ("python" . python-mode)
   :config
   (defhydra hydra-python (python-mode-map "C-c C-t" :color blue)
     "Run Python Tests"
@@ -1133,10 +1168,10 @@ displayed anywhere else."
   :config
   ;;(add-hook 'before-save-hook 'py-isort-before-save)
   (setq py-isort-options '("--line-width=100"
-                           "--multi_line=3"
+                           "--multi-line=3"
                            "--trailing-comma"
                            "--force-grid-wrap"
-                           "--thirdparty=rethinkdb")))
+                           "--thirdparty=rethinkdb,sendgrid")))
 
 ;; accept 'UTF-8' (uppercase) as a valid encoding in the coding header
 (define-coding-system-alias 'UTF-8 'utf-8)
@@ -1284,6 +1319,11 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; Display magit status in full fram
 (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
+(use-package helpful
+  :bind (("C-h f" . helpful-function)
+         ("C-c h f" . helpful-function)
+         ("C-c h c" . helpful-command)
+         ("C-c h m" . helpful-macro)))
 
 (use-package symbol-overlay
   :commands symbol-overlay-mode
@@ -1334,6 +1374,16 @@ and when called with 2 prefix arguments copy url and open in browser."
 (use-package ledger-mode
   :mode "\\.ledger\\'"
   :init
+  ;; http://unconj.ca/blog/using-hledger-with-ledger-mode.html
+  ;; Required to use hledger instead of ledger itself.
+  (setq ledger-mode-should-check-version nil
+        ledger-report-links-in-register nil
+        ledger-binary-path "hledger")
+
+  (add-to-list 'ledger-reports
+               (list "monthly expenses"
+                     (concat "%(binary) -f %(ledger-file) balance expenses "
+                             "--tree --no-total --row-total --average --monthly")))
   (defun ledger-mode-outline-hook ()
     (outline-minor-mode)
     (setq outline-regexp "[#;]+"))
@@ -1407,13 +1457,15 @@ and when called with 2 prefix arguments copy url and open in browser."
   :commands prettier-js
   ;;:init (add-hook 'js2-mode-hook (lambda () (add-hook 'before-save-hook 'prettier-before-save)))
   :config
-  (setq prettier-args '(
-                        "--trailing-comma" "all"
-                        "--print-width" "100"
-                        "--single-quote" "true"
-                        "--bracket-spacing" "false"
-                        ))
-  (setq prettier-target-mode "js2-mode"))
+  (setq prettier-js-args '(
+                           "--trailing-comma" "all"
+                           ;;"--print-width" "100"
+                           ;;"--tab-width" "4"
+                           "--single-quote" "true"
+                           "--bracket-spacing" "false"
+                           ))
+  (setq prettier-js-width-mode 'fill)
+  (setq prettier-js-target-mode "js2-mode"))
 
 (use-package json-mode
   :mode "\\.json\\'")
@@ -1836,9 +1888,11 @@ and when called with 2 prefix arguments copy url and open in browser."
   (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
   (yas-global-mode 1))
 
+(use-package csv-mode
+  :mode "\\.csv\\'")
 
 (use-package yaml-mode
-  :mode "\\.yaml\\'"
+  :mode ("\\.yaml\\'" "\\.yml\\'")
   :config
   (add-hook 'yaml-mode-hook 'whitespace-mode)
   (add-hook 'yaml-mode-hook 'subword-mode)

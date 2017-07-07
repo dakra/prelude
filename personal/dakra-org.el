@@ -353,6 +353,10 @@
 ;; C-RET, C-S-RET insert new heading after current task content
 (setq org-insert-heading-respect-content nil)
 
+
+;; M-RET should not split the lines
+(setq org-M-RET-may-split-line '((default . nil)))
+
 (setq org-special-ctrl-a/e t)
 (setq org-special-ctrl-k t)
 (setq org-yank-adjusted-subtrees t)

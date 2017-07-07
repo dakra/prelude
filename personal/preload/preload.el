@@ -33,3 +33,6 @@
 
 ;; Use outshine prefix for outline-minor-mode
 (defvar outline-minor-mode-prefix "\M-#")
+
+;; save multiple cursers under /personal
+(setq mc/list-file "~/.emacs.d/personal/.mc-lists.el")
