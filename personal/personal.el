@@ -99,8 +99,9 @@
 ;; disable guru-mode completely
 (setq prelude-guru nil)
 
-;; display custom agenda when starting emacs
-;;(add-hook 'emacs-startup-hook (lambda () (org-agenda nil " ")))
+;; Display custom agenda when starting Emacs in daemon mode
+(if (daemonp)
+    (add-hook 'emacs-startup-hook (lambda () (org-agenda nil " "))))
 
 ;; imenu
 
@@ -714,6 +715,8 @@ prepended to the element after the #+HEADERS: tag."
   ;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
   (setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5"))
 
+;; Some things don't work well with fish, just always use bash
+(setq shell-file-name "/bin/sh")
 
 ;; always loop GIF images
 (setq image-animate-loop t)
@@ -777,7 +780,10 @@ split via i3 and create a new Emacs frame."
   :config
   (edit-server-start)
   (setq edit-server-url-major-mode-alist
-        '(("github\\.com" . markdown-mode))))
+        '(("github\\.com" . gfm-mode)
+          ("gitlab\\.com" . gfm-mode)
+          ("gitlab\\.bis" . gfm-mode)
+          ("jira.paesslergmbh.de" . jira-markup-mode))))
 
 
 (setq browse-url-browser-function 'browse-url-generic
@@ -1088,8 +1094,7 @@ displayed anywhere else."
   ;;(setq css-indent-offset 2)
   (rainbow-mode +1)
   ;; turn off annoying auto-compile on save
-  (setq scss-compile-at-save nil)
-  (prelude-css-mode-defaults))
+  (setq scss-compile-at-save nil))
 
 
 ;;; python
@@ -1149,7 +1154,7 @@ displayed anywhere else."
   :commands sphinx-mode)
 
 
-(use-package python-test :defer t :load-path "repos/python-test.el"
+(use-package python-test :defer t  ;; :load-path "repos/python-test.el"
   :init (setq python-test-backend 'pytest))
 
 
@@ -1380,16 +1385,17 @@ and when called with 2 prefix arguments copy url and open in browser."
         ledger-report-links-in-register nil
         ledger-binary-path "hledger")
 
-  (add-to-list 'ledger-reports
-               (list "monthly expenses"
-                     (concat "%(binary) -f %(ledger-file) balance expenses "
-                             "--tree --no-total --row-total --average --monthly")))
   (defun ledger-mode-outline-hook ()
     (outline-minor-mode)
     (setq outline-regexp "[#;]+"))
   (add-hook 'ledger-mode-hook 'ledger-mode-outline-hook)
   :config
   (setq ledger-use-iso-dates t)  ; Use YYYY-MM-DD format
+
+  (add-to-list 'ledger-reports
+               (list "monthly expenses"
+                     (concat "%(binary) -f %(ledger-file) balance expenses "
+                             "--tree --no-total --row-total --average --monthly")))
   ;; disable whitespace-mode in ledger reports
   (add-hook 'ledger-report-mode-hook (lambda () (whitespace-mode -1)))
   (setq ledger-post-amount-alignment-column 60))
@@ -1898,6 +1904,9 @@ and when called with 2 prefix arguments copy url and open in browser."
   (add-hook 'yaml-mode-hook 'subword-mode)
   (add-hook 'yaml-mode-hook
             (lambda () (add-hook 'before-save-hook 'whitespace-cleanup nil t))))
+
+(use-package shrink-whitespace
+  :bind ("M-SPC" . shrink-whitespace))
 
 (use-package editorconfig
   :config (editorconfig-mode 1)

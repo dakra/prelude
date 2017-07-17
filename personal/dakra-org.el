@@ -256,6 +256,9 @@
 ;; Compact the block agenda view
 (setq org-agenda-compact-blocks nil)
 
+;; org-clock-display (C-c C-x C-d) shows times for this month by default
+(setq org-clock-display-default-range 'thismonth)
+
 ;; Only show the current clocked time in mode line (not all)
 (setq org-clock-mode-line-total 'current)
 
