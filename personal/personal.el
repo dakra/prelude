@@ -1232,6 +1232,8 @@ displayed anywhere else."
   :diminish python-docstring-mode)
 
 (use-package pydoc
+  :bind (:map anaconda-mode-map
+              ("M-?" . pydoc-at-point))
   :commands (pydoc-at-point pydoc-browse))
 
 ;; Automatically sort and format python imports
