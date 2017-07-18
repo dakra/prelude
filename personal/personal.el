@@ -1787,8 +1787,11 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 (use-package web-mode
   :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
-         "\\.erb\\'" "\\.html?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja?\\'")
+         "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja2?\\'")
   :config
+  ;;(setq web-mode-engines-alist '(("django"  . "/templates/.*\\.html\\'")))
+  (setq web-mode-engines-alist '(("django" . "\\.jinja2?\\'")))
+
   ;; make web-mode play nice with smartparens
   (setq web-mode-enable-auto-pairing nil)
 
@@ -1857,7 +1860,6 @@ and when called with 2 prefix arguments copy url and open in browser."
   (add-hook 'web-mode-hook 'web-mode-hook-setup)
   ;; } flyspell setup
 
-  ;;(setq web-mode-engines-alist '(("django"  . "/templates/.*\\.html\\'")))
   (setq web-mode-markup-indent-offset 2)
   ;; auto close tags in web-mode
   (setq web-mode-enable-auto-closing t))
