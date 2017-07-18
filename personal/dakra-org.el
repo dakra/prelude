@@ -173,11 +173,14 @@
               ("PHONE" :foreground "forest green" :weight bold))))
 
 ;; Targets include this file and any file contributing to the agenda - up to 9 levels deep
-(setq org-refile-targets (quote ((nil :maxlevel . 9)
-                                 (org-agenda-files :maxlevel . 9))))
+(setq org-refile-targets '((nil :maxlevel . 9)
+                           (org-agenda-files :maxlevel . 9)))
 
 ;; Allow refile to create parent tasks with confirmation
 (setq org-refile-allow-creating-parent-nodes (quote confirm))
+
+(setq org-refile-use-outline-path 'file)  ; Show filename for refiling
+(setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
 
 (setq org-use-fast-todo-selection t)
 

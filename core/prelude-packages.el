@@ -172,7 +172,7 @@ PACKAGE is installed only if not already present.  The file is opened in MODE."
     ("\\.md\\'" markdown-mode markdown-mode)
     ("\\.ml\\'" tuareg tuareg-mode)
     ("\\.pp\\'" puppet-mode puppet-mode)
-    ("\\.php\\'" php-mode php-mode)
+    ;;("\\.php\\'" php-mode php-mode)
     ("\\.proto\\'" protobuf-mode protobuf-mode)
     ("\\.pyd\\'" cython-mode cython-mode)
     ("\\.pyi\\'" cython-mode cython-mode)

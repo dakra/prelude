@@ -1,4 +1,4 @@
-;;; package --- personal
+;;; package --- personal  -*- lexical-binding: t -*-
 
 ;;; Commentary:
 ;;; Emacs config
@@ -108,42 +108,6 @@
 ;; Recenter window after imenu jump so cursor doesn't end up on the last line
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
 
-;; imenu for dired
-;; https://fuco1.github.io/2017-05-01-Support-for-imenu-in-dired.html
-(defun my-dired-imenu-prev-index-position (&optional arg)
-  "Go to the header line of previous directory."
-  (interactive "p")
-  (unless (= (line-number-at-pos) 1)
-    (call-interactively 'dired-prev-subdir)
-    t))
-
-(defun my-dired-extract-index-name ()
-  "Extract name of the current item for imenu."
-  (save-excursion
-    (back-to-indentation)
-    (buffer-substring-no-properties
-     (point)
-     (1- (re-search-forward ":$")))))
-
-(defun my-dired-imenu-create-index ()
-  "Create `imenu' index for dired."
-  (let* ((alist (imenu-default-create-index-function))
-         (uniquified (f-uniquify-alist (-map 'car alist))))
-    (--remove
-     (= 0 (length (car it)))
-     (--map (cons (cdr (assoc (car it) uniquified)) (cdr it))
-            alist))))
-
-(defun my-dired-imenu-init ()
-  "Initialize `imenu' variables in current buffer."
-  (setq-local imenu-prev-index-position-function
-              'my-dired-imenu-prev-index-position)
-  (setq-local imenu-extract-index-name-function
-              'my-dired-extract-index-name)
-  (setq-local imenu-create-index-function
-              'my-dired-imenu-create-index))
-
-(add-hook 'dired-mode-hook 'my-dired-imenu-init)
 
 ;; eshell
 ;;(setq eshell-list-files-after-cd t)
@@ -200,9 +164,90 @@ is already narrowed."
         (t (narrow-to-defun))))
 (define-key ctl-x-map "n" #'narrow-or-widen-dwim)
 
-;; dired list size in human-readable format and list directories first
-(setq dired-listing-switches "-hal --group-directories-first")
-(setq dired-dwim-target t)
+
+;; dired config mostly from https://github.com/Fuco1/.emacs.d/blob/master/files/dired-defs.org
+(use-package dired :ensure nil
+  :config
+  ;; dired - reuse current buffer by pressing 'a'
+  (put 'dired-find-alternate-file 'disabled nil)
+
+  ;; always delete and copy recursively
+  (setq dired-recursive-deletes 'always)
+  (setq dired-recursive-copies 'always)
+
+  ;; if there is a dired buffer displayed in the next window, use its
+  ;; current subdir, instead of the current subdir of this dired buffer
+  (setq dired-dwim-target t)
+
+  ;; dired list size in human-readable format and list directories first
+  (setq dired-listing-switches "-hal --group-directories-first")
+  )
+
+(use-package dired-x
+  :config
+  (defconst my-dired-media-files-extensions
+    '("mp3" "mp4" "MP3" "MP4" "avi" "mpg" "flv" "ogg")
+    "Media files.")
+
+  (add-to-list 'dired-guess-shell-alist-user
+               (list (concat "\\."
+                             (regexp-opt my-dired-media-files-extensions)
+                             "\\'")
+                     "mpv")))
+
+(use-package dired-rainbow
+  :config
+  (dired-rainbow-define html "#4e9a06" ("htm" "html" "xhtml"))
+  (dired-rainbow-define xml "#b4fa70" ("xml" "xsd" "xsl" "xslt" "wsdl"))
+
+  (dired-rainbow-define document font-lock-function-name-face ("doc" "docx" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub"))
+  (dired-rainbow-define excel "#3465a4" ("xlsx"))
+  (dired-rainbow-define media "#ce5c00" my-dired-media-files-extensions)
+  (dired-rainbow-define image "#ff4b4b" ("jpg" "png" "jpeg" "gif"))
+
+  (dired-rainbow-define log "#c17d11" ("log"))
+  (dired-rainbow-define sourcefile "#fcaf3e" ("py" "c" "cc" "cpp" "h" "java" "pl" "rb" "R"
+                                              "php" "go" "rust" "js" "ts" "hs"))
+
+  (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+  (dired-rainbow-define compressed "#ad7fa8" ("zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar"
+                                              "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+  (dired-rainbow-define packaged "#e6a8df" ("deb" "rpm"))
+  (dired-rainbow-define encrypted "LightBlue" ("gpg" "pgp"))
+
+  (dired-rainbow-define-chmod executable-unix "Green" "-.*x.*"))
+
+(use-package dired-collapse
+  :commands dired-collapse-mode
+  :init (add-hook 'dired-mode-hook 'dired-collapse-mode))
+
+;; Browse compressed archives in dired (requires `avfs' to be installed)
+(use-package dired-avfs)
+
+(use-package dired-open
+  :commands dired-open-file
+  :bind (:map dired-mode-map
+              ("RET" . dired-open-file)
+              ([return] . dired-open-file)
+              ("f" . dired-open-file))
+  :config
+  (setq dired-open-functions '(dired-open-by-extension dired-open-guess-shell-alist dired-open-subdir)))
+
+(use-package dired-ranger
+  :commands (dired-ranger-copy dired-ranger-paste dired-ranger-move
+                               dired-ranger-bookmark dired-ranger-bookmark-visit)
+  :init
+  (bind-keys :map dired-mode-map
+             :prefix "c"
+             :prefix-map dired-ranger-map
+             :prefix-docstring "Map for ranger operations."
+             ("c" . dired-ranger-copy)
+             ("p" . dired-ranger-paste)
+             ("m" . dired-ranger-move))
+
+  (bind-keys :map dired-mode-map
+             ("'" . dired-ranger-bookmark)
+             ("`" . dired-ranger-bookmark-visit)))
 
 (use-package dired+
   :init
@@ -211,6 +256,28 @@ is already narrowed."
 
   (diredp-toggle-find-file-reuse-dir 1)  ; reuse dired buffers
   (setq diredp-dwim-any-frame-flag t)
+
+  :config
+  ;; Remove stupid font-locking
+  (setf (nth 3 diredp-font-lock-keywords-1)
+        ;; Properly handle the extensions
+        '("[^ .\\/]\\(\\.[^. /]+\\)$" 1 diredp-file-suffix))
+  (setf (nth 4 diredp-font-lock-keywords-1)
+        ;; Properly handle the extensions
+        '("\\([^ ]+\\) -> .+$" 1 diredp-symlink))
+  (setf (nth 6 diredp-font-lock-keywords-1)
+        (list (concat
+               "^  \\(.*\\("
+               (concat
+                (mapconcat
+                 'regexp-quote
+                 (or (and (boundp 'dired-omit-extensions)
+                          dired-omit-extensions)
+                     completion-ignored-extensions)
+                 "[*]?\\|")
+                "[*]?")        ; Allow for executable flag (*).
+               "\\)\\)$") ; Do not treat compressed files as garbage... why the hell!
+              1 diredp-ignored-file-name t))
   )
 
 ;; Display the recursive size of directories in Dired
@@ -1720,7 +1787,7 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 (use-package web-mode
   :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
-         "\\.erb\\'" "\\.html?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'")
+         "\\.erb\\'" "\\.html?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja?\\'")
   :config
   ;; make web-mode play nice with smartparens
   (setq web-mode-enable-auto-pairing nil)
