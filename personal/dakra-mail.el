@@ -8,13 +8,20 @@
 (require 'prelude-packages nil 'noerror)
 
 ;; mu package (includes mu4e) must be installed in the system
-(require 'mu4e)
+(use-package mu4e :ensure nil)
 
 ;; for org capture
-(require 'org-mu4e)
+(use-package org-mu4e :ensure nil
+  :config
+  ;; Store link to message if in header view, not to header query
+  (setq org-mu4e-link-query-in-headers-mode nil))
 
-;; Store link to message if in header view, not to header query
-(setq org-mu4e-link-query-in-headers-mode nil)
+;; Show overview of unread/all mails for each maildir/bookmarks in mu4e main window
+(use-package mu4e-maildirs-extension
+  :config
+  (setq mu4e-maildirs-extension-use-bookmarks t)
+  (setq mu4e-maildirs-extension-use-maildirs nil)
+  (mu4e-maildirs-extension))
 
 ;; Open mu4e with the 'Mail' key (if your keyboard has one)
 (global-set-key (kbd "<XF86Mail>") 'mu4e)
@@ -39,6 +46,8 @@
 (add-hook 'mu4e-compose-mode-hook 'mml-secure-message-sign-pgpmime)
 ;; Encrypt mails by calling (mml-secure-message-encrypt-pgpmime)
 
+;; Always replace encrypted text with plain text version
+(setq epa-replace-original-text t)
 
 ;; default
 (setq mu4e-maildir "~/Maildir")
@@ -46,6 +55,7 @@
 (setq mu4e-drafts-folder "/private/Drafts")
 (setq mu4e-sent-folder   "/private/Sent")
 (setq mu4e-trash-folder  "/private/Trash")
+
 
 ;; Dynamically refile
 ;; See: https://www.djcbsoftware.nl/code/mu/mu4e/Smart-refiling.html#Smart-refiling
@@ -166,22 +176,23 @@
 (setq mu4e-attachment-dir "~/Downloads")
 
 ;; Attach files from dired (C-c RET C-a)
-(require 'gnus-dired)
-;; make the `gnus-dired-mail-buffers' function also work on
-;; message-mode derived modes, such as mu4e-compose-mode
-(defun gnus-dired-mail-buffers ()
-  "Return a list of active message buffers."
-  (let (buffers)
-    (save-current-buffer
-      (dolist (buffer (buffer-list t))
-        (set-buffer buffer)
-        (when (and (derived-mode-p 'message-mode)
-                   (null message-sent-message-via))
-          (push (buffer-name buffer) buffers))))
-    (nreverse buffers)))
+(use-package gnus-dired :ensure nil
+  :config
+  ;; make the `gnus-dired-mail-buffers' function also work on
+  ;; message-mode derived modes, such as mu4e-compose-mode
+  (defun gnus-dired-mail-buffers ()
+    "Return a list of active message buffers."
+    (let (buffers)
+      (save-current-buffer
+        (dolist (buffer (buffer-list t))
+          (set-buffer buffer)
+          (when (and (derived-mode-p 'message-mode)
+                     (null message-sent-message-via))
+            (push (buffer-name buffer) buffers))))
+      (nreverse buffers)))
 
-(setq gnus-dired-mail-mode 'mu4e-user-agent)
-(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
+  (setq gnus-dired-mail-mode 'mu4e-user-agent)
+  (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode))
 
 ;; I want my format=flowed thank you very much
 ;; mu4e sets up visual-line-mode and also fill (M-q) to do the right thing
@@ -193,14 +204,15 @@
 (setq mu4e-compose-in-new-frame nil)
 
 ;; display html messages
-(require 'mu4e-contrib)
-(setq mu4e-html2text-command 'mu4e-shr2text)
-(add-hook 'mu4e-view-mode-hook
-          (lambda()
-            ;; try to emulate some of the eww key-bindings
-            (local-set-key (kbd "<tab>") 'shr-next-link)
-            (local-set-key (kbd "<backtab>") 'shr-previous-link)))
-(setq shr-color-visible-luminance-min 80)
+(use-package mu4e-contrib :ensure nil
+  :config
+  (seq mu4e-html2text-command 'mu4e-shr2text)
+  (add-hook 'mu4e-view-mode-hook
+            (lambda()
+              ;; try to emulate some of the eww key-bindings
+              (local-set-key (kbd "<tab>") 'shr-next-link)
+              (local-set-key (kbd "<backtab>") 'shr-previous-link)))
+  (setq shr-color-visible-luminance-min 80))
 
 ;; Don't reply to self
 (setq mu4e-user-mail-address-list
@@ -250,6 +262,32 @@
                    (setq email-name email-name2))
                  )))
     email-name))
+
+;; Always store contacts as first last <email>
+;; https://martinralbrecht.wordpress.com/2016/05/30/handling-email-with-emacs/
+(defun malb/canonicalise-contact-name (name)
+  (let ((case-fold-search nil))
+    (setq name (or name ""))
+    (if (string-match-p "^[^ ]+@[^ ]+\.[^ ]" name)
+        ""
+      (progn
+        ;; drop email address
+        (setq name (replace-regexp-in-string "^\\(.*\\) [^ ]+@[^ ]+\.[^ ]" "\\1" name))
+        ;; strip quotes
+        (setq name (replace-regexp-in-string "^\"\\(.*\\)\"" "\\1" name))
+        ;; deal with YELL’d last names
+        (setq name (replace-regexp-in-string "^\\(\\<[[:upper:]]+\\>\\) \\(.*\\)" "\\2 \\1" name))
+        ;; Foo, Bar becomes Bar Foo
+        (setq name (replace-regexp-in-string "^\\(.*\\), \\([^ ]+\\).*" "\\2 \\1" name))))))
+
+(defun malb/mu4e-contact-rewrite-function (contact)
+  (let* ((name (or (plist-get contact :name) ""))
+         (mail (plist-get contact :mail))
+         (case-fold-search nil))
+    (plist-put contact :name (malb/canonicalise-contact-name name))
+    contact))
+
+(setq mu4e-contact-rewrite-function #'malb/mu4e-contact-rewrite-function)
 
 ;; Always display plain text messages.
 (setq mu4e-view-html-plaintext-ratio-heuristic most-positive-fixnum)
@@ -307,10 +345,9 @@
                      ( mu4e-trash-folder  . "/private/Trash" )
                      ( mu4e-refile-folder . dakra-mu4e-private-refile)
                      ( user-full-name     . "Daniel Kraus" )
-                     ( mu4e-compose-signature .
-                                              (concat
-                                               "regards,\n"
-                                               "  Daniel\n"))))
+                     ( XXX-mu4e-compose-signature . (concat
+                                                     "regards,\n"
+                                                     "  Daniel\n"))))
          ,(make-mu4e-context
            :name "gmail"
            :enter-func (lambda () (mu4e-message "Switch to the gmail context"))
@@ -331,10 +368,10 @@
                      ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
                      ( mu4e-sent-messages-behavior  . delete)
                      ( user-full-name     . "Daniel Kraus" )
-                     ( mu4e-compose-signature .
-                                              (concat
-                                               "regards,\n"
-                                               "  Daniel\n"))))
+                     ( XXX-mu4e-compose-signature .
+                                                  (concat
+                                                   "regards,\n"
+                                                   "  Daniel\n"))))
          ,(make-mu4e-context
            :name "atomx"
            :enter-func (lambda () (mu4e-message "Switch to the Atomx context"))
@@ -355,9 +392,9 @@
                      ;; don't save message to Sent Messages, Gmail/IMAP takes care of this
                      ( mu4e-sent-messages-behavior  . delete)
                      ( user-full-name     . "Daniel Kraus" )
-                     ( mu4e-compose-signature . (concat
-                                                 "Daniel Kraus\n"
-                                                 "Atomx | https://atomx.com\n"))))
+                     ( XXX-mu4e-compose-signature . (concat
+                                                     "Daniel Kraus\n"
+                                                     "Atomx | https://atomx.com\n"))))
 
          ,(make-mu4e-context
            :name "e5"
@@ -377,16 +414,16 @@
                      ( mu4e-trash-folder  . "/e5/Trash" )
                      ( mu4e-refile-folder . "/e5/Archive" )
                      ( user-full-name     . "Daniel Kraus" )
-                     ( mu4e-compose-signature . (concat
-                                                 "Daniel Kraus\n"
-                                                 "https://ebenefuenf.de\n"
-                                                 "ebene fünf GmbH\n"
-                                                 "Amselweg 6\n"
-                                                 "96173 Oberhaid/Staffelbach\n"
-                                                 "---\n"
-                                                 "Sitz der Gesellschaft: Staffelbach\n"
-                                                 "Amtsgericht Bamberg - HRB 6233\n"
-                                                 "USt-IdNr. DE 263246988\n"))))
+                     ( XXX-mu4e-compose-signature . (concat
+                                                     "Daniel Kraus\n"
+                                                     "https://ebenefuenf.de\n"
+                                                     "ebene fünf GmbH\n"
+                                                     "Amselweg 6\n"
+                                                     "96173 Oberhaid/Staffelbach\n"
+                                                     "---\n"
+                                                     "Sitz der Gesellschaft: Staffelbach\n"
+                                                     "Amtsgericht Bamberg - HRB 6233\n"
+                                                     "USt-IdNr. DE 263246988\n"))))
 
          ,(make-mu4e-context
            :name "hogaso"

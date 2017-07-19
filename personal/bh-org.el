@@ -772,27 +772,27 @@ so change the default 'F' binding in the agenda to allow both"
 Late deadlines first, then scheduled, then non-late deadlines"
   (let (result num-a num-b)
     (cond
-                                        ; time specific items are already sorted first by org-agenda-sorting-strategy
+     ;; time specific items are already sorted first by org-agenda-sorting-strategy
 
-                                        ; non-deadline and non-scheduled items next
+     ;; non-deadline and non-scheduled items next
      ((bh/agenda-sort-test 'bh/is-not-scheduled-or-deadline a b))
 
-                                        ; deadlines for today next
+     ;; deadlines for today next
      ((bh/agenda-sort-test 'bh/is-due-deadline a b))
 
-                                        ; late deadlines next
+     ;; late deadlines next
      ((bh/agenda-sort-test-num 'bh/is-late-deadline '> a b))
 
-                                        ; scheduled items for today next
+     ;; scheduled items for today next
      ((bh/agenda-sort-test 'bh/is-scheduled-today a b))
 
-                                        ; late scheduled items next
+     ;; late scheduled items next
      ((bh/agenda-sort-test-num 'bh/is-scheduled-late '> a b))
 
-                                        ; pending deadlines last
+     ;; pending deadlines last
      ((bh/agenda-sort-test-num 'bh/is-pending-deadline '< a b))
 
-                                        ; finally default to unsorted
+     ;; finally default to unsorted
      (t (setq result nil)))
     result))
 
