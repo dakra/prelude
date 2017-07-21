@@ -81,18 +81,28 @@
 
 ;; use helm-mu for search
 (use-package helm-mu
-  :disabled t  ; FIXME helm search broken
   :commands helm-mu
+  :init
+  ;; helm-mu expects a bash compatible shell (which fish isn't)
+  ;; and doesn't play nice with helms autofollow mode
+  (defun dakra-helm-mu ()
+    (interactive)
+    (let ((shell-file-name "/usr/bin/bash")
+          (helm-follow-mode-persistent nil))
+      (helm-mu)))
   :bind (
-         :map mu4e-main-mode-map ("s" . helm-mu)
-         :map mu4e-headers-mode-map ("s" . helm-mu)
-         :map mu4e-view-mode-map ("s" . helm-mu)
+         :map mu4e-main-mode-map ("s" . dakra-helm-mu)
+         :map mu4e-headers-mode-map ("s" . dakra-helm-mu)
+         :map mu4e-view-mode-map ("s" . dakra-helm-mu)
          )
   :config
+  ;; Only show contacts who sent you emails directly
+  (setq helm-mu-contacts-personal t)
   ;; default search only inbox, archive or sent mail
-  (setq helm-mu-default-search-string (concat "(maildir:/private/Inbox OR "
-                                              "maildir:/private/Archive OR "
-                                              "maildir:/private/Sent)")))
+  ;; (setq helm-mu-default-search-string (concat "(maildir:/private/Inbox OR "
+  ;;                                             "maildir:/private/Archive OR "
+  ;;                                             "maildir:/private/Sent)"))
+  )
 
 ;; (See the documentation for `mu4e-sent-messages-behavior' if you have
 ;; additional non-Gmail addresses and want assign them different
@@ -206,7 +216,7 @@
 ;; display html messages
 (use-package mu4e-contrib :ensure nil
   :config
-  (seq mu4e-html2text-command 'mu4e-shr2text)
+  (setq mu4e-html2text-command 'mu4e-shr2text)
   (add-hook 'mu4e-view-mode-hook
             (lambda()
               ;; try to emulate some of the eww key-bindings

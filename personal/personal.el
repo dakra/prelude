@@ -27,10 +27,9 @@
 
 ;; If we start in daemon mode, load all modules straight away
 ;; and ensure that all packages are installed
-(if (daemonp)
-    (progn
-      (setq use-package-always-demand t)
-      (setq use-package-always-ensure t)))
+(when (daemonp)
+  (setq use-package-always-demand t)
+  (setq use-package-always-ensure t))
 
 (setq user-full-name "Daniel Kraus"
       user-mail-address "daniel@kraus.my")
@@ -108,7 +107,6 @@
 ;; Recenter window after imenu jump so cursor doesn't end up on the last line
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
 
-
 ;; eshell
 ;;(setq eshell-list-files-after-cd t)
 ;;(setq eshell-ls-initial-args "-alh")
@@ -183,7 +181,7 @@ is already narrowed."
   (setq dired-listing-switches "-hal --group-directories-first")
   )
 
-(use-package dired-x
+(use-package dired-x :ensure nil
   :config
   (defconst my-dired-media-files-extensions
     '("mp3" "mp4" "MP3" "MP4" "avi" "mpg" "flv" "ogg")
@@ -1199,7 +1197,7 @@ displayed anywhere else."
   ;;(add-hook 'python-mode-hook 'anaconda-eldoc-mode)
   )
 
-(use-package anaconda-mode
+(use-package anaconda-mode  ; :ensure nil :load-path "repos/anaconda-mode"
   :commands (anaconda-mode anaconda-eldoc-mode)
   :config
   (use-package company-anaconda
@@ -1296,7 +1294,7 @@ displayed anywhere else."
 ;;(setq python-shell-interpreter "python"
 ;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
 
-(use-package virtualenvwrapper
+(use-package virtualenvwrapper :ensure nil :load-path "repos/virtualenvwrapper.el"
   :config
   (venv-initialize-interactive-shells) ;; if you want interactive shell support
   (venv-initialize-eshell) ;; if you want eshell support
