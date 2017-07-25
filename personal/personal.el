@@ -737,10 +737,22 @@ prepended to the element after the #+HEADERS: tag."
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
 ;; Rust
+;; You may need installing the following packages on your system:
+;; * rustc (Rust Compiler)
+;; * cargo (Rust Package Manager)
+;; * racer (Rust Completion Tool)
+;; * rustfmt (Rust Tool for formatting code)
 (use-package rust-mode
   :mode "\\.rs\\'"
   :config
+  (use-package flycheck-rust
+    :commands flycheck-rust-setup
+    :init (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+  (use-package cargo
+    :commands cargo-minor-mode
+    :init (add-hook 'rust-mode-hook #'cargo-minor-mode))
   (use-package racer
+    :commands racer-mode
     :init
     (add-hook 'rust-mode-hook #'racer-mode)
     (add-hook 'racer-mode-hook #'eldoc-mode)
@@ -861,6 +873,8 @@ split via i3 and create a new Emacs frame."
   :config (setq docker-keymap-prefix "C-c C-d"))
 (use-package dockerfile-mode
   :mode "Dockerfile\\'")
+(use-package docker-compose-mode
+  :mode "docker-compose.*\.yml\\'")
 (use-package docker-tramp)
 
 ;; Replace zap-to-char functionaity with the more powerful zop-to-char
@@ -1161,6 +1175,8 @@ displayed anywhere else."
   ;; turn off annoying auto-compile on save
   (setq scss-compile-at-save nil))
 
+(use-package sass-mode
+  :mode ("\\.sass\\'"))
 
 ;;; python
 
