@@ -43,5 +43,8 @@
         hydra-multiple-cursors/mc/skip-to-previous-like-this
         hydra-multiple-cursors/mc/unmark-next-like-this
         hydra-multiple-cursors/mc/unmark-previous-like-this
+        js2-refactor-hydra/body
+        js2-refactor-hydra/js2r-extract-var-and-exit
+        js2-refactor-hydra/js2r-rename-var-and-exit
         smart-region
         ))

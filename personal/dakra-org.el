@@ -18,11 +18,15 @@
    ox-jira
    ))
 
-(use-package org-mode
-  :mode "\\.org\\'"
+;; Install newest org and org-plus-contrib packages
+(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
+
+(use-package org :ensure nil  ; install package org-plus-contrib
+  :commands (org-agenda)
+  :mode ("\\.org\\'" . org-mode)
   :bind (("\C-cl" . org-store-link)
          ("\C-ca" . org-agenda)
-         ("\C-cb" . org-iswitchb))
+         ("\C-cb" . org-switchb))
   :config
   (setq org-log-done 'note)
 
@@ -38,10 +42,7 @@
       (push `(prelude-mode . ,newmap) minor-mode-overriding-map-alist))
     )
   (add-hook 'org-mode-hook 'prelude-org-mode-defaults)
-
   )
-;; Install newest org and org-plus-contrib packages
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/") t)
 
 (use-package org-habit)  ; track habits
 
