@@ -24,6 +24,7 @@
         sp-backward-kill-word
         sp-delete-char
         sp-forward-slurp-sexp
+        sp-kill-hybrid-sexp
         sp-kill-word
         sp-splice-sexp
         whole-line-or-region-yank

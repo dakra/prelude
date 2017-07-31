@@ -1230,21 +1230,31 @@ displayed anywhere else."
     ("q" nil "Cancel"))
   (define-key python-mode-map (kbd "C-c C-t") 'hydra-python-test/body)
 
-  (defhydra hydra-python (python-mode-map "C-c C-p" :color blue)
-    "Python Commands"
-    ("f" py-isort-add-from-import "From ... Import ...")
-    ("i" py-isort-add-import "Import")
-    ("r" py-isort-remove-import "Remove")
-    ("s" py-isort-sort-buffer "Sort imports")
-    ("p" run-python "Run Python")
+  (defhydra hydra-python (python-mode-map "C-c C-p" :color blue :hint nil)
+    "
+           ^Tests^           ^Import^                ^Other^
+    -------------------------------------------------------
+    [_F_]   Function    [_f_] From ... import   [_P_] Run python
+    [_m_]   Method      [_i_] Import            [_I_] Pippel
+    [_c_]   Class       [_r_] Remove import
+    [_t_]   File        [_s_] Sort imports
+    [_p_]   Project     ^ ^                     [_q_] Cancel
+    "
+    ("f" py-isort-add-from-import)
+    ("i" py-isort-add-import)
+    ("r" py-isort-remove-import)
+    ("s" py-isort-buffer)
 
-    ("F" python-test-function "Function")
-    ("m" python-test-method "Method")
-    ("c" python-test-class "Class")
-    ("t" python-test-file "File")
-    ("p" python-test-project "Project")
-    ("q" nil "Cancel"))
-  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
+    ("F" python-test-function)
+    ("m" python-test-method)
+    ("c" python-test-class)
+    ("t" python-test-file)
+    ("p" python-test-project)
+
+    ("P" run-python)
+    ("I" pippel-list-packages)
+    ("q" nil))
+  (define-key python-mode-map (kbd "C-c C-p") 'hydra-python/body)
 
   :init
   (add-hook 'python-mode-hook
