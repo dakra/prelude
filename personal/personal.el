@@ -656,10 +656,20 @@ prepended to the element after the #+HEADERS: tag."
   :diminish whole-line-or-region-mode
   :config (whole-line-or-region-mode t))
 
-;; cache projectile project files
-;; projectile-find-files will be much faster for large projects.
-;; C-u C-c p f to clear cache before search.
-(setq projectile-enable-caching t)
+(use-package projectile
+  :config
+  ;; Shorten the mode line
+  (setq projectile-mode-line '(:eval (format " P[%s]" (projectile-project-name))))
+  ;; Automatically switch python venv
+  (add-hook 'projectile-after-switch-project-hook 'venv-projectile-auto-workon)
+  ;; cache projectile project files
+  ;; projectile-find-files will be much faster for large projects.
+  ;; C-u C-c p f to clear cache before search.
+  (setq projectile-enable-caching t))
+
+;; this is already done in helm-projectile
+;;(setq projectile-switch-project-action 'helm-projectile)
+
 
 ;; highlight indentations in python
 (use-package highlight-indent-guides
@@ -698,7 +708,9 @@ prepended to the element after the #+HEADERS: tag."
   :config
   (setq company-idle-delay 0.2)
   (setq company-tooltip-limit 10)
-  (setq company-minimum-prefix-length 2)
+  (setq company-minimum-prefix-length 1)
+  ;; Aligns annotation to the right hand side
+  (setq company-tooltip-align-annotations t)
   ;;(setq company-dabbrev-downcase nil)
   ;; invert the navigation direction if the the completion popup-isearch-match
   ;; is displayed on top (happens near the bottom of windows)
@@ -717,11 +729,6 @@ prepended to the element after the #+HEADERS: tag."
 
   (use-package slime-company
     :config (slime-setup '(slime-fancy slime-company)))
-
-  (use-package company-tern
-    :config
-    (setq company-tern-property-marker "")  ; don't show circles for properties
-    (add-to-list 'company-backends 'company-tern))
 
   (use-package company-restclient
     :config (add-to-list 'company-backends 'company-restclient))
@@ -758,8 +765,7 @@ prepended to the element after the #+HEADERS: tag."
     (add-hook 'racer-mode-hook #'eldoc-mode)
 
     (add-hook 'racer-mode-hook #'company-mode)
-    (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
-    (setq company-tooltip-align-annotations t)))
+    (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)))
 
 ;; C/C++
 (use-package irony
@@ -774,6 +780,33 @@ prepended to the element after the #+HEADERS: tag."
     :config (add-to-list 'company-backends 'company-irony))
   (use-package irony-eldoc
     :init (add-hook 'irony-mode-hook 'irony-eldoc)))
+
+;; Automatically insert 'end' in ruby and Elixir
+(use-package ruby-end
+  :disabled t  ; not needed anymore?!
+  :commands ruby-end-mode
+  :config
+  (add-to-list 'elixir-mode-hook
+               (defun auto-activate-ruby-end-mode-for-elixir-mode ()
+                 (set (make-variable-buffer-local 'ruby-end-expand-keywords-before-re)
+                      "\\(?:^\\|\\s-+\\)\\(?:do\\)")
+                 (set (make-variable-buffer-local 'ruby-end-check-statement-modifiers) nil)
+                 (ruby-end-mode +1))))
+
+;; Elixir
+(use-package elixir-mode
+  :mode ("\\.ex\\'" "\\.exs\\'" "\\.elixir\\'")
+  :config
+  (sp-with-modes '(elixir-mode)
+    (sp-local-pair "fn" "end"
+                   :when '(("SPC" "RET"))
+                   :actions '(insert navigate))
+    (sp-local-pair "do" "end"
+                   :when '(("SPC" "RET"))
+                   :post-handlers '(sp-ruby-def-post-handler)
+                   :actions '(insert navigate)))
+  (use-package alchemist))
+
 
 (use-package fabric
   :defer t)
@@ -857,7 +890,8 @@ split via i3 and create a new Emacs frame."
   :config
   (edit-server-start)
   (setq edit-server-url-major-mode-alist
-        '(("github\\.com" . gfm-mode)
+        '(("reddit\\.com" . markdown-mode)
+          ("github\\.com" . gfm-mode)
           ("gitlab\\.com" . gfm-mode)
           ("gitlab\\.bis" . gfm-mode)
           ("jira.paesslergmbh.de" . jira-markup-mode))))
@@ -1186,12 +1220,28 @@ displayed anywhere else."
          ("\\.xsh\\'" . python-mode))  ; Xonsh script files
   :interpreter ("python" . python-mode)
   :config
-  (defhydra hydra-python (python-mode-map "C-c C-t" :color blue)
+  (defhydra hydra-python-test (python-mode-map "C-c C-t" :color blue)
     "Run Python Tests"
     ("f" python-test-function "Function")
     ("m" python-test-method "Method")
     ("c" python-test-class "Class")
     ("F" python-test-file "File")
+    ("p" python-test-project "Project")
+    ("q" nil "Cancel"))
+  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python-test/body)
+
+  (defhydra hydra-python (python-mode-map "C-c C-p" :color blue)
+    "Python Commands"
+    ("f" py-isort-add-from-import "From ... Import ...")
+    ("i" py-isort-add-import "Import")
+    ("r" py-isort-remove-import "Remove")
+    ("s" py-isort-sort-buffer "Sort imports")
+    ("p" run-python "Run Python")
+
+    ("F" python-test-function "Function")
+    ("m" python-test-method "Method")
+    ("c" python-test-class "Class")
+    ("t" python-test-file "File")
     ("p" python-test-project "Project")
     ("q" nil "Cancel"))
   (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
@@ -1251,7 +1301,7 @@ displayed anywhere else."
   :commands (pydoc-at-point pydoc-browse))
 
 ;; Automatically sort and format python imports
-(use-package py-isort
+(use-package py-isort  :ensure nil :load-path "repos/py-isort.el"
   :commands (py-isort-buffer py-isort-region)
   :config
   ;;(add-hook 'before-save-hook 'py-isort-before-save)
@@ -1311,14 +1361,13 @@ displayed anywhere else."
 ;;      python-shell-interpreter-args "--simple-prompt -i /home/daniel/.virtualenvs/atomx/lib/python3.5/site-packages/pyramid/scripts/pshell.py /home/daniel/atomx/api/development.ini")
 
 (use-package virtualenvwrapper :ensure nil :load-path "repos/virtualenvwrapper.el"
+  :commands (venv-workon venv-projectile-auto-workon)
   :config
   (venv-initialize-interactive-shells) ;; if you want interactive shell support
   (venv-initialize-eshell) ;; if you want eshell support
   (setq venv-location "/home/daniel/.virtualenvs/")
   ;;(venv-workon '"atomx")  ; default venv after a starting emacs
-  (setq projectile-switch-project-action '(lambda ()
-                                            (venv-projectile-auto-workon)
-                                            (helm-projectile))))
+  )
 
 
 (defcustom python-autopep8-path (executable-find "autopep8")
@@ -1598,6 +1647,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   :commands js2-refactor-mode
   :init (add-hook 'js2-mode-hook #'js2-refactor-mode)
   :config
+  (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
   (define-key js2-refactor-mode-map (kbd "C-c r")
     (defhydra js2-refactor-hydra (:color blue :hint nil)
       "
@@ -1641,8 +1691,14 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 ;; use tern for js autocompletion
 (use-package tern
+  :disabled t  ; We use tide (typescript) also for javascript files
   :commands tern-mode
-  :init (add-hook 'js-mode-hook 'tern-mode))
+  :init (add-hook 'js-mode-hook 'tern-mode)
+  :config
+  (use-package company-tern
+    :config
+    (setq company-tern-property-marker "")  ; don't show circles for properties
+    (add-to-list 'company-backends 'company-tern)))
 
 (use-package skewer-mode
   :disabled t  ; Use indium
@@ -1666,8 +1722,9 @@ and when called with 2 prefix arguments copy url and open in browser."
     (setq flycheck-check-syntax-automatically '(save mode-enabled))
     (eldoc-mode +1)
     (tide-hl-identifier-mode +1)
-    (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))  ; add tide yasnippets as company backend
-    (company-mode +1))
+    ;;(setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))  ; add tide yasnippets as company backend
+    ;;(company-mode +1)
+    )
   (add-hook 'typescript-mode-hook #'setup-tide-mode)
 
   ;; https://www.reddit.com/r/emacs/comments/68zacv/using_tidemode_to_typecheck_javascript/
@@ -1681,9 +1738,6 @@ and when called with 2 prefix arguments copy url and open in browser."
   (setq tide-format-options '(:insertSpaceAfterFunctionKeywordForAnonymousFunctions t :placeOpenBraceOnNewLineForFunctions nil))
   ;; see https://github.com/Microsoft/TypeScript/blob/cc58e2d7eb144f0b2ff89e6a6685fb4deaa24fde/src/server/protocol.d.ts#L421-473 for the full list available options
   )
-
-;; aligns annotation to the right hand side
-;;(setq company-tooltip-align-annotations t)
 
 
 (use-package undo-tree
@@ -1824,6 +1878,19 @@ and when called with 2 prefix arguments copy url and open in browser."
   (setq avy-style 'at-full)
   (setq avy-timeout-seconds 0.3))
 
+(use-package ace-link
+  :commands (ace-link-eww ace-link-org ace-link-woman)
+  :bind (:map Info-mode-map ("o" . ace-link-info)
+              :map help-mode-map ("o" . ace-link-help)
+              :map compilation-mode-map ("o" . ace-link-compilation)
+              :map org-mode-map ("M-o" . ace-link-org))
+  :init
+  (eval-after-load "woman"
+    `(define-key woman-mode-map ,"o" 'ace-link-woman))
+  (eval-after-load "eww"
+    `(progn
+       (define-key eww-link-keymap ,"o" 'ace-link-eww)
+       (define-key eww-mode-map ,"o" 'ace-link-eww))))
 
 ;; Spellcheck setup
 

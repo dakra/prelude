@@ -26,7 +26,8 @@
   :mode ("\\.org\\'" . org-mode)
   :bind (("\C-cl" . org-store-link)
          ("\C-ca" . org-agenda)
-         ("\C-cb" . org-switchb))
+         ("\C-cb" . org-switchb)
+         :map org-mode-map ("M-o" . ace-link-org))
   :config
   (setq org-log-done 'note)
 
