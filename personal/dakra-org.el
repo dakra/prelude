@@ -28,6 +28,11 @@
          ("\C-ca" . org-agenda)
          ("\C-cb" . org-switchb)
          :map org-mode-map ("M-o" . ace-link-org))
+  :init
+  ;; Display custom agenda when starting Emacs in daemon mode
+  ;; (when (daemonp)
+  ;;   (add-hook 'after-init-hook '(lambda () (org-agenda nil " "))))
+
   :config
   (setq org-log-done 'note)
 

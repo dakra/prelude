@@ -31,6 +31,17 @@
 
 (defalias 'org-mail 'org-mu4e-compose-org-mode)
 
+;; XXX: Play more with org-mime instead of mu4e-compose-org-mode
+;; Look at: http://kitchingroup.cheme.cmu.edu/blog/2016/10/29/Sending-html-emails-from-org-mode-with-org-mime/
+(use-package org-mime
+  :commands (org-mime-htmlize org-mime-org-buffer-htmlize org-mime-org-subtree-htmlize)
+  :bind (:map message-mode-map ("C-c M-o" . org-mime-htmlize)
+         :map org-mode-map ("C-c M-o" . org-mime-org-subtree-htmlize))
+  :config
+  (setq org-mime-export-options '(:section-numbers nil
+                                  :with-author nil
+                                  :with-toc nil)))
+
 ;; when mail is sent, automatically convert org body to HTML
 (setq org-mu4e-convert-to-html t)
 
