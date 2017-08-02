@@ -29,7 +29,9 @@
 ;; and ensure that all packages are installed
 (when (daemonp)
   (setq use-package-always-demand t)
-  (setq use-package-always-ensure t))
+  (setq use-package-always-ensure t)
+
+  (global-set-key (kbd "C-x C-c") 'delete-frame))
 
 (setq user-full-name "Daniel Kraus"
       user-mail-address "daniel@kraus.my")
