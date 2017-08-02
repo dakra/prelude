@@ -881,8 +881,9 @@ split via i3 and create a new Emacs frame."
               (list 'ediff-window-setup-function 'ediff-setup-windows-plain)
               (list 'ido-default-buffer-method 'selected-window)
               (list 'magit-commit-show-diff t)
-              (list 'flycheck-display-errors-function #'frames-only-mode-flycheck-display-errors))
-        )
+              (list 'flycheck-display-errors-function #'frames-only-mode-flycheck-display-errors)))
+  ;; Add function that calls (display-buffer) if you want to exclude it from frames-only-mode
+  (add-to-list 'frames-only-mode-use-window-functions 'undo-tree-visualize)
   :config (frames-only-mode))
 
 (use-package edit-server
@@ -1228,7 +1229,7 @@ displayed anywhere else."
     ("F" python-test-file "File")
     ("p" python-test-project "Project")
     ("q" nil "Cancel"))
-  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python-test/body)
+  (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
 
   (defhydra hydra-python (python-mode-map "C-c C-p" :color blue :hint nil)
     "
