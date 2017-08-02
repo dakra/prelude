@@ -869,7 +869,7 @@ split via i3 and create a new Emacs frame."
 
 (use-package frames-only-mode
   :if (or (daemonp) window-system)
-  :init
+  :config
   ;; Set config because magit-commit-show-diff defaults to nil
   (setq frames-only-mode-configuration-variables
         (list (list 'pop-up-frames 'graphic-only)
@@ -880,11 +880,11 @@ split via i3 and create a new Emacs frame."
               (list 'org-src-window-setup 'other-frame)
               (list 'ediff-window-setup-function 'ediff-setup-windows-plain)
               (list 'ido-default-buffer-method 'selected-window)
-              (list 'magit-commit-show-diff t)
+              ;;(list 'magit-commit-show-diff t)
               (list 'flycheck-display-errors-function #'frames-only-mode-flycheck-display-errors)))
   ;; Add function that calls (display-buffer) if you want to exclude it from frames-only-mode
   (add-to-list 'frames-only-mode-use-window-functions 'undo-tree-visualize)
-  :config (frames-only-mode))
+  (frames-only-mode))
 
 (use-package edit-server
   :if (daemonp)
@@ -1860,19 +1860,20 @@ and when called with 2 prefix arguments copy url and open in browser."
          ("C-x o" . dakra-next-window-or-frame)
          ("C-x O" . dakra-previous-window-or-frame)))
 
-(require 'god-mode)
-;; Make god-mode a little bit more vi-like
-(global-set-key (kbd "<escape>") 'god-local-mode)
-(define-key god-local-mode-map (kbd "i") 'god-local-mode)
+(use-package god-mode
+  ;; Make god-mode a little bit more vi-like
+  :bind (("<escape>" . god-local-mode)
+         :map god-local-mode-map ("i" . god-local-mode))
+  :config
+  ;; change curser to bar when in god-mode
+  (defun god-update-cursor ()
+    "Toggle curser style to bar when in god-mode"
+    (setq cursor-type (if (or god-local-mode buffer-read-only)
+                          'bar
+                        'box)))
+  (add-hook 'god-mode-enabled-hook 'god-update-cursor)
+  (add-hook 'god-mode-disabled-hook 'god-update-cursor))
 
-;; change curser to bar when in god-mode
-(defun god-update-cursor ()
-  "Toggle curser style to bar when in god-mode"
-  (setq cursor-type (if (or god-local-mode buffer-read-only)
-                        'bar
-                      'box)))
-(add-hook 'god-mode-enabled-hook 'god-update-cursor)
-(add-hook 'god-mode-disabled-hook 'god-update-cursor)
 
 ;; scroll 4 lines up/down w/o moving pointer
 ;;(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
