@@ -388,6 +388,26 @@ is already narrowed."
     ("r" mc/mark-all-in-region-regexp :exit t)
     ("q" nil))
 
+  (global-set-key
+   (kbd "C-c C-s")
+   (defhydra hydra-scratchpad (:hint nil)
+     "
+     _p_ython    _e_lisp        _s_ql
+     _g_o        _j_avascript   _t_ypescript
+     _r_ust
+     _o_org-mode _T_ext         _m_arkdown
+     "
+     ("p" (switch-to-buffer "*python*scratchpad.py"))
+     ("e" (switch-to-buffer "*elisp*scratchpad.el"))
+     ("s" (switch-to-buffer "*sql*scratchpad.sql"))
+     ("g" (switch-to-buffer "*go*scratchpad.go"))
+     ("j" (switch-to-buffer "*js*scratchpad.js"))
+     ("t" (switch-to-buffer "*ts*scratchpad.ts"))
+     ("r" (switch-to-buffer "*rust*scratchpad.rs"))
+     ("o" (switch-to-buffer "*org*scratchpad.org"))
+     ("T" (switch-to-buffer "*text*scratchpad.txt"))
+     ("m" (switch-to-buffer "*markdown*scratchpad.md"))))
+
   (defun my/insert-unicode (unicode-name)
     "Same as C-x 8 enter UNICODE-NAME."
     (insert-char (cdr (assoc-string unicode-name (ucs-names)))))
@@ -1230,18 +1250,24 @@ displayed anywhere else."
     ("q" nil "Cancel"))
   (define-key python-mode-map (kbd "C-c C-t") 'hydra-python/body)
 
+  (defun py-isort-add-import-whole-line-or-region ()
+    "Import module(s) from region or whole line."
+    (interactive)
+    (whole-line-or-region-call-with-region 'py-isort-add-import-region))
+
   (defhydra hydra-python (python-mode-map "C-c C-p" :color blue :hint nil)
     "
            ^Tests^           ^Import^                ^Other^
     -------------------------------------------------------
-    [_F_]   Function    [_f_] From ... import   [_P_] Run python
-    [_m_]   Method      [_i_] Import            [_I_] Pippel
-    [_c_]   Class       [_r_] Remove import
-    [_t_]   File        [_s_] Sort imports
-    [_p_]   Project     ^ ^                     [_q_] Cancel
+    [_F_]   Function    [_f_] From ... import     [_P_] Run python
+    [_m_]   Method      [_i_] Import              [_I_] Pippel
+    [_c_]   Class       [_l_] Import line/region
+    [_t_]   File        [_r_] Remove imports
+    [_p_]   Project     [_s_] Sort imports        [_q_] Cancel
     "
     ("f" py-isort-add-from-import)
     ("i" py-isort-add-import)
+    ("l" py-isort-add-import-whole-line-or-region)
     ("r" py-isort-remove-import)
     ("s" py-isort-buffer)
 
