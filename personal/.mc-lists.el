@@ -20,6 +20,7 @@
         org-self-insert-command
         outshine-self-insert-command
         selected-off
+        shrink-whitespace
         sp-backward-delete-char
         sp-backward-kill-word
         sp-delete-char
@@ -28,6 +29,7 @@
         sp-kill-word
         sp-splice-sexp
         whole-line-or-region-yank
+        xah-paste-or-paste-previous
         yas-expand
         ))
 

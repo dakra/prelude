@@ -394,7 +394,7 @@ is already narrowed."
      "
      _p_ython    _e_lisp        _s_ql
      _g_o        _j_avascript   _t_ypescript
-     _r_ust
+     _r_ust      _R_est-client
      _o_org-mode _T_ext         _m_arkdown
      "
      ("p" (switch-to-buffer "*python*scratchpad.py"))
@@ -404,6 +404,7 @@ is already narrowed."
      ("j" (switch-to-buffer "*js*scratchpad.js"))
      ("t" (switch-to-buffer "*ts*scratchpad.ts"))
      ("r" (switch-to-buffer "*rust*scratchpad.rs"))
+     ("R" (switch-to-buffer "*rest*scratchpad.rest"))
      ("o" (switch-to-buffer "*org*scratchpad.org"))
      ("T" (switch-to-buffer "*text*scratchpad.txt"))
      ("m" (switch-to-buffer "*markdown*scratchpad.md"))))
@@ -1468,8 +1469,13 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; Nicer diff (should be taken from global .config/git/config)
 (setq vc-git-diff-switches '("--indent-heuristic"))
 
-;; Always highlight word differences in diff
-(setq magit-diff-refine-hunk 'all)
+(use-package magit
+  :config
+  ;; Always highlight word differences in diff
+  (setq magit-diff-refine-hunk 'all)
+
+  ;; Display magit status in full fram
+  (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1))
 
 (use-package gist
   :defer t)
@@ -1482,18 +1488,15 @@ and when called with 2 prefix arguments copy url and open in browser."
   :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 
 (use-package magithub
-  :disabled t  ; doesn't work to well yet. 'api not responding'. gitlab etc. 1.6.2017
+  :disabled t  ; doesn't work to well yet. 'api not responding'. 7.8.2017
   :after magit
   :config
-  ;;(setq magithub-api-timeout 5)
+  (setq magithub-api-timeout 10)
   (magithub-feature-autoinject t)
 
   ;; Fix for emacs 26
-  (defun ghubp--post-process (object &optional preserve-objects) object)
-  )
+  (defun ghubp--post-process (object &optional preserve-objects) object))
 
-;; Display magit status in full fram
-(setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
 
 (use-package helpful
   :bind (("C-h f" . helpful-function)
@@ -1547,7 +1550,20 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;;(crux-reopen-as-root-mode)
 
 ;; ledger-mode for bookkeeping
+(defun ledger-mode-outline-hook ()
+  (outline-minor-mode)
+  (setq outline-regexp "[#;]+"))
+
+(use-package hledger-mode
+  :mode "\\.ledger\\'"
+  :init (add-hook 'hledger-mode-hook 'ledger-mode-outline-hook)
+  :config
+  (setq hledger-jfile "/home/daniel/cepheus/finances.ledger")
+  ;; Auto-completion for account names
+  (add-to-list 'company-backends 'hledger-company))
+
 (use-package ledger-mode
+  :disabled t  ;; try hledger
   :mode "\\.ledger\\'"
   :init
   ;; http://unconj.ca/blog/using-hledger-with-ledger-mode.html
@@ -1556,9 +1572,6 @@ and when called with 2 prefix arguments copy url and open in browser."
         ledger-report-links-in-register nil
         ledger-binary-path "hledger")
 
-  (defun ledger-mode-outline-hook ()
-    (outline-minor-mode)
-    (setq outline-regexp "[#;]+"))
   (add-hook 'ledger-mode-hook 'ledger-mode-outline-hook)
   :config
   (setq ledger-use-iso-dates t)  ; Use YYYY-MM-DD format
