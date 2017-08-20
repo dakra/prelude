@@ -395,7 +395,7 @@ is already narrowed."
      _p_ython    _e_lisp        _s_ql
      _g_o        _j_avascript   _t_ypescript
      _r_ust      _R_est-client
-     _o_org-mode _T_ext         _m_arkdown
+     _o_rg-mode  _T_ext         _m_arkdown
      "
      ("p" (switch-to-buffer "*python*scratchpad.py"))
      ("e" (switch-to-buffer "*elisp*scratchpad.el"))
@@ -703,6 +703,13 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; activate character folding in searches i.e. searching for 'a' matches 'ä' as well
 (setq search-default-mode 'char-fold-to-regexp)
+
+;; Always display nice unicode fonts
+(use-package unicode-fonts
+  :disabled t  ;; Makes startup slow and not really necessary
+  :commands unicode-fonts-setup
+  :init (unicode-fonts-setup)
+  :config (use-package persistent-soft))
 
 ;; emoji font
 ;; package ttf-symbola has to be installed
@@ -1469,10 +1476,16 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; Nicer diff (should be taken from global .config/git/config)
 (setq vc-git-diff-switches '("--indent-heuristic"))
 
+;; Split ediff windows horizontally by default
+(setq ediff-split-window-function 'split-window-horizontally)
+
 (use-package magit
   :config
   ;; Always highlight word differences in diff
   (setq magit-diff-refine-hunk 'all)
+
+  ;; Only show 2 ediff panes
+  (setq magit-ediff-dwim-show-on-hunks t)
 
   ;; Display magit status in full fram
   (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1))
@@ -1704,22 +1717,26 @@ Lisp function does not specify a special indentation."
 
 
 ;; octave
-(setq octave-block-offset 4)
-(add-to-list 'auto-mode-alist '("\\.m$" . octave-mode))
-(defun octave-send-region-or-line ()
-  (interactive)
-  (if (region-active-p)
-      (octave-send-region (region-beginning) (region-end))
-    (octave-send-line)))
-(add-hook 'octave-mode-hook
-          (lambda ()
-            (abbrev-mode 1)
-            (auto-fill-mode 1)
-            (show-paren-mode 1)
-            (define-key octave-mode-map (kbd "C-x C-e") 'octave-send-region-or-line)
-            (eldoc-mode 1)
-            (if (eq window-system 'x)
-                (font-lock-mode 1))))
+(use-package octave :ensure nil
+  :mode ("\\.m\\'" . octave-mode)
+  :interpreter ("octave" . octave-mode)
+  :bind (:map octave-mode-map ("C-x C-e" . octave-send-region-or-line))
+  :config
+  (setq octave-block-offset 4)
+  (defun octave-send-region-or-line ()
+    (interactive)
+    (if (region-active-p)
+        (octave-send-region (region-beginning) (region-end))
+      (octave-send-line)))
+  (add-hook 'octave-mode-hook
+            (lambda ()
+              (abbrev-mode 1)
+              (auto-fill-mode 1)
+              (show-paren-mode 1)
+              ;;(define-key octave-mode-map (kbd "C-x C-e") 'octave-send-region-or-line)
+              (eldoc-mode 1)
+              (if (eq window-system 'x)
+                  (font-lock-mode 1)))))
 
 
 (use-package prettier-js
@@ -2225,6 +2242,9 @@ Lisp function does not specify a special indentation."
 
 (use-package csv-mode
   :mode "\\.csv\\'")
+
+(use-package toml-mode
+  :mode ("\\.toml\\'" "Cargo.lock\\'"))
 
 (use-package yaml-mode
   :mode ("\\.yaml\\'" "\\.yml\\'")
