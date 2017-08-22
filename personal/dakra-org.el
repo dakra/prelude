@@ -410,14 +410,14 @@
 ;; Overwrite the current window with the agenda
 (setq org-agenda-window-setup 'current-window)
 
-;; disable whitespace-mode in org-mode
-(add-hook 'org-mode-hook (lambda () (whitespace-mode -1)))
-
-;; use utf-8 characters instead of `*` as bullet points
-(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-
-;; Automatic line-wrapping in org-mode
-(add-hook 'org-mode-hook (lambda () (auto-fill-mode 1)))
+(add-hook 'org-mode-hook
+          (lambda ()
+            ;; disable whitespace-mode in org-mode
+            (whitespace-mode -1)
+            ;; use utf-8 characters instead of `*` as bullet points
+            (org-bullets-mode 1)
+            ;; Automatic line-wrapping in org-mode
+            (auto-fill-mode 1)))
 
 
 (use-package org-pomodoro

@@ -31,13 +31,29 @@
   (setq use-package-always-demand t)
   (setq use-package-always-ensure t)
 
-  (global-set-key (kbd "C-x C-c") 'delete-frame))
+  (global-set-key (kbd "C-x C-c") 'dakra-delete-frame-maybe-kill-buffer))
 
 (setq user-full-name "Daniel Kraus"
       user-mail-address "daniel@kraus.my")
 
 ;; Always just use left-to-right text
 (setq bidi-display-reordering nil)
+
+(use-package whitespace
+  :config
+  ;; highlight lines with more than 110 characters
+  (setq whitespace-line-column 110))
+
+;; Only remove trailing whitespaces that I put there
+(use-package ws-butler
+  :commands ws-butler-mode
+  :diminish ws-butler-mode
+  :init
+  (add-hook 'text-mode-hook 'ws-butler-mode)
+  (add-hook 'prog-mode-hook 'ws-butler-mode))
+
+;;(show-paren-mode t)
+;;(setq show-paren-style 'expression)
 
 (use-package which-key
   :config (which-key-mode 1)
@@ -107,15 +123,118 @@
 (add-hook 'imenu-after-jump-hook 'recenter)  ; or 'reposition-window
 
 ;; eshell
+
 ;;(setq eshell-list-files-after-cd t)
 ;;(setq eshell-ls-initial-args "-alh")
 
 ;; We're in emacs, so 'cat' is nicer there than 'less'
 (setenv "PAGER" "cat")
 
-;; Show git info in prompt
-(use-package eshell-git-prompt
-  :config (eshell-git-prompt-use-theme 'powerline))
+(use-package eshell :ensure nil
+  :commands eshell
+  :bind (("C-x m" . eshell)
+         ("C-x M" . dakra-eshell-always)
+         :map eshell-mode-map
+         ("C-d" . ha/eshell-quit-or-delete-char)
+         ("M-P" . eshell-previous-prompt)
+         ("M-N" . eshell-next-prompt)
+         ("M-R" . eshell-list-history)
+         ("M-r" . dakra-eshell-read-history))
+  :config
+  (defun dakra-eshell-always ()
+    "Start a regular shell if you prefer that."
+    (interactive)
+    (eshell t))
+
+  (require 'em-hist)
+  ;; Some ideas from https://github.com/howardabrams/dot-files/blob/master/emacs-eshell.org
+  (setq-default eshell-scroll-to-bottom-on-input 'all
+                eshell-error-if-no-glob t
+                eshell-hist-ignoredups t
+                ;;eshell-save-history-on-exit nil
+                eshell-visual-commands '("ptpython" "ipython" "tail" "vi" "vim"
+                                         "tmux" "screen" "top" "htop" "less" "more" "ncftp")
+                eshell-prefer-lisp-functions nil)
+
+  ;; (eshell/alias "e" "find-file-other-window $1")
+  ;; (eshell/alias "emacs" "find-file $1")
+  ;; (eshell/alias "ee" "find-file $1")
+
+  ;; (eshell/alias "gd" "magit-diff-unstaged")
+  ;; (eshell/alias "gds" "magit-diff-staged")
+
+  ;; Show git info in prompt
+  (use-package eshell-git-prompt
+    :config ;;(eshell-git-prompt-use-theme 'powerline)
+    ;; FIXME: Wait for powerline font
+    (eshell-git-prompt-use-theme 'robbyrussell))
+
+  (defun dakra-eshell-read-history ()
+    (interactive)
+    (insert
+     (completing-read "Eshell history: "
+                      (delete-dups
+                       (ring-elements eshell-history-ring)))))
+
+  ;; Used to C-d exiting from a shell? Want it to keep working, but still allow deleting a character?
+  ;; We can have it both
+  (defun ha/eshell-quit-or-delete-char (arg)
+    (interactive "p")
+    (if (and (eolp) (looking-back eshell-prompt-regexp))
+        (progn
+          (eshell-life-is-too-much) ; Why not? (eshell/exit)
+          (ignore-errors
+            (delete-window)))
+      (delete-char arg)))
+
+  ;; Functions starting with `eshell/' can be called directly from eshell
+  ;; with only the last part. E.g. (eshell/foo) will call `$ foo'
+  (defun eshell/d (&rest args)
+    (dired (pop args) "."))
+
+  (defun eshell/gst (&rest args)
+    (magit-status (pop args) nil)
+    (eshell/echo))   ;; The echo command suppresses output
+
+  (defun eshell/f (filename &optional dir)
+    "Searches in the current directory for files that match the
+given pattern. A simple wrapper around the standard 'find'
+function."
+    (let ((cmd (concat
+                "find " (or dir ".")
+                "      -not -path '*/.git*'"
+                " -and -not -path '*node_modules*'"
+                " -and -not -path '*classes*'"
+                " -and "
+                " -type f -and "
+                "-iname '" filename "'")))
+      (message cmd)
+      (shell-command-to-string cmd)))
+
+  (defun eshell/ef (filename &optional dir)
+    "Searches for the first matching filename and loads it into a
+file to edit."
+    (let* ((files (eshell/f filename dir))
+           (file (car (s-split "\n" files))))
+      (find-file file)))
+
+  (defun eshell/find (&rest args)
+    "Wrapper around the ‘find’ executable."
+    (let ((cmd (concat "find " (string-join args))))
+      (shell-command-to-string cmd)))
+
+  (defun execute-command-on-file-buffer (cmd)
+    (interactive "sCommand to execute: ")
+    (let* ((file-name (buffer-file-name))
+           (full-cmd (concat cmd " " file-name)))
+      (shell-command full-cmd)))
+
+  (defun execute-command-on-file-directory (cmd)
+    (interactive "sCommand to execute: ")
+    (let* ((dir-name (file-name-directory (buffer-file-name)))
+           (full-cmd (concat "cd " dir-name "; " cmd)))
+      (shell-command full-cmd)))
+  )
 
 
 (defun xah-paste-or-paste-previous ()
@@ -131,7 +250,7 @@ Version 2017-01-11"
     (if (eq real-last-command this-command)
         (yank-pop 1)
       (yank))))
-(global-set-key (kbd "C-y") 'xah-paste-or-paste-previous)
+;;(global-set-key (kbd "C-y") 'xah-paste-or-paste-previous)
 
 ;;; toggle narrow or widen (region or defun) with C-x n
 (defun narrow-or-widen-dwim (p)
@@ -530,16 +649,18 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; Tramp config
 
-;; FIXME: New emacs no tramp-file-name-regexp ??
+;; Only for debugging slow tramp connections
+;;(setq tramp-verbose 7)
+
 ;; Skip version control for tramp files
-;;(setq vc-ignore-dir-regexp
-;;      (format "\\(%s\\)\\|\\(%s\\)"
-;;              vc-ignore-dir-regexp
-;;              tramp-file-name-regexp))
+(setq vc-ignore-dir-regexp
+      (format "\\(%s\\)\\|\\(%s\\)"
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
 
 ;; Turn of auto-save for tramp files
-;;(add-to-list 'backup-directory-alist
-;;             (cons tramp-file-name-regexp nil))
+(add-to-list 'backup-directory-alist
+             (cons tramp-file-name-regexp nil))
 
 ;; Use ControlPath from .ssh/config
 (setq tramp-ssh-controlmaster-options "")
@@ -653,10 +774,14 @@ prepended to the element after the #+HEADERS: tag."
 (define-key prelude-mode-map (kbd "C-c S") nil)  ; remove default crux find-shell-init keybinding
 (global-set-key (kbd "C-c S") 'eww-search-words)
 
-(define-key prelude-mode-map (kbd "C-c u") 'browse-url-at-point)
+(use-package browse-url :ensure nil
+  :commands (browse-url browse-url-at-point)
+  :bind (:map prelude-mode-map ("C-c u" . browse-url-at-point)))
 
 
-(setq eww-search-prefix "https://google.com/search?q=")
+(use-package eww :ensure nil
+  :config (setq eww-search-prefix "https://google.com/search?q="))
+
 
 ;; comment-dwim-2 is a replacement for the Emacs' built-in command
 ;; comment-dwim which includes more comment features, including:
@@ -674,7 +799,7 @@ prepended to the element after the #+HEADERS: tag."
 ;; That way you can just C-w to copy the whole line for example.
 (use-package whole-line-or-region
   :diminish whole-line-or-region-mode
-  :config (whole-line-or-region-mode t))
+  :config (whole-line-or-region-global-mode t))
 
 (use-package projectile
   :config
@@ -727,11 +852,11 @@ prepended to the element after the #+HEADERS: tag."
   :demand t
   :diminish company-mode
   :bind (:map company-active-map
-              ([return] . nil)
-              ("RET" . nil)
-              ("TAB" . company-complete-selection)
-              ([tab] . company-complete-selection)
-              ("C-j" . company-complete-selection))
+         ([return] . nil)
+         ("RET" . nil)
+         ("TAB" . company-complete-selection)
+         ([tab] . company-complete-selection)
+         ("C-j" . company-complete-selection))
   :config
   (setq company-idle-delay 0.2)
   (setq company-tooltip-limit 10)
@@ -995,8 +1120,14 @@ displayed anywhere else."
       (let ((buffer (window-buffer (car windows))))
         (when (eq 1 (length (get-buffer-window-list buffer nil t)))
           (kill-buffer buffer))))))
-(add-to-list 'delete-frame-functions #'maybe-delete-frame-buffer)
+;;(add-to-list 'delete-frame-functions #'maybe-delete-frame-buffer)
 
+(defun dakra-delete-frame-maybe-kill-buffer (p)
+  "Call (delete-frame) or (kill-buffer) and (delete-frame) when called with prefix argument."
+  (interactive "P")
+  (when p
+    (maybe-delete-frame-buffer (selected-frame)))
+  (delete-frame))
 
 ;; use outline-cycle (from outline-magic) in outline-minor-mode
 ;; Tried outshine (and navi) but seems buggy and all
@@ -1353,7 +1484,7 @@ displayed anywhere else."
                            "--multi-line=3"
                            "--trailing-comma"
                            "--force-grid-wrap"
-                           "--thirdparty=rethinkdb,sendgrid")))
+                           "--thirdparty=rethinkdb")))
 
 ;; accept 'UTF-8' (uppercase) as a valid encoding in the coding header
 (define-coding-system-alias 'UTF-8 'utf-8)
@@ -1387,12 +1518,57 @@ displayed anywhere else."
 
 (add-hook 'python-mode-hook #'flycheck-virtualenv-setup)
 
+;;; XXX: Wait for official mypy support
+;;; See https://github.com/flycheck/flycheck/pull/1080
+(add-to-list 'flycheck-checkers 'python-mypy)
+
+;;;; mypy support
+(flycheck-def-option-var flycheck-python-mypy-use-python-2 nil (python-mypy)
+  "Whether to pass --py2 to mypy."
+  :type 'boolean
+  :safe #'booleanp
+  :package-version '("flycheck" . "30"))
+
+(flycheck-def-option-var flycheck-python-mypy-silent-imports nil (python-mypy)
+  "Whether to disable type-checking of imported modules."
+  :type 'boolean
+  :safe #'booleanp
+  :package-version '("flycheck" . "30"))
+
+(flycheck-define-checker python-mypy
+  "A Python type checker using mypy.
+See URL `http://www.mypy-lang.org/'."
+  :command ("/home/daniel/.virtualenvs/atomx/bin/mypy"
+            "--shadow-file" source-original source
+            (option-flag "--py2" flycheck-python-mypy-use-python-2)
+            (option-flag "--ignore-missing-imports" flycheck-python-mypy-silent-imports)
+            "--check-untyped-defs"
+            "--warn-redundant-casts"
+            "--warn-unused-ignores"
+            "--hide-error-context"
+            "--strict-optional"
+            "--follow-imports=skip"
+            source-original)
+  :error-patterns
+  ((error line-start (file-name) ":" line ":" (optional column ":")
+          " error:" (message) line-end))
+  :next-checkers (python-flake8)
+  :modes python-mode)
+
+
+;; FIXME: set in python2 projects?
+;;(setq flycheck-python-mypy-use-python-2 t)
+
 ;; Ignore import errors that don't have typings
 (setq flycheck-python-mypy-silent-imports t)
 
 ;; use both pylint and flake8 in flycheck
 ;;(flycheck-add-next-checker 'python-flake8 'python-pylint 'python-mypy)
 ;;(flycheck-add-next-checker 'python-flake8 'python-mypy)
+
+;; XXX: Disable mypy?
+;;(add-to-list 'flycheck-disabled-checkers 'python-mypy)
+
 (setq flycheck-flake8-maximum-line-length 110)
 
 ;; ipython5 uses prompt_toolkit which doesn't play nice with emacs
@@ -1443,8 +1619,8 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 
 
 ;; disable auto escape quote feature of smartparens
-(setq sp-escape-quotes-after-insert nil
-      sp-escape-wrapped-region nil)
+;;(setq sp-escape-quotes-after-insert nil
+;;      sp-escape-wrapped-region nil)
 
 ;; open current line/region/dired/commit in github
 (use-package browse-at-remote
@@ -1476,10 +1652,13 @@ and when called with 2 prefix arguments copy url and open in browser."
 ;; Nicer diff (should be taken from global .config/git/config)
 (setq vc-git-diff-switches '("--indent-heuristic"))
 
-;; Split ediff windows horizontally by default
-(setq ediff-split-window-function 'split-window-horizontally)
+(use-package ediff :ensure nil
+  :config
+  ;; Split ediff windows horizontally by default
+  (setq ediff-split-window-function 'split-window-horizontally))
 
 (use-package magit
+  :defines (magit-ediff-dwim-show-on-hunks)
   :config
   ;; Always highlight word differences in diff
   (setq magit-diff-refine-hunk 'all)
@@ -1504,7 +1683,7 @@ and when called with 2 prefix arguments copy url and open in browser."
   :disabled t  ; doesn't work to well yet. 'api not responding'. 7.8.2017
   :after magit
   :config
-  (setq magithub-api-timeout 10)
+  (setq magithub-api-timeout 5)
   (magithub-feature-autoinject t)
 
   ;; Fix for emacs 26
@@ -1702,20 +1881,6 @@ Lisp function does not specify a special indentation."
                   (funcall method indent-point state)))))))))
 
 
-;; Only remove trailing whitespaces that I put there
-(use-package ws-butler
-  :commands ws-butler-mode
-  :diminish ws-butler-mode
-  :init
-  (add-hook 'text-mode-hook 'ws-butler-mode)
-  (add-hook 'prog-mode-hook 'ws-butler-mode))
-
-(setq whitespace-line-column 110)  ; highlight lines with more than 110 characters
-
-;;(show-paren-mode t)
-;;(setq show-paren-style 'expression)
-
-
 ;; octave
 (use-package octave :ensure nil
   :mode ("\\.m\\'" . octave-mode)
@@ -1750,8 +1915,7 @@ Lisp function does not specify a special indentation."
                            "--single-quote" "true"
                            "--bracket-spacing" "false"
                            ))
-  (setq prettier-js-width-mode 'fill)
-  (setq prettier-js-target-mode "js2-mode"))
+  (setq prettier-js-width-mode 'fill))
 
 (use-package json-mode
   :mode "\\.json\\'")
@@ -1935,7 +2099,7 @@ Lisp function does not specify a special indentation."
 (use-package selected
   :demand t
   :commands selected-minor-mode
-  :init (setq selected-org-mode-map (make-sparse-keymap))
+  :init (defvar selected-org-mode-map (make-sparse-keymap))
   :config (selected-global-mode)
   :bind (
          :map selected-keymap
