@@ -854,8 +854,8 @@ prepended to the element after the #+HEADERS: tag."
   :bind (:map company-active-map
          ([return] . nil)
          ("RET" . nil)
-         ("TAB" . company-complete-selection)
-         ([tab] . company-complete-selection)
+         ;;("TAB" . company-complete-selection)
+         ;;([tab] . company-complete-selection)
          ("C-j" . company-complete-selection))
   :config
   (setq company-idle-delay 0.2)
@@ -866,7 +866,7 @@ prepended to the element after the #+HEADERS: tag."
   ;;(setq company-dabbrev-downcase nil)
   ;; invert the navigation direction if the the completion popup-isearch-match
   ;; is displayed on top (happens near the bottom of windows)
-  (setq company-tooltip-flip-when-above t)
+  ;;(setq company-tooltip-flip-when-above t)
   ;; start autocompletion only after typing
   (setq company-begin-commands '(self-insert-command))
   (global-company-mode 1)
@@ -882,9 +882,6 @@ prepended to the element after the #+HEADERS: tag."
   (use-package slime-company
     :config (slime-setup '(slime-fancy slime-company)))
 
-  (use-package company-restclient
-    :config (add-to-list 'company-backends 'company-restclient))
-
   ;; Add yasnippet support for all company backends
   (defvar company-mode/enable-yas t
     "Enable yasnippet for all backends.")
@@ -895,6 +892,19 @@ prepended to the element after the #+HEADERS: tag."
               '(:with company-yasnippet))))
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
+(use-package company-insert-selected :load-path "repos/company-insert-selected"
+  :after company
+  :bind (:map company-active-map
+         ("TAB" . company-select-first-then-next)
+         ("<tab>" . company-select-first-then-next))
+  :config
+  ;;(unbind-key "<return>" company-active-map)
+  ;;(unbind-key "RET" company-active-map)
+
+  (setq company-frontends '(company-insert-selected-frontend
+                            company-pseudo-tooltip-frontend
+                            company-echo-metadata-frontend))
+  (setq company-selection-wrap-around t))
 ;; Rust
 ;; You may need installing the following packages on your system:
 ;; * rustc (Rust Compiler)
@@ -1497,7 +1507,11 @@ displayed anywhere else."
     (outline-minor-mode)
     (setq outline-regexp "##+"))
   (add-hook 'restclient-mode-hook 'restclient-mode-outline-hook)
-  :config (use-package restclient-helm))
+  :config
+  (use-package restclient-helm)
+  (use-package company-restclient
+    :after company
+    :config (add-to-list 'company-backends 'company-restclient)))
 
 ;; activate virtualenv for flycheck
 ;; (from https://github.com/lunaryorn/.emacs.d/blob/master/lisp/flycheck-virtualenv.el)

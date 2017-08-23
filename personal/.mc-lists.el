@@ -5,6 +5,8 @@
       '(
         crux-move-beginning-of-line
         crux-smart-open-line
+        dakra-capitalize-dwim
+        dakra-downcase-dwim
         dakra-upcase-dwim
         electric-newline-and-maybe-indent
         haml-electric-backspace
