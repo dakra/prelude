@@ -130,16 +130,19 @@
 ;; We're in emacs, so 'cat' is nicer there than 'less'
 (setenv "PAGER" "cat")
 
+;; Fixme eshell-mode-map maps to global keybindings? Check "C-d"
+;; Isssue: https://github.com/jwiegley/use-package/issues/332
 (use-package eshell :ensure nil
   :commands eshell
   :bind (("C-x m" . eshell)
          ("C-x M" . dakra-eshell-always)
-         :map eshell-mode-map
-         ("C-d" . ha/eshell-quit-or-delete-char)
-         ("M-P" . eshell-previous-prompt)
-         ("M-N" . eshell-next-prompt)
-         ("M-R" . eshell-list-history)
-         ("M-r" . dakra-eshell-read-history))
+         ;;:map eshell-mode-map
+         ;;("M-P" . eshell-previous-prompt)
+         ;;("C-d" . ha/eshell-quit-or-delete-char)
+         ;;("M-N" . eshell-next-prompt)
+         ;;("M-R" . eshell-list-history)
+         ;;("M-r" . dakra-eshell-read-history)
+         )
   :config
   (defun dakra-eshell-always ()
     "Start a regular shell if you prefer that."
@@ -187,6 +190,15 @@
             (delete-window)))
       (delete-char arg)))
 
+  ;; Fixme eshell-mode-map maps to global keybindings? Check "C-d"
+  ;; Isssue: https://github.com/jwiegley/use-package/issues/332
+  (add-hook 'eshell-mode-hook (lambda ()
+                                (local-set-key (kbd "M-P") 'eshell-previous-prompt)
+                                (local-set-key (kbd "M-N") 'eshell-next-prompt)
+                                (local-set-key (kbd "M-R") 'eshell-list-history)
+                                (local-set-key (kbd "M-r") 'dakra-eshell-read-history)
+                                (local-set-key (kbd "C-d") 'ha/eshell-quit-or-delete-char)
+                                ))
   ;; Functions starting with `eshell/' can be called directly from eshell
   ;; with only the last part. E.g. (eshell/foo) will call `$ foo'
   (defun eshell/d (&rest args)
