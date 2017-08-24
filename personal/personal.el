@@ -149,6 +149,11 @@
     (interactive)
     (eshell t))
 
+  (require 'em-smart)
+  (setq-default eshell-where-to-jump 'begin)
+  (setq-default eshell-review-quick-commands nil)
+  (setq-default eshell-smart-space-goes-to-end t)
+
   (require 'em-hist)
   ;; Some ideas from https://github.com/howardabrams/dot-files/blob/master/emacs-eshell.org
   (setq-default eshell-scroll-to-bottom-on-input 'all
@@ -908,7 +913,9 @@ prepended to the element after the #+HEADERS: tag."
   :after company
   :bind (:map company-active-map
          ("TAB" . company-select-first-then-next)
-         ("<tab>" . company-select-first-then-next))
+         ("<tab>" . company-select-first-then-next)
+         ("<S-tab>" . company-select-previous-then-none)
+         ("<backtab>" . company-select-previous-then-none))
   :config
   ;;(unbind-key "<return>" company-active-map)
   ;;(unbind-key "RET" company-active-map)
