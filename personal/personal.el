@@ -297,6 +297,9 @@ is already narrowed."
         (t (narrow-to-defun))))
 (define-key ctl-x-map "n" #'narrow-or-widen-dwim)
 
+;; Associate more files with conf-mode
+(use-package conf-mode :ensure nil
+  :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'"))
 
 ;; dired config mostly from https://github.com/Fuco1/.emacs.d/blob/master/files/dired-defs.org
 (use-package dired :ensure nil
@@ -1075,7 +1078,7 @@ split via i3 and create a new Emacs frame."
         '(("reddit\\.com" . markdown-mode)
           ("github\\.com" . gfm-mode)
           ("gitlab\\.com" . gfm-mode)
-          ("gitlab\\.bis" . gfm-mode)
+          ("gitlab\\.paesslergmbh\\.de" . gfm-mode)
           ("jira.paesslergmbh.de" . jira-markup-mode))))
 
 
@@ -1672,7 +1675,7 @@ and when called with 2 prefix arguments copy url and open in browser."
         (browse-at-remote))))
   :bind (:map prelude-mode-map ("C-c G" . dakra-browse-at-remote))
   :config
-  (add-to-list 'browse-at-remote-remote-type-domains '("gitlab.bis" . "gitlab"))
+  (add-to-list 'browse-at-remote-remote-type-domains '("gitlab.paesslergmbh.de" . "gitlab"))
   (setq browse-at-remote-prefer-symbolic nil))
 
 ;; FIXME: find another gh lib. only works for public repos and unmaintained

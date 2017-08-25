@@ -154,7 +154,13 @@
 (add-to-list 'mu4e~mailing-lists '("pylons-discuss.googlegroups.com" . "Pyramid"))
 (add-to-list 'mu4e~mailing-lists '("pylons-devel.googlegroups.com" . "Pyramid"))
 
-(setq mu4e-bookmarks `(("maildir:/private/Inbox OR maildir:/gmail/inbox OR maildir:/atomx/inbox OR maildir:/hogaso/inbox OR maildir:/e5/Inbox" "All inboxes" ?i)
+(setq mu4e-bookmarks `((,(concat "maildir:/private/Inbox OR "
+                                 "maildir:/paessler/Inbox OR "
+                                 "maildir:/gmail/inbox OR "
+                                 "maildir:/atomx/inbox OR "
+                                 "maildir:/hogaso/inbox OR "
+                                 "maildir:/e5/Inbox")
+                        "All inboxes" ?i)
                        ("flag:flagged" "Flagged messages" ?f)
                        (,(concat "flag:unread AND "
                                  "NOT flag:trashed AND "
@@ -178,7 +184,7 @@
 
 ;; allow for updating mail using 'U' in the main view:
 ;; (only update inboxes)
-(setq mu4e-get-mail-command "mbsync private gmail-inbox atomx-inbox hogaso-inbox e5-inbox")
+(setq mu4e-get-mail-command "mbsync private paessler e5 gmail-inbox atomx-inbox hogaso-inbox")
 ;; for update all:
 ;;(setq mu4e-get-mail-command "mbsync -a")
 
@@ -242,6 +248,7 @@
         "dakra-cepheus@tr0ll.net"
         "daniel@atomx.com"
         "daniel@hogaso.com"
+        "daniel.kraus@paessler.com"
         "daniel.kraus@ebenefuenf.de"))
 (setq mu4e-compose-dont-reply-to-self t)
 
@@ -445,6 +452,28 @@
                                                      "Sitz der Gesellschaft: Staffelbach\n"
                                                      "Amtsgericht Bamberg - HRB 6233\n"
                                                      "USt-IdNr. DE 263246988\n"))))
+
+         ,(make-mu4e-context
+           :name "Paessler"
+           :enter-func (lambda () (mu4e-message "Switch to the paessler context"))
+           ;; leave-fun not defined
+           :match-func (lambda (msg)
+                         (when msg
+                           (mu4e-message-maildir-matches msg "^/paessler")))
+           :vars '(  ( user-mail-address  . "daniel.kraus@paessler.com" )
+                     ( mu4e-maildir-shortcuts . (("/paessler/Inbox"         . ?i)
+                                                 ("/paessler/Outbox"        . ?s)
+                                                 ("/paessler/Deleted Items" . ?t)
+                                                 ("/paessler/Drafts"        . ?d)
+                                                 ("/paessler/Archive"       . ?a)))
+                     ( mu4e-drafts-folder . "/paessler/Drafts" )
+                     ( mu4e-sent-folder   . "/paessler/Sent" )
+                     ( mu4e-trash-folder  . "/paessler/Deleted Items" )
+                     ( mu4e-refile-folder . "/paessler/Archive" )
+                     ( user-full-name     . "Daniel Kraus" )
+                     ( XXX-mu4e-compose-signature . (concat
+                                                     "regards,\n"
+                                                     "  Daniel Kraus"))))
 
          ,(make-mu4e-context
            :name "hogaso"
