@@ -301,6 +301,10 @@ is already narrowed."
 (use-package conf-mode :ensure nil
   :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'"))
 
+;; Edit GNU gettext PO files
+(use-package po-mode
+  :mode ("\\.po\\'" "\\.po\\."))
+
 ;; dired config mostly from https://github.com/Fuco1/.emacs.d/blob/master/files/dired-defs.org
 (use-package dired :ensure nil
   :config
@@ -1068,6 +1072,7 @@ split via i3 and create a new Emacs frame."
               (list 'flycheck-display-errors-function #'frames-only-mode-flycheck-display-errors)))
   ;; Add function that calls (display-buffer) if you want to exclude it from frames-only-mode
   (add-to-list 'frames-only-mode-use-window-functions 'undo-tree-visualize)
+  (add-to-list 'frames-only-mode-use-window-functions 'po-edit-string)
   (frames-only-mode))
 
 (use-package edit-server

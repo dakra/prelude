@@ -442,6 +442,7 @@
           (lambda ()
             (add-hook 'with-editor-post-finish-hook
                       (lambda ()
+                        (sleep-for 1)  ;; See https://github.com/magit/orgit/issues/19
                         (let* ((repo (abbreviate-file-name default-directory))
                                (rev (magit-git-string "rev-parse" "HEAD"))
                                (link (format "orgit-rev:%s::%s" repo rev))
