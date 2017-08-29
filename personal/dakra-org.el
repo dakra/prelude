@@ -28,10 +28,13 @@
          ("\C-ca" . org-agenda)
          ("\C-cb" . org-switchb)
          :map org-mode-map ("M-o" . ace-link-org))
-  :init
+  ;;:init
+  ;; FIXME: If there is a org-clock to resume (forgot to clock out before shutting down)
+  ;;        then there will be a *blocking* minibuffer with the question to resume the
+  ;;        clock and the daemon does NOT start because there's no way to see/answer that question
   ;; Display custom agenda when starting Emacs in daemon mode
-  ;; (when (daemonp)
-  ;;   (add-hook 'after-init-hook '(lambda () (org-agenda nil " "))))
+  ;;(when (daemonp)
+  ;;  (add-hook 'after-init-hook '(lambda () (org-agenda nil " "))))
 
   :config
   (setq org-log-done 'note)

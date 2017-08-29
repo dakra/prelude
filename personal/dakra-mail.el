@@ -233,7 +233,8 @@
 ;; display html messages
 (use-package mu4e-contrib :ensure nil
   :config
-  (setq mu4e-html2text-command 'mu4e-shr2text)
+  ;;(require 'mu4e-message)
+  ;;(setq mu4e-html2text-command 'mu4e-shr2text)
   (add-hook 'mu4e-view-mode-hook
             (lambda()
               ;; try to emulate some of the eww key-bindings
