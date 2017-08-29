@@ -15,6 +15,7 @@
         ledger-magic-tab
         markdown-exdent-or-delete
         org-beginning-of-line
+        org-cycle
         org-delete-char
         org-end-of-line
         org-force-self-insert
@@ -30,6 +31,7 @@
         sp-kill-hybrid-sexp
         sp-kill-word
         sp-splice-sexp
+        whole-line-or-region-kill-region
         whole-line-or-region-yank
         xah-paste-or-paste-previous
         yas-expand

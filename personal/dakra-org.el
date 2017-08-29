@@ -446,7 +446,8 @@
                         (let* ((repo (abbreviate-file-name default-directory))
                                (rev (magit-git-string "rev-parse" "HEAD"))
                                (link (format "orgit-rev:%s::%s" repo rev))
-                               (desc (format "%s (magit-rev %s)" repo rev)))
+                               (summary (substring-no-properties (magit-format-rev-summary rev)))
+                               (desc (format "%s (%s)" repo summary)))
                           (push (list link desc) org-stored-links)))
                       t t)))
 

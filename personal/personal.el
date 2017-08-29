@@ -537,7 +537,7 @@ is already narrowed."
      "
      _p_ython    _e_lisp        _s_ql
      _g_o        _j_avascript   _t_ypescript
-     _r_ust      _R_est-client
+     _r_ust      _R_est-client  _h_tml
      _o_rg-mode  _T_ext         _m_arkdown
      "
      ("p" (switch-to-buffer "*python*scratchpad.py"))
@@ -548,6 +548,7 @@ is already narrowed."
      ("t" (switch-to-buffer "*ts*scratchpad.ts"))
      ("r" (switch-to-buffer "*rust*scratchpad.rs"))
      ("R" (switch-to-buffer "*rest*scratchpad.rest"))
+     ("h" (switch-to-buffer "*html*scratchpad.html"))
      ("o" (switch-to-buffer "*org*scratchpad.org"))
      ("T" (switch-to-buffer "*text*scratchpad.txt"))
      ("m" (switch-to-buffer "*markdown*scratchpad.md"))))
@@ -1591,8 +1592,8 @@ See URL `http://www.mypy-lang.org/'."
             "--follow-imports=skip"
             source-original)
   :error-patterns
-  ((error line-start (file-name) ":" line ":" (optional column ":")
-          " error:" (message) line-end))
+  ((warning line-start (file-name) ":" line ":" (optional column ":")
+            " error:" (message) line-end))
   :next-checkers (python-flake8)
   :modes python-mode)
 
