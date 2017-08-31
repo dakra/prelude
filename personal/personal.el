@@ -192,7 +192,11 @@
         (progn
           (eshell-life-is-too-much) ; Why not? (eshell/exit)
           (ignore-errors
-            (delete-window)))
+            (progn
+              ;; Remove frame if eshell is only window (otherwise just close window)
+              (if (one-window-p)
+                  (delete-frame)
+                (delete-window)))))
       (delete-char arg)))
 
   ;; Fixme eshell-mode-map maps to global keybindings? Check "C-d"
@@ -448,6 +452,9 @@ is already narrowed."
                       (set-window-configuration wnd))))
       (error "no more than 2 files should be marked"))))
 (define-key dired-mode-map "e" 'ora-ediff-files)
+
+(use-package async
+  :config (dired-async-mode 1))
 
 (defun ora-dired-rsync (dest)
   (interactive
@@ -917,7 +924,7 @@ prepended to the element after the #+HEADERS: tag."
               '(:with company-yasnippet))))
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
-(use-package company-insert-selected :load-path "repos/company-insert-selected"
+(use-package company-insert-selected :ensure nil :load-path "repos/company-insert-selected"
   :after company
   :bind (:map company-active-map
          ("TAB" . company-select-first-then-next)
@@ -1059,6 +1066,8 @@ split via i3 and create a new Emacs frame."
 (use-package frames-only-mode
   :if (or (daemonp) window-system)
   :config
+  ;; Open (e)shell in new frame instead of the current one
+  (setq display-buffer-alist '(("\\`\\*e?shell" display-buffer-pop-up-frame)))
   ;; Set config because magit-commit-show-diff defaults to nil
   (setq frames-only-mode-configuration-variables
         (list (list 'pop-up-frames 'graphic-only)

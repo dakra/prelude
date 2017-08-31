@@ -445,12 +445,12 @@
           (lambda ()
             (add-hook 'with-editor-post-finish-hook
                       (lambda ()
-                        (sleep-for 1)  ;; See https://github.com/magit/orgit/issues/19
+                        (sleep-for 0.5)  ;; See https://github.com/magit/orgit/issues/19
                         (let* ((repo (abbreviate-file-name default-directory))
                                (rev (magit-git-string "rev-parse" "HEAD"))
                                (link (format "orgit-rev:%s::%s" repo rev))
                                (summary (substring-no-properties (magit-format-rev-summary rev)))
-                               (desc (format "%s (%s)" repo summary)))
+                               (desc (format "%s (%s)" summary repo)))
                           (push (list link desc) org-stored-links)))
                       t t)))
 
@@ -508,6 +508,29 @@
 ;; Set in preload.el
 ;; see: https://lists.gnu.org/archive/html/emacs-orgmode/2012-08/msg00715.html
 
+
+;; Custom org-sort to sort by TODO and then by priority
+;; See: https://emacs.stackexchange.com/a/9588/12559
+(defun todo-to-int (todo)
+  (first (-non-nil
+          (mapcar (lambda (keywords)
+                    (let ((todo-seq
+                           (-map (lambda (x) (first (split-string  x "(")))
+                                 (rest keywords))))
+                      (cl-position-if (lambda (x) (string= x todo)) todo-seq)))
+                  org-todo-keywords))))
+
+(defun my/org-sort-key ()
+  (let* ((todo-max (apply #'max (mapcar #'length org-todo-keywords)))
+         (todo (org-entry-get (point) "TODO"))
+         (todo-int (if todo (todo-to-int todo) todo-max))
+         (priority (org-entry-get (point) "PRIORITY"))
+         (priority-int (if priority (string-to-char priority) org-default-priority)))
+    (format "%03d %03d" todo-int priority-int)))
+
+(defun my/org-sort-entries ()
+  (interactive)
+  (org-sort-entries nil ?f #'my/org-sort-key))
 
 ;;; org babel config
 
