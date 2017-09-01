@@ -186,9 +186,10 @@
 
   ;; Used to C-d exiting from a shell? Want it to keep working, but still allow deleting a character?
   ;; We can have it both
+  (require 'em-prompt)
   (defun ha/eshell-quit-or-delete-char (arg)
     (interactive "p")
-    (if (and (eolp) (looking-back eshell-prompt-regexp))
+    (if (and (eolp) (looking-back eshell-prompt-regexp nil))
         (progn
           (eshell-life-is-too-much) ; Why not? (eshell/exit)
           (ignore-errors
@@ -1067,7 +1068,7 @@ split via i3 and create a new Emacs frame."
   :if (or (daemonp) window-system)
   :config
   ;; Open (e)shell in new frame instead of the current one
-  (setq display-buffer-alist '(("\\`\\*e?shell" display-buffer-pop-up-frame)))
+  (add-to-list 'display-buffer-alist '(("\\`\\*e?shell" display-buffer-pop-up-frame)))
   ;; Set config because magit-commit-show-diff defaults to nil
   (setq frames-only-mode-configuration-variables
         (list (list 'pop-up-frames 'graphic-only)
@@ -1743,7 +1744,9 @@ and when called with 2 prefix arguments copy url and open in browser."
 
 (use-package helpful
   :bind (("C-h f" . helpful-function)
+         ("C-h v" . helpful-variable)
          ("C-c h f" . helpful-function)
+         ("C-c h v" . helpful-variable)
          ("C-c h c" . helpful-command)
          ("C-c h m" . helpful-macro)))
 

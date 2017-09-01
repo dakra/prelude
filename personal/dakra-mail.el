@@ -540,6 +540,10 @@
 
 (defcustom mbork/message-attachment-intent-re
   (regexp-opt '("attach"
+                "anhang"
+                "angehängt"
+                "angehaengt"
+                "datei"
 		"file"
                 "pdf"))
   "A regex which - if found in the message, and if there is no
