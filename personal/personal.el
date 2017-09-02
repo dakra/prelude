@@ -1694,6 +1694,14 @@ and when called with 2 prefix arguments copy url and open in browser."
   (add-to-list 'browse-at-remote-remote-type-domains '("gitlab.paesslergmbh.de" . "gitlab"))
   (setq browse-at-remote-prefer-symbolic nil))
 
+(use-package with-editor
+  :commands (with-editor-export-editor)
+  :init
+  ;; Use local Emacs instance as $EDITOR (e.g. in `git commit' or `crontab -e')
+  (add-hook 'shell-mode-hook  'with-editor-export-editor)
+  (add-hook 'term-mode-hook   'with-editor-export-editor)
+  (add-hook 'eshell-mode-hook 'with-editor-export-editor))
+
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
 ;; just type 'fixes #' and get github issue autocompletion
 (use-package github-issues
