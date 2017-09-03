@@ -9,6 +9,8 @@
         dakra-downcase-dwim
         dakra-upcase-dwim
         electric-newline-and-maybe-indent
+        emmet-expand-line
+        emmet-next-edit-point
         haml-electric-backspace
         helm-show-kill-ring
         indent-for-tab-command
@@ -26,7 +28,9 @@
         shrink-whitespace
         sp-backward-delete-char
         sp-backward-kill-word
+        sp-backward-sexp
         sp-delete-char
+        sp-forward-sexp
         sp-forward-slurp-sexp
         sp-kill-hybrid-sexp
         sp-kill-word

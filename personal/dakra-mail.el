@@ -202,6 +202,10 @@
 ;;; Save attachment (this can also be a function)
 (setq mu4e-attachment-dir "~/Downloads")
 
+;; When saving multiple attachments (C-u prefix) save all in same directory
+;; without asking for the location of every attachment
+(setq mu4e-save-multiple-attachments-without-asking t)
+
 ;; Attach files from dired (C-c RET C-a)
 (use-package gnus-dired :ensure nil
   :config
