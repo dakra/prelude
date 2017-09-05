@@ -79,6 +79,11 @@
 (use-package realgud :defer t)
 
 
+;; Type like a hacker
+(use-package hacker-typer
+  :commands (hacker-typer hackerman)
+  :config (setq hacker-typer-remove-comments t))
+
 (use-package color-identifiers-mode
   :disabled t  ; TODO: play with and see if I like it
   :commands global-color-identifiers-mode
