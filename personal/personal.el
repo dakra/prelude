@@ -315,6 +315,37 @@ is already narrowed."
 (use-package po-mode
   :mode ("\\.po\\'" "\\.po\\."))
 
+
+(use-package emms
+  :commands (emms emms-play-url emms-play-file emms-play-dired)
+  :bind (:map dired-mode-map
+         ("P" . emms-play-dired)))
+
+(use-package emms-player-simple-mpv
+  :after emms
+  :config
+  (require 'emms-player-simple-mpv-control-functions)
+  (define-emms-simple-player-mpv my-mpv '(file url streamlist playlist)
+    (concat "\\`\\(http[s]?\\|mms\\)://\\|"
+            (apply #'emms-player-simple-regexp
+                   "aac" "pls" "m3u"
+                   emms-player-base-format-list))
+    "mpv" "--no-terminal" "--force-window=no" "--audio-display=no")
+
+  (emms-player-simple-mpv-add-to-converters
+   'emms-player-my-mpv "." '(playlist)
+   (lambda (track-name) (format "--playlist=%s" track-name)))
+
+  (add-to-list 'emms-player-list 'emms-player-my-mpv)
+
+  (require 'emms-player-simple-mpv-e.g.hydra)
+  ;; Setting it to a global key bind would be useful.
+  ;; (global-set-key (kbd "<f2> m") 'emms-player-simple-mpv-hydra/body)
+  (defalias 'emms-mpv-hydra 'emms-player-simple-mpv-hydra/body)
+
+  (require 'emms-player-simple-mpv-e.g.time-display)
+  (require 'emms-player-simple-mpv-e.g.playlist-fname))
+
 ;; dired config mostly from https://github.com/Fuco1/.emacs.d/blob/master/files/dired-defs.org
 (use-package dired :ensure nil
   :config
@@ -333,7 +364,14 @@ is already narrowed."
   (setq dired-listing-switches "-hal --group-directories-first")
   )
 
+(use-package wdired :ensure nil
+  :after dired
+  :commands wdired-change-to-wdired-mode
+  :bind (:map dired-mode-map
+         ("C-c C-e" . wdired-change-to-dired-mode)))
+
 (use-package dired-x :ensure nil
+  :after dired
   :config
   (defconst my-dired-media-files-extensions
     '("mp3" "mp4" "MP3" "MP4" "avi" "mpg" "flv" "ogg")
@@ -346,6 +384,7 @@ is already narrowed."
                      "mpv")))
 
 (use-package dired-rainbow
+  :after dired
   :config
   (dired-rainbow-define html "#4e9a06" ("htm" "html" "xhtml"))
   (dired-rainbow-define xml "#b4fa70" ("xml" "xsd" "xsl" "xslt" "wsdl"))
@@ -368,22 +407,26 @@ is already narrowed."
   (dired-rainbow-define-chmod executable-unix "Green" "-.*x.*"))
 
 (use-package dired-collapse
+  :after dired
   :commands dired-collapse-mode
   :init (add-hook 'dired-mode-hook 'dired-collapse-mode))
 
 ;; Browse compressed archives in dired (requires `avfs' to be installed)
-(use-package dired-avfs)
+(use-package dired-avfs
+  :after dired)
 
 (use-package dired-open
+  :after dired
   :commands dired-open-file
   :bind (:map dired-mode-map
-              ("RET" . dired-open-file)
-              ([return] . dired-open-file)
-              ("f" . dired-open-file))
+         ("RET" . dired-open-file)
+         ([return] . dired-open-file)
+         ("f" . dired-open-file))
   :config
   (setq dired-open-functions '(dired-open-by-extension dired-open-guess-shell-alist dired-open-subdir)))
 
 (use-package dired-ranger
+  :after dired
   :commands (dired-ranger-copy dired-ranger-paste dired-ranger-move
                                dired-ranger-bookmark dired-ranger-bookmark-visit)
   :init
@@ -396,8 +439,8 @@ is already narrowed."
              ("m" . dired-ranger-move))
 
   (bind-keys :map dired-mode-map
-             ("'" . dired-ranger-bookmark)
-             ("`" . dired-ranger-bookmark-visit)))
+    ("'" . dired-ranger-bookmark)
+    ("`" . dired-ranger-bookmark-visit)))
 
 (use-package dired+
   :init
@@ -720,7 +763,6 @@ prepended to the element after the #+HEADERS: tag."
   :diminish back-button-mode
   :config (back-button-mode 1))
 
-
 (use-package imenu-anywhere
   :bind (("M-i" . helm-imenu-anywhere)
          :map prelude-mode-map
@@ -755,6 +797,7 @@ prepended to the element after the #+HEADERS: tag."
   ;; Don't show details in helm-mini for tramp buffers
   (setq helm-buffer-skip-remote-checking t)
 
+  (require 'helm-bookmark)
   ;; Show bookmarks (and create bookmarks) in helm-mini
   (setq helm-mini-default-sources '(helm-source-buffers-list
                                     helm-source-recentf
@@ -1073,7 +1116,7 @@ split via i3 and create a new Emacs frame."
   :if (or (daemonp) window-system)
   :config
   ;; Open (e)shell in new frame instead of the current one
-  (add-to-list 'display-buffer-alist '(("\\`\\*e?shell" display-buffer-pop-up-frame)))
+  (add-to-list 'display-buffer-alist '("\\`\\*e?shell" display-buffer-pop-up-frame))
   ;; Set config because magit-commit-show-diff defaults to nil
   (setq frames-only-mode-configuration-variables
         (list (list 'pop-up-frames 'graphic-only)
@@ -1814,15 +1857,34 @@ and when called with 2 prefix arguments copy url and open in browser."
   (setq outline-regexp "[#;]+"))
 
 (use-package hledger-mode
-  :mode "\\.ledger\\'"
+  ;;:disabled t  ;; Think ledger-mode is better.. needs more experimenting
+  ;;:mode "\\.ledger\\'"
+  :commands (hledger-mode hledger-jentry hledger-run-command)
+  :bind (:map hledger-mode-map
+         ("C-c e" . hledger-jentry)
+         ("C-c j" . hledger-run-command)
+         ("M-p" . hledger/prev-entry)
+         ("M-n" . hledger/next-entry))
   :init (add-hook 'hledger-mode-hook 'ledger-mode-outline-hook)
   :config
   (setq hledger-jfile "/home/daniel/cepheus/finances.ledger")
   ;; Auto-completion for account names
-  (add-to-list 'company-backends 'hledger-company))
+  (add-to-list 'company-backends 'hledger-company)
+
+  (defun hledger/next-entry ()
+    "Move to next entry and pulse."
+    (interactive)
+    (hledger-next-or-new-entry)
+    (hledger-pulse-momentary-current-entry))
+
+  (defun hledger/prev-entry ()
+    "Move to last entry and pulse."
+    (interactive)
+    (hledger-backward-entry)
+    (hledger-pulse-momentary-current-entry)))
 
 (use-package ledger-mode
-  :disabled t  ;; try hledger
+  ;;:disabled t  ;; try hledger
   :mode "\\.ledger\\'"
   :init
   ;; http://unconj.ca/blog/using-hledger-with-ledger-mode.html

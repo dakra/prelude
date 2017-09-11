@@ -413,6 +413,9 @@
 ;; Overwrite the current window with the agenda
 (setq org-agenda-window-setup 'current-window)
 
+(use-package org-bullets
+  :commands org-bullets-mode)
+
 (add-hook 'org-mode-hook
           (lambda ()
             ;; disable whitespace-mode in org-mode
