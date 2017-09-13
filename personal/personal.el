@@ -929,6 +929,11 @@ prepended to the element after the #+HEADERS: tag."
 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Frames.html
 (add-hook 'after-make-frame-functions '--set-emoji-font)
 
+;; Autocomplete for git commands in shell and
+;; the git command from magit ('!')
+(use-package pcmpl-git
+  :commands pcomplete/git)
+
 (use-package company
   :demand t
   :diminish company-mode
