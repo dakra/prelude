@@ -1726,16 +1726,16 @@ $ autopep8 --in-place --aggressive --aggressive <filename>"
 (use-package browse-at-remote
   :init
   (defun dakra-browse-at-remote (p)
-    "Like (browse-at-remote) but when called with one prefix argument
+    "Like (browse-at-remote) but when called will also copy the url
+in the kill ring and when called with one prefix argument
 copy the url in the kill ring instead of opening in the brower
-and when called with 2 prefix arguments copy url and open in browser."
+and when called with 2 prefix arguments only open in browser."
     (interactive "P*")
     (if (eq (car p) 4)
         (browse-at-remote-kill)
       (if (eq (car p) 16)
-          (progn
-            (browse-at-remote-kill)
-            (browse-at-remote))
+          (browse-at-remote)
+        (browse-at-remote-kill)
         (browse-at-remote))))
   :bind (:map prelude-mode-map ("C-c G" . dakra-browse-at-remote))
   :config
@@ -1778,7 +1778,8 @@ and when called with 2 prefix arguments copy url and open in browser."
   (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1))
 
 (use-package gist
-  :defer t)
+  :commands (gist-list gist-fork gist-fetch gist-buffer gist-buffer-private
+                       gist-region gist-region-private gist-list gist-list-starred))
 
 ;; use magithub instead
 ;; github pull request support for magit
@@ -2039,11 +2040,11 @@ Lisp function does not specify a special indentation."
   :config
   (setq prettier-js-args '(
                            "--trailing-comma" "all"
-                           ;;"--print-width" "100"
                            ;;"--tab-width" "4"
                            "--single-quote" "true"
                            "--bracket-spacing" "false"
                            ))
+  ;; prettier "--print-width" argument is read from 'fill-column' variable
   (setq prettier-js-width-mode 'fill))
 
 (use-package json-mode

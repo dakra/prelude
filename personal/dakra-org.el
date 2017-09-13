@@ -24,10 +24,13 @@
 (use-package org :ensure nil  ; install package org-plus-contrib
   :commands (org-agenda)
   :mode ("\\.org\\'" . org-mode)
-  :bind (("\C-cl" . org-store-link)
-         ("\C-ca" . org-agenda)
-         ("\C-cb" . org-switchb)
-         :map org-mode-map ("M-o" . ace-link-org))
+  :bind (("C-c l" . org-store-link)
+         ("C-c a" . org-agenda)
+         ("C-c b" . org-switchb)
+         :map org-mode-map
+         ("M-o" . ace-link-org)
+         ("M-p" . org-previous-visible-heading)
+         ("M-n" . org-next-visible-heading))
   ;;:init
   ;; FIXME: If there is a org-clock to resume (forgot to clock out before shutting down)
   ;;        then there will be a *blocking* minibuffer with the question to resume the
