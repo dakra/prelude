@@ -1573,7 +1573,7 @@ displayed anywhere else."
 
 (use-package pydoc
   :bind (:map anaconda-mode-map
-              ("M-?" . pydoc-at-point))
+         ("M-?" . pydoc-at-point))
   :commands (pydoc-at-point pydoc-browse))
 
 ;; Automatically sort and format python imports
@@ -1770,6 +1770,13 @@ and when called with 2 prefix arguments only open in browser."
   ;; Split ediff windows horizontally by default
   (setq ediff-split-window-function 'split-window-horizontally))
 
+(use-package bug-reference :ensure nil
+  :commands (bug-reference-mode bug-reference-prog-mode)
+  ;;:init (add-hook 'prog-mode-hook 'bug-reference-prog-mode)
+  :config
+  ;; (setq bug-reference-bug-regexp "\\([Bb]ug\\|[Pp]ull request\\|[Ii]ssue\\|[PpMm][Rr]\\) #\\([0-9]+\\(?:#[0-9]+\\)?\\)"))
+  (setq bug-reference-bug-regexp "#\\(?2:[0-9]+\\)"))
+
 (use-package magit
   :defines (magit-ediff-dwim-show-on-hunks)
   :config
@@ -1794,7 +1801,7 @@ and when called with 2 prefix arguments only open in browser."
   :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
 
 (use-package magithub
-  :disabled t  ; doesn't work to well yet. 'api not responding'. 7.8.2017
+  :disabled t  ; Wait for async support https://github.com/vermiculus/magithub/issues/37
   :after magit
   :config
   (setq magithub-api-timeout 5)
@@ -2363,7 +2370,8 @@ Lisp function does not specify a special indentation."
 
 (use-package web-mode
   :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
-         "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja2?\\'")
+         "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja2?\\'"
+         "\\.vue\\'")
   :config
   ;;(setq web-mode-engines-alist '(("django"  . "/templates/.*\\.html\\'")))
   (setq web-mode-engines-alist '(("django" . "\\.jinja2?\\'")))

@@ -170,7 +170,7 @@
                                  "NOT maildir:/gmail/spam AND "
                                  "NOT maildir:/gmail/trash")
                         "Unread messages" ?a)
-                       ("list:magit@googlegroups.com OR list:mu-discuss@googlegroups.com" "Elisp" ?e)
+                       ("list:magit@googlegroups.com OR list:mu-discuss@googlegroups.com or list:emacs-devel.gnu.org" "Elisp" ?e)
                        ("list:pylons-discuss@googlegroups.com OR list:pylons-devel@googlegroups.com OR list:sqlalchemy@googlegroups.com" "Python" ?p)
                        ("list:intern.lists.ccc.de" "CCC Intern" ?c)
                        ("list:intern.lists.entropia.de" "Entropia Intern" ?k)
