@@ -368,7 +368,7 @@ is already narrowed."
   :after dired
   :commands wdired-change-to-wdired-mode
   :bind (:map dired-mode-map
-         ("C-c C-e" . wdired-change-to-dired-mode)))
+         ("C-c C-e" . dired-toggle-read-only)))
 
 (use-package dired-x :ensure nil
   :after dired
@@ -1169,6 +1169,9 @@ split via i3 and create a new Emacs frame."
 (use-package zop-to-char
   :bind (("M-z" . zop-up-to-char)
          ("M-Z" . zop-to-char)))
+
+(use-package dumb-diff
+  :commands (dumb-diff dumb-diff-set-region-as-buffer1 dumb-diff-set-region-as-buffer2))
 
 (use-package diff-hl
   :commands (turn-on-diff-hl-mode diff-hl-dired-mode diff-hl-magit-post-refresh)

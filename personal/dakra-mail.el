@@ -206,6 +206,9 @@
 ;; without asking for the location of every attachment
 (setq mu4e-save-multiple-attachments-without-asking t)
 
+;; Attach file with helm-locate
+(helm-add-action-to-source "Attach to Email" #'mml-attach-file helm-source-locate)
+
 ;; Attach files from dired (C-c RET C-a)
 (use-package gnus-dired :ensure nil
   :config
