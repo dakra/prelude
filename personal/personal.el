@@ -964,10 +964,23 @@ prepended to the element after the #+HEADERS: tag."
   :bind (:map company-active-map
          ([return] . nil)
          ("RET" . nil)
-         ;;("TAB" . company-complete-selection)
-         ;;([tab] . company-complete-selection)
+         ("TAB" . company-select-next)
+         ([tab] . company-select-next)
+         ("S-TAB" . company-select-previous)
+         ([backtab] . company-select-previous)
          ("C-j" . company-complete-selection))
   :config
+  ;; company-tng (tab and go) allows you to use TAB to both select a
+  ;; completion candidate from the list and to insert it into the
+  ;; buffer.
+  ;;
+  ;; It cycles the candidates like `yank-pop' or `dabbrev-expand' or
+  ;; Vim: Pressing TAB selects the first item in the completion menu and
+  ;; inserts it in the buffer. Pressing TAB again selects the second
+  ;; item and replaces the inserted item with the second one. This can
+  ;; continue as long as the user wishes to cycle through the menu.
+  (add-to-list 'company-frontends 'company-tng-frontend)
+
   (setq company-idle-delay 0.2)
   (setq company-tooltip-limit 10)
   (setq company-minimum-prefix-length 1)
@@ -1002,21 +1015,7 @@ prepended to the element after the #+HEADERS: tag."
               '(:with company-yasnippet))))
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
-(use-package company-insert-selected :ensure nil :load-path "repos/company-insert-selected"
-  :after company
-  :bind (:map company-active-map
-         ("TAB" . company-select-first-then-next)
-         ("<tab>" . company-select-first-then-next)
-         ("<S-tab>" . company-select-previous-then-none)
-         ("<backtab>" . company-select-previous-then-none))
-  :config
-  ;;(unbind-key "<return>" company-active-map)
-  ;;(unbind-key "RET" company-active-map)
 
-  (setq company-frontends '(company-insert-selected-frontend
-                            company-pseudo-tooltip-frontend
-                            company-echo-metadata-frontend))
-  (setq company-selection-wrap-around t))
 ;; Rust
 ;; You may need installing the following packages on your system:
 ;; * rustc (Rust Compiler)
