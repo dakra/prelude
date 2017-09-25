@@ -36,8 +36,7 @@
 (prelude-require-package 'anaconda-mode)
 
 (when (boundp 'company-backends)
-  (prelude-require-package 'company-anaconda)
-  (add-to-list 'company-backends 'company-anaconda))
+  (prelude-require-package 'company-anaconda))
 
 (require 'electric)
 (require 'prelude-programming)
