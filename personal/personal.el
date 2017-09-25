@@ -897,6 +897,30 @@ prepended to the element after the #+HEADERS: tag."
 ;;(setq projectile-switch-project-action 'helm-projectile)
 
 
+(use-package treemacs
+  :defer t
+  :bind (;;([f8]        . treemacs-toggle)
+         ;;("M-0"       . treemacs-select-window)
+         ;;("C-c 1"     . treemacs-delete-other-windows)
+         :map treemacs-mode-map
+         ;; If we only hide the treemacs buffer (default binding) then, when we switch
+         ;; a frame to a different project and toggle treemacs again we still get the old project
+         ("q" . treemacs-kill-buffer))
+  :config
+  (setq treemacs-follow-after-init          t
+        treemacs-git-integration            t
+        treemacs-collapse-dirs              3
+        treemacs-silent-refresh             nil
+        treemacs-never-persist              t
+        treemacs-is-never-other-window      t)
+
+  (treemacs-follow-mode t)
+  (treemacs-filewatch-mode t))
+
+(use-package treemacs-projectile
+  :bind (([f8] . treemacs-projectile-toggle))
+  :config (setq treemacs-header-function #'treemacs-projectile-create-header))
+
 ;; highlight indentations in python
 (use-package highlight-indent-guides
   :init (add-hook 'python-mode-hook 'highlight-indent-guides-mode)

@@ -12,10 +12,8 @@
    ob-ipython
    ob-restclient
    org-download
-   org-pomodoro
    org-jira
    orgit
-   ox-jira
    ))
 
 ;; Install newest org and org-plus-contrib packages
@@ -42,6 +40,9 @@
   :config
   (setq org-log-done 'note)
 
+  ;; Show org entities as UTF-8 characters (e.g. \sum as ∑)
+  (setq org-pretty-entities t)
+
   (defun prelude-org-mode-defaults ()
     (let ((oldmap (cdr (assoc 'prelude-mode minor-mode-map-alist)))
           (newmap (make-sparse-keymap)))
@@ -62,7 +63,20 @@
   :config
   (setq org-man-command 'woman))  ; open org-link man pages with woman
 
-(require 'ox-jira)  ; for jira export (then copy&paste to ticket)
+;; org export
+
+;; Export blog posts to hugo
+(use-package ox-hugo
+  :after ox)
+
+;; for jira export (then copy&paste to ticket)
+(use-package ox-jira
+  :after ox)
+
+;; for github markdown
+(use-package ox-gfm
+  :after ox)
+
 
 (add-hook 'org-mode-hook 'org-indent-mode)
 
