@@ -101,15 +101,13 @@
 ;; Show highlighted buffer-id as decoration. (Default: nil)
 (setq moe-theme-highlight-buffer-id t)
 
-(setq moe-theme-resize-markdown-title '(1.7 1.5 1.3 1.1 1.0 1.0))
-(setq moe-theme-resize-org-title '(1.6 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
-(setq moe-theme-resize-rst-title '(1.7 1.5 1.3 1.1 1.0 1.0))
+(setq moe-theme-resize-markdown-title '(1.5 1.3 1.2 1.1 1.0 1.0))
+(setq moe-theme-resize-org-title '(1.5 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
+(setq moe-theme-resize-rst-title '(1.5 1.3 1.2 1.1 1.0 1.0))
 
 ;; XXX: smart-mode-line theme is better?
 ;;(powerline-moe-theme)
 (moe-dark)
-(set-face-attribute 'mu4e-header-highlight-face nil :background "#626262" :foreground "#eeeeee")
-
 
 ;; save and restore buffer and cursor positions (but don't restore window layout)
 ;;(desktop-save-mode 1)
@@ -666,8 +664,8 @@ is already narrowed."
     ("e" (hot-expand "<s" "emacs-lisp"))
     ("t" (hot-expand "<s" "emacs-lisp :tangle yes"))
     ("p" (hot-expand "<s" "python"))
-    ("P" (hot-expand "<s" "python" ":session :exports both"))
-    ("i" (hot-expand "<s" "ipython"))
+    ("P" (hot-expand "<s" "python :session :exports both"))
+    ("i" (hot-expand "<s" "ipython :session"))
     ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
     ("I" (hot-expand "<I"))
     ("H" (hot-expand "<H"))
@@ -687,7 +685,7 @@ prepended to the element after the #+HEADERS: tag."
         (setq text (buffer-substring (region-beginning) (region-end)))
         (delete-region (region-beginning) (region-end))
         (deactivate-mark))
-      (when header (insert "#+HEADERS: " header))
+      (when header (insert "#+HEADERS: " header) (org-return))
       (insert str)
       (org-try-structure-completion)
       (when mod (insert mod) (forward-line))
@@ -1203,6 +1201,7 @@ split via i3 and create a new Emacs frame."
   (add-hook 'conf-mode-hook 'turn-on-diff-hl-mode)
   (add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode)
   (add-hook 'dired-mode-hook 'diff-hl-dired-mode)
+  (add-hook 'ledger-mode-hook 'turn-on-diff-hl-mode)
   (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh))
 
 ;; XXX: not sure if git gutter is really nicer than diff-hl

@@ -443,21 +443,24 @@
             (auto-fill-mode 1)))
 
 
-(use-package org-pomodoro
-  :config
-  ;; called with py3status in ~/.config/i3status/config with emacsclient --eval
+(use-package org-pomodoro :load-path "repos/org-pomodoro"
+  :commands (org-pomodoro org-pomodoro-active-p)
+  :init
+  ;; called with i3status-rs in ~/.config/i3/status.toml with
+  ;; command = "emacsclient --eval '(dakra/org-pomodoro-i3-bar-time)' || echo 'Emacs daemon not started'"
   (defun dakra/org-pomodoro-i3-bar-time ()
     "Display remaining pomodoro time in i3 status bar."
     (if (org-pomodoro-active-p)
         (format "Pomodoro: %d minutes - %s" (/ org-pomodoro-countdown 60) org-clock-heading)
       (if (org-clock-is-active)
           (org-no-properties (org-clock-get-clock-string))
-        "No active pomodoro or tasks")))
+        "No active pomodoro or task")))
 
-  ;;(setq org-pomodoro-tick-hook 'dakra/org-pomodoro-i3-bar-time)
-  ;;(setq org-pomodoro-finished-hook 'dakra/org-pomodoro-i3-bar-time)
-  ;;(setq org-pomodoro-killed-hook 'dakra/org-pomodoro-i3-bar-time)
-  )
+  :config
+  ;; Don't delete already clocked time when killing a running pomodoro
+  (setq org-pomodoro-keep-killed-pomodoro-time t)
+  ;; Never clock-out automatically
+  (setq org-pomodoro-clock-always t))
 
 
 ;; Automatically copy orgit link to last commit after commit
