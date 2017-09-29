@@ -1075,6 +1075,55 @@ prepended to the element after the #+HEADERS: tag."
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
 
+;; Go
+;; For better support install:
+;; arch package go-tools for goimports, guru and godoc
+;; `gocode' (arch gocode-git package) for autocomplete
+;; `godef' (arch godef-git package) for godoc-at-point
+(use-package go-mode
+  :mode "\\.go\\'"
+  :bind (:map go-mode-map
+         ("C-h f" . godoc-at-point)
+         ("M-?" . godoc-at-point)
+         ("C-c b" . go-run))
+  :config
+  ;; Prefer goimports to gofmt if installed
+  (let ((goimports (executable-find "goimports")))
+    (when goimports
+      (setq gofmt-command goimports)))
+
+  (add-hook 'go-mode-hook
+            '(lambda ()
+               ;; gofmt on save
+               (add-hook 'before-save-hook 'gofmt-before-save nil t)
+
+               ;; stop whitespace being highlighted
+               (whitespace-toggle-options '(tabs))
+
+               ;; CamelCase aware editing operations
+               (subword-mode +1)
+
+               ;; El-doc for Go
+               (go-eldoc-setup))))
+
+(use-package company-go
+  :after company)
+
+(use-package gotest
+  :commands (
+             go-test-current-test go-test-current-file go-test-current-project go-test-current-coverage
+             go-test-current-benchmark go-test-current-file-benchmarks go-test-current-project-benchmarks
+             )
+  :bind (:map go-mode-map
+         ("C-x t" . go-test-current-test)))
+
+(use-package go-eldoc
+  :commands go-eldoc-setup)
+
+(use-package go-projectile
+  :after projectile)
+
+
 ;; Rust
 ;; You may need installing the following packages on your system:
 ;; * rustc (Rust Compiler)
