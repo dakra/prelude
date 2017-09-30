@@ -816,6 +816,15 @@ prepended to the element after the #+HEADERS: tag."
 ;; add tramp proxy for atomx user
 (add-to-list 'tramp-default-proxies-alist '(nil "atomx" "/ssh:%h:"))
 
+;; View Large Files
+(use-package vlf
+  :config
+  ;; To have vlf offered as choice when opening large files
+  (require 'vlf-setup))
+
+;; Logview provides syntax highlighting, filtering and other features for various log files
+(use-package logview
+  :commands logview-mode)
 
 ;; Nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
 (use-package back-button
@@ -1038,7 +1047,9 @@ prepended to the element after the #+HEADERS: tag."
   ;; inserts it in the buffer. Pressing TAB again selects the second
   ;; item and replaces the inserted item with the second one. This can
   ;; continue as long as the user wishes to cycle through the menu.
-  (add-to-list 'company-frontends 'company-tng-frontend)
+  (setq company-frontends '(company-tng-frontend
+                            company-pseudo-tooltip-frontend
+                            company-echo-metadata-frontend))
 
   (setq company-idle-delay 0.2)
   (setq company-tooltip-limit 10)
@@ -1077,14 +1088,17 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; Go
 ;; For better support install:
-;; arch package go-tools for goimports, guru and godoc
+;; arch package `go-tools' for goimports, guru and godoc
 ;; `gocode' (arch gocode-git package) for autocomplete
 ;; `godef' (arch godef-git package) for godoc-at-point
+;; `golint' (arch go-lint-git)
+;; XXX: `errcheck' (go get -u github.com/kisielk/errcheck) to check for missing error checks
 (use-package go-mode
   :mode "\\.go\\'"
   :bind (:map go-mode-map
-         ("C-h f" . godoc-at-point)
          ("M-?" . godoc-at-point)
+         ("M-." . godef-jump)
+         ("M-*" . pop-tag-mark)  ;; Jump back after godef-jump
          ("C-c b" . go-run))
   :config
   ;; Prefer goimports to gofmt if installed
@@ -1107,7 +1121,8 @@ prepended to the element after the #+HEADERS: tag."
                (go-eldoc-setup))))
 
 (use-package company-go
-  :after company)
+  :after go-mode
+  :config (add-to-list 'company-backends 'company-go))
 
 (use-package gotest
   :commands (
@@ -2670,16 +2685,18 @@ Lisp function does not specify a special indentation."
 ;; FIXME: Don't always load yasnippet
 (use-package yasnippet
   :demand t
+  :mode (("\\.yasnippet\\'" . snippet-mode))
   :diminish yas-minor-mode
   :bind (:map yas-minor-mode-map
-              ;; Complete yasnippets with company. No need for extra bindings
-              ;;("TAB"     . nil)  ; Remove Yasnippet's default tab key binding
-              ;;([tab]     . nil)
-              ("<backtab>" . yas-expand)  ; Set Yasnippet's key binding to shift+tab
-              ("\C-c TAB" . yas-expand)  ; Alternatively use Control-c + tab
-              )
+         ;; Complete yasnippets with company. No need for extra bindings
+         ;;("TAB"     . nil)  ; Remove Yasnippet's default tab key binding
+         ;;([tab]     . nil)
+         ("<backtab>" . yas-expand)  ; Set Yasnippet's key binding to shift+tab
+         ("\C-c TAB" . yas-expand)  ; Alternatively use Control-c + tab
+         )
   :config
-  (add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
+  (setq-default yas-snippet-dirs '("~/.emacs.d/personal/snippets"))
+  ;;(add-to-list 'yas-snippet-dirs "~/.emacs.d/personal/snippets")
   (yas-global-mode 1))
 
 (use-package csv-mode
