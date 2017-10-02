@@ -42,6 +42,10 @@
 
   ;; Show org entities as UTF-8 characters (e.g. \sum as ∑)
   (setq org-pretty-entities t)
+  ;; But Don't print "bar" as subscript in "foo_bar"
+  (setq org-pretty-entities-include-sub-superscripts nil)
+  ;; And also don't export ^ or _ as super/subscripts
+  (setq org-use-sub-superscripts nil)
 
   (defun prelude-org-mode-defaults ()
     (let ((oldmap (cdr (assoc 'prelude-mode minor-mode-map-alist)))
