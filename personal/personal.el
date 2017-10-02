@@ -2220,6 +2220,9 @@ Lisp function does not specify a special indentation."
   (setq mode-name "JS2")
   (js2-imenu-extras-mode +1)
 
+  ;; Don't warn about trailing commas
+  (setq js2-strict-trailing-comma-warning nil)
+
   (setq js2-basic-offset 2)  ; set javascript indent to 2 spaces
   )
 
@@ -2313,7 +2316,7 @@ Lisp function does not specify a special indentation."
 
 ;; TypeScript
 (use-package tide
-  :commands (setup-tide-mode tide-mode)
+  :commands (setup-tide-mode tide-mode company-tide)
   :init
   (setq typescript-indent-level 2)
   (defun setup-tide-mode ()
@@ -2328,9 +2331,12 @@ Lisp function does not specify a special indentation."
     )
   (add-hook 'typescript-mode-hook #'setup-tide-mode)
 
+  ;; https://github.com/ananthakumaran/tide#javascript
   ;; https://www.reddit.com/r/emacs/comments/68zacv/using_tidemode_to_typecheck_javascript/
   (add-hook 'js2-mode-hook #'setup-tide-mode)
-
+  ;; configure javascript-tide checker to run after your default javascript checker
+  ;; FIXME: javascript-tide is not a valid Flycheck syntax checker
+  ;;(flycheck-add-next-checker 'javascript-eslint 'javascript-tide 'append)
   :config
   ;; formats the buffer before saving
   ;; FIXME: auto indent doesn't respect editorconfig
@@ -2517,8 +2523,17 @@ Lisp function does not specify a special indentation."
   (setq guess-language-min-paragraph-length 35)
   )
 
+;; Adds the node_modules/.bin directory to the buffer exec_path.
+;; E.g. support project local eslint installations.
+;; XXX: Maybe add autoload for web and js2 mode?
+;; (eval-after-load 'js2-mode
+;;   '(add-hook 'js2-mode-hook #'add-node-modules-path))
+(use-package add-node-modules-path
+  :commands add-node-modules-path)
 
-(use-package web-mode
+;; FIXME: add flycheck support? Only for .vue files?
+;; (flycheck-add-mode 'javascript-eslint 'web-mode)
+(use-package web-mode :load-path "repos/web-mode"
   :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
          "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja2?\\'"
          "\\.vue\\'")
@@ -2594,10 +2609,45 @@ Lisp function does not specify a special indentation."
   (add-hook 'web-mode-hook 'web-mode-hook-setup)
   ;; } flyspell setup
 
+  ;; Don't indent directly after a <script> or <style> tag
+  (setq web-mode-script-padding 0)
+  (setq web-mode-style-padding 0)
+
+  ;; Set default indent to 2 spaces
   (setq web-mode-markup-indent-offset 2)
+  (setq web-mode-css-indent-offset 2)
+  (setq web-mode-code-indent-offset 2)
   ;; auto close tags in web-mode
   (setq web-mode-enable-auto-closing t))
 
+;; Company-web is an alternative emacs plugin for autocompletion in html-mode, web-mode, jade-mode,
+;; slim-mode and use data of ac-html. It uses company-mode.
+(use-package company-web
+  :disabled t  ;; Maybe no completion at all is best for web-mode? At least for the html part?!
+  :after web-mode
+  :commands company-web-html
+  :config
+  (require 'company-web-html)
+
+  ;; Tide completion support in web-mode with company-mode
+  (defun my-web-mode-hook ()
+    "Hook for `web-mode'."
+    (set (make-local-variable 'company-backends)
+         '(company-tide company-web-html company-yasnippet company-files)))
+
+  (add-hook 'web-mode-hook 'my-web-mode-hook)
+
+  ;; Enable JavaScript completion between <script>...</script> etc.
+  (defadvice company-tide (before web-mode-set-up-ac-sources activate)
+    "Set `tide-mode' based on current language before running company-tide."
+    (if (equal major-mode 'web-mode)
+        (let ((web-mode-cur-language
+               (web-mode-language-at-pos)))
+          (if (or (string= web-mode-cur-language "javascript")
+                  (string= web-mode-cur-language "jsx")
+                  )
+              (unless tide-mode (tide-mode))
+            (if tide-mode (tide-mode -1)))))))
 
 ;; Spell check camel case strings
 (setq ispell-program-name "aspell"
