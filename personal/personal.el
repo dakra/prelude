@@ -1318,6 +1318,15 @@ split via i3 and create a new Emacs frame."
   :mode "docker-compose.*\.yml\\'")
 (use-package docker-tramp)
 
+;; Emacs function to copy buffer locations as GitHub/Slack/JIRA/HipChat/... formatted code
+(use-package copy-as-format
+  :bind (("C-c w g" . copy-as-format-github)
+         ("C-c w h" . copy-as-format-hipchat)
+         ("C-c w j" . copy-as-format-jira)
+         ("C-c w m" . copy-as-format-markdown)
+         ("C-c w o" . copy-as-format-org-mode)
+         ("C-c w s" . copy-as-format-slack)))
+
 ;; Replace zap-to-char functionaity with the more powerful zop-to-char
 (use-package zop-to-char
   :bind (("M-z" . zop-up-to-char)
@@ -1937,12 +1946,16 @@ and when called with 2 prefix arguments only open in browser."
   ;; Split ediff windows horizontally by default
   (setq ediff-split-window-function 'split-window-horizontally))
 
+;; Highlight and link issue names website
+;; bug-reference-url-format has to be set in dir-locals (S-p E)
+;; E.g. for github: (bug-reference-url-format . "https://github.com/atomx/api/issues/%s")
 (use-package bug-reference :ensure nil
   :commands (bug-reference-mode bug-reference-prog-mode)
   ;;:init (add-hook 'prog-mode-hook 'bug-reference-prog-mode)
   :config
-  ;; (setq bug-reference-bug-regexp "\\([Bb]ug\\|[Pp]ull request\\|[Ii]ssue\\|[PpMm][Rr]\\) #\\([0-9]+\\(?:#[0-9]+\\)?\\)"))
-  (setq bug-reference-bug-regexp "#\\(?2:[0-9]+\\)"))
+  (setq bug-reference-bug-regexp "\\([Bb]ug\\|[Pp]ull request\\|[Ii]ssue\\|[PpMm][Rr]\\) #\\([0-9]+\\(?:#[0-9]+\\)?\\)")
+  ;;(setq bug-reference-bug-regexp "#\\(?2:[0-9]+\\)")
+  )
 
 (use-package magit
   :defines (magit-ediff-dwim-show-on-hunks)
