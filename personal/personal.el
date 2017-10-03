@@ -1106,8 +1106,14 @@ prepended to the element after the #+HEADERS: tag."
     (when goimports
       (setq gofmt-command goimports)))
 
+  ;; For autocompeltion in the `godoc' command we need 'godoc' and not 'go doc'
+  ;;(setq godoc-command "go doc")
+  (setq godoc-use-completing-read t)
+
   (add-hook 'go-mode-hook
             '(lambda ()
+               (setq tab-width 4)
+
                ;; gofmt on save
                (add-hook 'before-save-hook 'gofmt-before-save nil t)
 
@@ -1294,6 +1300,7 @@ split via i3 and create a new Emacs frame."
           ("github\\.com" . gfm-mode)
           ("gitlab\\.com" . gfm-mode)
           ("gitlab\\.paesslergmbh\\.de" . gfm-mode)
+          ("lab\\.ebenefuenf\\.com" . gfm-mode)
           ("jira.paesslergmbh.de" . jira-markup-mode))))
 
 
@@ -1528,9 +1535,18 @@ displayed anywhere else."
                            (sql-server "127.0.0.1")
                            (sql-port 3308)
                            (sql-user "root")
-                           (sql-database "paessler_com2"))))
+                           (sql-database "paessler_com2"))
+          (neorent (sql-product 'postgres)
+                   (sql-server "127.0.0.1")
+                   (sql-port 5432)
+                   (sql-user "neoadmin")
+                   (sql-database "neorent"))))
 
   (setq sql-mysql-login-params (append sql-mysql-login-params '(port)))
+
+  (defun dakra/sql-postgres-neorent ()
+    (interactive)
+    (dakra/sql-connect 'postgres 'neorent))
 
   (defun dakra/sql-atomx-local-api ()
     (interactive)
@@ -1895,6 +1911,7 @@ and when called with 2 prefix arguments only open in browser."
   :bind (:map prelude-mode-map ("C-c G" . dakra-browse-at-remote))
   :config
   (add-to-list 'browse-at-remote-remote-type-domains '("gitlab.paesslergmbh.de" . "gitlab"))
+  (add-to-list 'browse-at-remote-remote-type-domains '("git.ebenefuenf.com" . "gitlab"))
   (setq browse-at-remote-prefer-symbolic nil))
 
 (use-package with-editor
