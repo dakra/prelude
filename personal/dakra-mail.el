@@ -513,6 +513,7 @@ there are no attachments."
 
 ;; Show overview of unread/all mails for each maildir/bookmarks in mu4e main window
 (use-package mu4e-maildirs-extension
+  :commands mu4e-maildirs-extension-force-update
   :after mu4e
   :config
   (setq-default mu4e-maildirs-extension-use-bookmarks t)

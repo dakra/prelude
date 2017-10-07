@@ -103,7 +103,7 @@
   (interactive)
   (if (eq browse-url-browser-function 'eww-browse-url)
       (setq browse-url-browser-function 'browse-url-generic
-            browse-url-generic-program "firefox")
+            browse-url-generic-program "firefox-developer")
     (setq browse-url-browser-function 'eww-browse-url)))
 
 ;;;###autoload

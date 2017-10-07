@@ -76,7 +76,8 @@
 
 
 ;; Debugging
-(use-package realgud :defer t)
+(use-package realgud
+  :commands (realgud:ipdb))
 
 
 ;; Type like a hacker
@@ -374,6 +375,15 @@ is already narrowed."
 (use-package po-mode
   :mode ("\\.po\\'" "\\.po\\."))
 
+(use-package pdf-tools
+  :mode (("\\.pdf\\'" . pdf-view-mode))
+  :config
+  (pdf-tools-install)
+  ;; Always use midnight-mode and almost same color as default font.
+  ;; Just slightly brighter background to see the page boarders
+  (setq pdf-view-midnight-colors '("#c6c6c6" . "#363636"))
+  (add-hook 'pdf-view-mode-hook (lambda ()
+                                  (pdf-view-midnight-minor-mode))))
 
 (use-package emms
   :commands (emms emms-play-url emms-play-file emms-play-dired)
@@ -671,6 +681,16 @@ is already narrowed."
   (defun my/insert-unicode (unicode-name)
     "Same as C-x 8 enter UNICODE-NAME."
     (insert-char (cdr (assoc-string unicode-name (ucs-names)))))
+
+  (global-set-key
+   (kbd "C-x t")
+   (defhydra hydra-toggle-stuff (:color blue :hint nil)
+     "Toggle"
+     ("c" column-number-mode "column-number-mode")
+     ("d" toggle-debug-on-error "debug-on-error")
+     ("f" auto-fill-mode "fill-mode")
+     ("l" toggle-truncate-lines "truncate-lines")
+     ("w" whitespace-mode "whitespace-mode")))
 
   (global-set-key
    (kbd "C-x 9")
@@ -991,6 +1011,7 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; highlight indentations in python
 (use-package highlight-indent-guides
+  :commands highlight-indent-guides-mode
   :init (add-hook 'python-mode-hook 'highlight-indent-guides-mode)
   :config
   (setq highlight-indent-guides-method 'character)
