@@ -375,10 +375,13 @@ is already narrowed."
 (use-package po-mode
   :mode ("\\.po\\'" "\\.po\\."))
 
+;; Better pdf viewer with search, annotate, highlighting etc
+;; 'poppler' and 'poppler-glib' must be installed
 (use-package pdf-tools
   :mode (("\\.pdf\\'" . pdf-view-mode))
   :config
-  (pdf-tools-install)
+  ;; Install pdf-tools but don't ask or raise error (otherwise daemon mode will wait for input)
+  (pdf-tools-install t t t)
   ;; Always use midnight-mode and almost same color as default font.
   ;; Just slightly brighter background to see the page boarders
   (setq pdf-view-midnight-colors '("#c6c6c6" . "#363636"))
@@ -906,6 +909,10 @@ prepended to the element after the #+HEADERS: tag."
     ;; Don't use minibuffer if there's something there already
     (helm-ext-minibuffer-enable-header-line-maybe t)))
 
+(use-package helm-make
+  :after helm
+  :commands (helm-make helm-make-projectile))
+
 (use-package helm-backup
   :commands (helm-backup-versioning helm-backup)
   :init
@@ -1342,11 +1349,20 @@ split via i3 and create a new Emacs frame."
 ;; Emacs function to copy buffer locations as GitHub/Slack/JIRA/HipChat/... formatted code
 (use-package copy-as-format
   :bind (("C-c w g" . copy-as-format-github)
-         ("C-c w h" . copy-as-format-hipchat)
+         ("C-c w h" . copy-as-format-hipchat-pidgin)
          ("C-c w j" . copy-as-format-jira)
          ("C-c w m" . copy-as-format-markdown)
          ("C-c w o" . copy-as-format-org-mode)
-         ("C-c w s" . copy-as-format-slack)))
+         ("C-c w s" . copy-as-format-slack))
+  :config
+  ;; Define own format since pidgin doesn't allow to begin a message with `/code'
+  (defun copy-as-format--hipchat-pidgin (text _multiline)
+    (format "/say /code %s" text))
+  (add-to-list 'copy-as-format-format-alist '("hipchat-pidgin" copy-as-format--hipchat-pidgin))
+  (defun copy-as-format-hipchat-pidgin ()
+    (interactive)
+    (setq copy-as-format-default "hipchat-pidgin")
+    (copy-as-format)))
 
 ;; Replace zap-to-char functionaity with the more powerful zop-to-char
 (use-package zop-to-char
@@ -2015,10 +2031,13 @@ and when called with 2 prefix arguments only open in browser."
 (use-package helpful
   :bind (("C-h f" . helpful-function)
          ("C-h v" . helpful-variable)
+         ("C-h s" . helpful-symbol)
          ("C-c h f" . helpful-function)
          ("C-c h v" . helpful-variable)
          ("C-c h c" . helpful-command)
-         ("C-c h m" . helpful-macro)))
+         ("C-c h m" . helpful-macro)
+         :map emacs-lisp-mode-map
+         ("M-?" . helpful-at-point)))
 
 (use-package symbol-overlay
   :commands symbol-overlay-mode
