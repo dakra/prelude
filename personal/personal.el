@@ -273,6 +273,7 @@ F5 inserts the entity code."
                                 (local-set-key (kbd "M-R") 'eshell-list-history)
                                 (local-set-key (kbd "M-r") 'dakra-eshell-read-history)
                                 (local-set-key (kbd "C-d") 'ha/eshell-quit-or-delete-char)
+                                (eshell-smart-initialize)
                                 ))
   ;; Functions starting with `eshell/' can be called directly from eshell
   ;; with only the last part. E.g. (eshell/foo) will call `$ foo'
@@ -366,6 +367,9 @@ is already narrowed."
          (LaTeX-narrow-to-environment))
         (t (narrow-to-defun))))
 (define-key ctl-x-map "n" #'narrow-or-widen-dwim)
+
+(use-package calc :ensure nil
+  :bind ("<XF86Calculator>" . quick-calc))
 
 ;; Associate more files with conf-mode
 (use-package conf-mode :ensure nil
@@ -513,6 +517,16 @@ is already narrowed."
   (bind-keys :map dired-mode-map
     ("'" . dired-ranger-bookmark)
     ("`" . dired-ranger-bookmark-visit)))
+
+;;narrow dired to match filter
+(use-package dired-narrow
+  :bind (:map dired-mode-map
+         ("/" . dired-narrow)))
+
+(use-package dired-subtree
+  :bind (:map dired-mode-map
+         ("i" . dired-subtree-insert)
+         ("I" . dired-subtree-remove)))
 
 (use-package dired+
   :init
@@ -1346,6 +1360,10 @@ split via i3 and create a new Emacs frame."
   :mode "docker-compose.*\.yml\\'")
 (use-package docker-tramp)
 
+;; Read and manage your pocket (getpocket.com) list
+(use-package pocket-reader
+  :commands pocket-reader)
+
 ;; Emacs function to copy buffer locations as GitHub/Slack/JIRA/HipChat/... formatted code
 (use-package copy-as-format
   :bind (("C-c w g" . copy-as-format-github)
@@ -1965,7 +1983,7 @@ and when called with 2 prefix arguments only open in browser."
   :init
   ;; Use local Emacs instance as $EDITOR (e.g. in `git commit' or `crontab -e')
   (add-hook 'shell-mode-hook  'with-editor-export-editor)
-  (add-hook 'term-mode-hook   'with-editor-export-editor)
+  ;;FIXME: (add-hook 'term-mode-hook   'with-editor-export-editor)
   (add-hook 'eshell-mode-hook 'with-editor-export-editor))
 
 ;; FIXME: find another gh lib. only works for public repos and unmaintained
@@ -1988,15 +2006,26 @@ and when called with 2 prefix arguments only open in browser."
 ;; E.g. for github: (bug-reference-url-format . "https://github.com/atomx/api/issues/%s")
 (use-package bug-reference :ensure nil
   :commands (bug-reference-mode bug-reference-prog-mode)
-  ;;:init (add-hook 'prog-mode-hook 'bug-reference-prog-mode)
+  :init (add-hook 'prog-mode-hook 'bug-reference-prog-mode)
   :config
-  (setq bug-reference-bug-regexp "\\([Bb]ug\\|[Pp]ull request\\|[Ii]ssue\\|[PpMm][Rr]\\) #\\([0-9]+\\(?:#[0-9]+\\)?\\)")
-  ;;(setq bug-reference-bug-regexp "#\\(?2:[0-9]+\\)")
+  ;; (setq bug-reference-bug-regexp "\\([Bb]ug\\|[Pp]ull request\\|[Ii]ssue\\|[PpMm][Rr]\\|[Ff]ix\\) #\\([0-9]+\\(?:#[0-9]+\\)?\\)")
+  (setq bug-reference-bug-regexp "#\\(?2:[0-9]+\\)")
   )
 
 (use-package magit
   :defines (magit-ediff-dwim-show-on-hunks)
   :config
+  ;; Highlight issue ids in commit messages
+  (add-hook 'git-commit-mode-hook 'bug-reference-mode)
+
+  ;; "b b" is only for checkout and doesn't automatically create a new branch
+  ;; remap to `magit-branch-or-checkout' that checks out an existing branch
+  ;; or asks to create a new one if it doesn't exist
+  (magit-remove-popup-key 'magit-branch-popup :action ?b)
+  (magit-define-popup-action 'magit-branch-popup
+    ?b "Checkout or create" 'magit-branch-or-checkout
+    'magit-branch t)
+
   ;; Always highlight word differences in diff
   (setq magit-diff-refine-hunk 'all)
 
