@@ -274,11 +274,28 @@ F5 inserts the entity code."
                                 (local-set-key (kbd "M-r") 'dakra-eshell-read-history)
                                 (local-set-key (kbd "C-d") 'ha/eshell-quit-or-delete-char)
                                 (eshell-smart-initialize)
-                                ))
+                                ;; Emacs bug where * gets removed
+                                ;; See https://github.com/company-mode/company-mode/issues/218
+                                ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=18951
+                                (setq-local company-idle-delay 1)
+                                (setq-local company-backends '(company-capf))))
   ;; Functions starting with `eshell/' can be called directly from eshell
   ;; with only the last part. E.g. (eshell/foo) will call `$ foo'
   (defun eshell/d (&rest args)
     (dired (pop args) "."))
+
+  (defun eshell/lcd (&optional directory)
+    "Like regular 'cd' but don't jump out of a tramp directory.
+When on a remote directory with tramp don't jump 'out' of the server.
+So if we're connected with sudo to 'remotehost'
+'$ lcd /etc' would go to '/sudo:remotehost:/etc' instead of just
+'/etc' on localhost."
+    (if (file-remote-p default-directory)
+        (with-parsed-tramp-file-name default-directory nil
+          (eshell/cd
+           (tramp-make-tramp-file-name
+            method user nil host nil (or directory "") hop)))
+      (eshell/cd directory)))
 
   (defun eshell/gst (&rest args)
     (magit-status (pop args) nil)
