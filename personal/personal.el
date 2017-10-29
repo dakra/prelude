@@ -39,6 +39,23 @@
 ;; Always just use left-to-right text
 (setq bidi-display-reordering nil)
 
+;; A better Emacs Package Menu
+(use-package paradox
+  :commands paradox-list-packages
+  :config
+  ;; Set paradox-github-token
+  (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")
+
+  (setq paradox-display-download-count t)
+  (setq paradox-use-homepage-buttons nil)
+  (setq paradox-execute-asynchronously t))
+
+(use-package comint :ensure nil
+  :commands comint-truncate-buffer
+  :config
+  ;; Set max comint buffer size to 2^14. Default is only 1000.
+  (setq comint-buffer-maximum-size 16384))
+
 (use-package whitespace
   :config
   ;; highlight lines with more than 110 characters
@@ -66,8 +83,13 @@
 (use-package lua-mode
   :mode "\\.lua\\'")
 (use-package ng2-mode :defer t)
+
 (use-package nginx-mode
   :mode ("/etc/nginx/conf.d/.*" "/etc/nginx/.*\\.conf\\'"))
+
+(use-package apache-mode
+  :mode ("\\.htaccess\\'" "httpd\\.conf\\'" "srm\\.conf\\'" "access\\.conf\\'"))
+
 (use-package litable  ; live preview for elisp
   :commands litable-mode)
 
@@ -189,6 +211,16 @@ F5 inserts the entity code."
 
 ;; eshell
 
+;; Autocomplete for git commands in shell and
+;; the git command from magit ('!')
+(use-package pcmpl-git
+  :after pcomplete
+  :commands pcomplete/git)
+
+(use-package pcompl-pip
+  :after pcomplete
+  :commands pcomplete/pip)
+
 ;;(setq eshell-list-files-after-cd t)
 ;;(setq eshell-ls-initial-args "-alh")
 
@@ -273,7 +305,11 @@ F5 inserts the entity code."
                                 (local-set-key (kbd "M-R") 'eshell-list-history)
                                 (local-set-key (kbd "M-r") 'dakra-eshell-read-history)
                                 (local-set-key (kbd "C-d") 'ha/eshell-quit-or-delete-char)
+                                ;; Use helm as completion menu
+                                (local-set-key [remap eshell-pcomplete] 'helm-esh-pcomplete)
                                 (eshell-smart-initialize)
+                                ;; Integrate eshell with bookmark.el
+                                (eshell-bookmark-setup)
                                 ;; Emacs bug where * gets removed
                                 ;; See https://github.com/company-mode/company-mode/issues/218
                                 ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=18951
@@ -341,6 +377,9 @@ file to edit."
       (shell-command full-cmd)))
   )
 
+(use-package eshell-bookmark
+  :after eshell
+  :commands eshell-bookmark-setup)
 
 (defun xah-paste-or-paste-previous ()
   "Paste. When called repeatedly, paste previous.
@@ -399,10 +438,15 @@ is already narrowed."
 ;; Better pdf viewer with search, annotate, highlighting etc
 ;; 'poppler' and 'poppler-glib' must be installed
 (use-package pdf-tools
-  :mode (("\\.pdf\\'" . pdf-view-mode))
-  :config
+  ;; manually update
+  ;; after each update we have to call:
   ;; Install pdf-tools but don't ask or raise error (otherwise daemon mode will wait for input)
-  (pdf-tools-install t t t)
+  ;; (pdf-tools-install t t t)
+  :pin manual
+  :mode (("\\.pdf\\'" . pdf-view-mode))
+  :bind (:map pdf-view-mode-map
+         ("C-s" . isearch-forward))
+  :config
   ;; Always use midnight-mode and almost same color as default font.
   ;; Just slightly brighter background to see the page boarders
   (setq pdf-view-midnight-colors '("#c6c6c6" . "#363636"))
@@ -964,12 +1008,12 @@ prepended to the element after the #+HEADERS: tag."
 ;; Autofill (e.g. M-x autofill-paragraph or M-q) to 80 chars (default 70)
 ;; set with 'custom' since it's buffer-local variable
 (setq-default fill-column 80)
-(setq comment-auto-fill-only-comments t)  ; Only auto-fill comments
 ;; Use auto-fill in all modes
 (add-hook 'text-mode-hook 'turn-on-auto-fill)
 
 ;; Increase fill-column for programming to 100
 (defun dakra-prog-mode-init ()
+  (setq comment-auto-fill-only-comments t)  ; Only auto-fill comments
   (setq fill-column 100))
 (add-hook 'prog-mode-hook 'dakra-prog-mode-init)
 
@@ -1079,11 +1123,6 @@ prepended to the element after the #+HEADERS: tag."
 ;; Hook for when a frame is created with emacsclient
 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Creating-Frames.html
 (add-hook 'after-make-frame-functions '--set-emoji-font)
-
-;; Autocomplete for git commands in shell and
-;; the git command from magit ('!')
-(use-package pcmpl-git
-  :commands pcomplete/git)
 
 (use-package company
   :demand t
@@ -1272,6 +1311,10 @@ prepended to the element after the #+HEADERS: tag."
 (use-package fabric
   :defer t)
 
+;; Commint for redis
+(use-package redis
+  :commands redis-cli)
+
 (use-package fish-mode
   :mode "\\.fish\\'")
 
@@ -1375,7 +1418,8 @@ split via i3 and create a new Emacs frame."
   :mode "Dockerfile\\'")
 (use-package docker-compose-mode
   :mode "docker-compose.*\.yml\\'")
-(use-package docker-tramp)
+(use-package docker-tramp
+  :after tramp)
 
 ;; Read and manage your pocket (getpocket.com) list
 (use-package pocket-reader
@@ -1440,10 +1484,17 @@ split via i3 and create a new Emacs frame."
 
 (setq ffap-machine-p-known 'reject)  ; don't "ping Germany" when typing test.de<TAB>
 
+;; You can change syntax in regex-builder with "C-c TAB"
+;; "read" is 'code' syntax
+;; "string" is already read and no extra escaping. Like what Emacs prompts interactively
+(use-package re-builder :ensure nil
+  :commands (regex-builder re-builder)
+  :config (setq reb-re-syntax 'string))
 
 (use-package origami
+  :disabled t  ;; Just use outline mode (with outline-magic)
   :bind (:map origami-mode-map
-              ("C-c C-o" . hydra-folding/body))
+         ("C-c C-o" . hydra-folding/body))
   :init (add-hook 'prog-mode-hook (lambda () (origami-mode))))
 ;;(require 'origami)
 ;;(define-key origami-mode-map (kbd "C-c C-o") 'origami-recursively-toggle-node)
@@ -1612,6 +1663,12 @@ displayed anywhere else."
                             (sql-user "root")
                             (sql-database "api")
                             (sql-mysql-options '("-A")))
+          (hogaso-remote (sql-product 'mysql)
+                         (sql-server "127.0.0.1")
+                         (sql-port 3307)
+                         (sql-user "root")
+                         (sql-database "naehmaschinen")
+                         (sql-mysql-options '("-A")))
           (paessler-docker (sql-product 'mysql)
                            (sql-server "127.0.0.1")
                            (sql-port 3308)
@@ -1636,6 +1693,10 @@ displayed anywhere else."
   (defun dakra/sql-atomx-remote-api ()
     (interactive)
     (dakra/sql-connect 'mysql 'atomx-remote-api))
+
+  (defun dakra/sql-hogaso-remote ()
+    (interactive)
+    (dakra/sql-connect 'mysql 'hogaso-remote))
 
   (defun dakra/sql-paessler-docker ()
     (interactive)
@@ -1685,6 +1746,7 @@ displayed anywhere else."
   :config
   ;; Don't capitalize `name` or 'type' keyword
   (add-to-list 'sqlup-blacklist "name")
+  (add-to-list 'sqlup-blacklist "names")
   (add-to-list 'sqlup-blacklist "type"))
 
 
@@ -2043,6 +2105,8 @@ and when called with 2 prefix arguments only open in browser."
     ?b "Checkout or create" 'magit-branch-or-checkout
     'magit-branch t)
 
+  ;; Show color and graph in magit-log. Since color makes it a bit slow, only show the last 128 commits
+  (setq magit-log-arguments '("--graph" "--color" "--decorate" "-n128"))
   ;; Always highlight word differences in diff
   (setq magit-diff-refine-hunk 'all)
 
@@ -2082,6 +2146,9 @@ and when called with 2 prefix arguments only open in browser."
          ("C-c h v" . helpful-variable)
          ("C-c h c" . helpful-command)
          ("C-c h m" . helpful-macro)
+         :map helpful-mode-map
+         ("TAB" . forward-button)
+         ("<C-tab>" . backward-button)
          :map emacs-lisp-mode-map
          ("M-?" . helpful-at-point)))
 
@@ -2866,7 +2933,8 @@ Lisp function does not specify a special indentation."
   (yas-global-mode 1))
 
 (use-package csv-mode
-  :mode "\\.csv\\'")
+  :mode "\\.csv\\'"
+  :init (setq csv-separators '("," "	" ";" "|")))
 
 (use-package toml-mode
   :mode ("\\.toml\\'" "Cargo.lock\\'"))

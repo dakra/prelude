@@ -9,8 +9,6 @@
 (prelude-require-packages
  '(
    htmlize
-   ob-ipython
-   ob-restclient
    org-download
    org-jira
    orgit
@@ -223,8 +221,6 @@
 
 (setq org-default-notes-file (concat org-directory "refile.org"))
 
-(setq org-clock-idle-time 15)  ; idle after 15 minutes
-
 (use-package org-id
   :config (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id))
 
@@ -290,21 +286,29 @@
 ;; Compact the block agenda view
 (setq org-agenda-compact-blocks nil)
 
-;; org-clock-display (C-c C-x C-d) shows times for this month by default
-(setq org-clock-display-default-range 'thismonth)
+(use-package org-clock :ensure nil
+  :after org
+  :config
+  (setq org-clock-idle-time 15)  ; idle after 15 minutes
 
-;; Only show the current clocked time in mode line (not all)
-(setq org-clock-mode-line-total 'current)
+  ;;(setq org-clock-continuously t)  ; Start clocking from the last clock-out time, if any.
 
-;; Clocktable (C-c C-x C-r) defaults
-(setq org-clock-clocktable-default-properties '(:block thismonth :scope file-with-archives))
+  ;; org-clock-display (C-c C-x C-d) shows times for this month by default
+  (setq org-clock-display-default-range 'thismonth)
 
-;; Clocktable (reporting: r) in the agenda
-(setq org-clocktable-defaults
-      '(:maxlevel 3 :lang "en" :scope file-with-archives
-        :wstart 1 :mstart 1 :tstart nil :tend nil :step nil :stepskip0 nil :fileskip0 nil
-        :tags nil :emphasize nil :link t :narrow 70! :indent t :formula nil :timestamp nil
-        :level nil :tcolumns nil :formatter nil))
+  ;; Only show the current clocked time in mode line (not all)
+  (setq org-clock-mode-line-total 'current)
+
+  ;; Clocktable (C-c C-x C-r) defaults
+  (setq org-clock-clocktable-default-properties '(:block thismonth :scope file-with-archives))
+
+  ;; Clocktable (reporting: r) in the agenda
+  (setq org-clocktable-defaults
+        '(:maxlevel 3 :lang "en" :scope file-with-archives
+          :wstart 1 :mstart 1 :tstart nil :tend nil :step nil :stepskip0 nil :fileskip0 nil
+          :tags nil :emphasize nil :link t :narrow 70! :indent t :formula nil :timestamp nil
+          :level nil :tcolumns nil :formatter nil)))
+
 
 ;; Never show 'days' in clocksum (e.g. in report clocktable)
 ;; format string used when creating CLOCKSUM lines and when generating a
@@ -467,20 +471,22 @@
   (setq org-pomodoro-clock-always t))
 
 
-;; Automatically copy orgit link to last commit after commit
-(add-hook 'git-commit-setup-hook
-          (lambda ()
-            (add-hook 'with-editor-post-finish-hook
-                      (lambda ()
-                        (sleep-for 0.5)  ;; See https://github.com/magit/orgit/issues/19
-                        (let* ((repo (abbreviate-file-name default-directory))
-                               (rev (magit-git-string "rev-parse" "HEAD"))
-                               (link (format "orgit-rev:%s::%s" repo rev))
-                               (summary (substring-no-properties (magit-format-rev-summary rev)))
-                               (desc (format "%s (%s)" summary repo)))
-                          (push (list link desc) org-stored-links)))
-                      t t)))
-
+(use-package orgit
+  :after org
+  :config
+  ;; Automatically copy orgit link to last commit after commit
+  (add-hook 'git-commit-setup-hook
+            (lambda ()
+              (add-hook 'with-editor-post-finish-hook
+                        (lambda ()
+                          (sleep-for 0.5)  ;; See https://github.com/magit/orgit/issues/19
+                          (let* ((repo (abbreviate-file-name default-directory))
+                                 (rev (magit-git-string "rev-parse" "HEAD"))
+                                 (link (format "orgit-rev:%s::%s" repo rev))
+                                 (summary (substring-no-properties (magit-format-rev-summary rev)))
+                                 (desc (format "%s (%s)" summary repo)))
+                            (push (list link desc) org-stored-links)))
+                        t t))))
 
 ;;; Create org TODO from github issue
 ;; FIXME:
@@ -504,11 +510,9 @@
     (org-set-tags-command t t)  ; realign tags
     (next-line 3)  ; Move 3 lines down to the last PROPERTIES drawer line
     (move-end-of-line 1)
-    (insert "\n")
-    (org-insert-link nil
-                     (format "https://github.com/atomx/api/issues/%s" issue-number)
-                     (format "#%s: %s" issue-number issue-title))
-    (insert "\n")
+    (insert (format "\n[[%s][%s]]\n"
+                    (format "https://github.com/atomx/api/issues/%s" issue-number)
+                    (format "#%s: %s" issue-number issue-title)))
     (setq start-point (point))
     (insert (format "%s" issue-body))
     (shell-command-on-region start-point (point) "pandoc -f markdown_github -t org" :replace t)
@@ -574,49 +578,54 @@
 
 (setq org-src-fontify-natively t)  ; syntax highlighting for source code blocks
 
+(use-package ob-restclient
+  :after ob)
 
-;; Show multiple inline figures and results in one cell for ob-ipython.
-;; http://kitchingroup.cheme.cmu.edu/blog/2017/01/29/ob-ipython-and-inline-figures-in-org-mode/
-;; results must be in a drawer. So set a header like:
-;; #+BEGIN_SRC ipython :session :results output drawer
-(defun ob-ipython-inline-image (b64-string)
-  "Write the b64-string to a temporary file.
+(use-package ob-ipython
+  :after ob
+  :config
+  ;; Show multiple inline figures and results in one cell for ob-ipython.
+  ;; http://kitchingroup.cheme.cmu.edu/blog/2017/01/29/ob-ipython-and-inline-figures-in-org-mode/
+  ;; results must be in a drawer. So set a header like:
+  ;; #+BEGIN_SRC ipython :session :results output drawer
+  (defun ob-ipython-inline-image (b64-string)
+    "Write the b64-string to a temporary file.
 Returns an org-link to the file."
-  (let* ((tfile (make-temp-file "ob-ipython-" nil ".png"))
-         (link (format "[[file:%s]]" tfile)))
-    (ob-ipython--write-base64-string tfile b64-string)
-    link))
+    (let* ((tfile (make-temp-file "ob-ipython-" nil ".png"))
+           (link (format "[[file:%s]]" tfile)))
+      (ob-ipython--write-base64-string tfile b64-string)
+      link))
 
-(defun org-babel-execute:ipython (body params)
-  "Execute a block of IPython code with Babel.
+  (defun org-babel-execute:ipython (body params)
+    "Execute a block of IPython code with Babel.
 This function is called by `org-babel-execute-src-block'."
-  (let* ((file (cdr (assoc :file params)))
-         (session (cdr (assoc :session params)))
-         (result-type (cdr (assoc :result-type params))))
-    (org-babel-ipython-initiate-session session params)
-    (-when-let (ret (ob-ipython--eval
-                     (ob-ipython--execute-request
-                      (org-babel-expand-body:generic (encode-coding-string body 'utf-8)
-                                                     params (org-babel-variable-assignments:python params))
-                      (ob-ipython--normalize-session session))))
-      (let ((result (cdr (assoc :result ret)))
-            (output (cdr (assoc :output ret))))
-        (if (eq result-type 'output)
-            (concat
-             output
-             (format "%s"
-                     (mapconcat 'identity
-                                (loop for res in result
-                                      if (eq 'image/png (car res))
-                                      collect (ob-ipython-inline-image (cdr res)))
-                                "\n")))
-          (ob-ipython--create-stdout-buffer output)
-          (cond ((and file (string= (f-ext file) "png"))
-                 (->> result (assoc 'image/png) cdr (ob-ipython--write-base64-string file)))
-                ((and file (string= (f-ext file) "svg"))
-                 (->> result (assoc 'image/svg+xml) cdr (ob-ipython--write-string-to-file file)))
-                (file (error "%s is currently an unsupported file extension." (f-ext file)))
-                (t (->> result (assoc 'text/plain) cdr))))))))
+    (let* ((file (cdr (assoc :file params)))
+           (session (cdr (assoc :session params)))
+           (result-type (cdr (assoc :result-type params))))
+      (org-babel-ipython-initiate-session session params)
+      (-when-let (ret (ob-ipython--eval
+                       (ob-ipython--execute-request
+                        (org-babel-expand-body:generic (encode-coding-string body 'utf-8)
+                                                       params (org-babel-variable-assignments:python params))
+                        (ob-ipython--normalize-session session))))
+        (let ((result (cdr (assoc :result ret)))
+              (output (cdr (assoc :output ret))))
+          (if (eq result-type 'output)
+              (concat
+               output
+               (format "%s"
+                       (mapconcat 'identity
+                                  (loop for res in result
+                                        if (eq 'image/png (car res))
+                                        collect (ob-ipython-inline-image (cdr res)))
+                                  "\n")))
+            (ob-ipython--create-stdout-buffer output)
+            (cond ((and file (string= (f-ext file) "png"))
+                   (->> result (assoc 'image/png) cdr (ob-ipython--write-base64-string file)))
+                  ((and file (string= (f-ext file) "svg"))
+                   (->> result (assoc 'image/svg+xml) cdr (ob-ipython--write-string-to-file file)))
+                  (file (error "%s is currently an unsupported file extension." (f-ext file)))
+                  (t (->> result (assoc 'text/plain) cdr)))))))))
 
 ;; copy org text as rich text
 (defun org-formatted-copy ()
