@@ -43,10 +43,14 @@
               ;; Indent text according to outline structure.
               (org-indent-mode 1)
 
+              (smartparens-mode 1)
+
               (setq completion-at-point-functions
                     '(org-completion-symbols
                       ora-cap-filesystem))))
   :config
+  (require 'smartparens-org)  ;; Additional org sp-local-pairs
+
   ;; Always take note when marking task as done
   (setq org-log-done 'note)
 
@@ -341,7 +345,9 @@
   (setq org-clock-mode-line-total 'current)
 
   ;; Clocktable (C-c C-x C-r) defaults
-  (setq org-clock-clocktable-default-properties '(:block thismonth :scope file-with-archives))
+  ;; Use fixed month instead of (current-month) because I want to keep a table for each month
+  (setq org-clock-clocktable-default-properties
+        `(:block ,(format-time-string "%Y-%m") :scope file-with-archives))
 
   ;; Clocktable (reporting: r) in the agenda
   (setq org-clocktable-defaults
