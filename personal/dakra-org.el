@@ -10,8 +10,6 @@
  '(
    htmlize
    org-download
-   org-jira
-   orgit
    ))
 
 ;; Install newest org and org-plus-contrib packages
@@ -27,15 +25,29 @@
          ("M-o" . ace-link-org)
          ("M-p" . org-previous-visible-heading)
          ("M-n" . org-next-visible-heading))
-  ;;:init
+  :init
   ;; FIXME: If there is a org-clock to resume (forgot to clock out before shutting down)
   ;;        then there will be a *blocking* minibuffer with the question to resume the
   ;;        clock and the daemon does NOT start because there's no way to see/answer that question
   ;; Display custom agenda when starting Emacs in daemon mode
   ;;(when (daemonp)
   ;;  (add-hook 'after-init-hook '(lambda () (org-agenda nil " "))))
+  (add-hook 'org-mode-hook
+            (lambda ()
+              ;; disable whitespace-mode in org-mode
+              (whitespace-mode -1)
+              ;; use utf-8 characters instead of `*` as bullet points
+              (org-bullets-mode 1)
+              ;; Automatic line-wrapping in org-mode
+              (auto-fill-mode 1)
+              ;; Indent text according to outline structure.
+              (org-indent-mode 1)
 
+              (setq completion-at-point-functions
+                    '(org-completion-symbols
+                      ora-cap-filesystem))))
   :config
+  ;; Always take note when marking task as done
   (setq org-log-done 'note)
 
   ;; Show org entities as UTF-8 characters (e.g. \sum as ∑)
@@ -44,6 +56,18 @@
   (setq org-pretty-entities-include-sub-superscripts nil)
   ;; And also don't export ^ or _ as super/subscripts
   (setq org-use-sub-superscripts nil)
+  ;; undone TODO entries will block switching the parent to DONE
+  (setq org-enforce-todo-dependencies t)
+
+  (setq org-use-fast-todo-selection t)
+
+  ;; This allows changing todo states with S-left and S-right skipping all of the normal processing
+  ;; when entering or leaving a todo state.
+  ;; This cycles through the todo states but skips setting timestamps and entering notes which
+  ;; is very convenient when all you want to do is fix up the status of an entry.
+  (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+
+  (setq org-default-notes-file (concat org-directory "refile.org"))
 
   (defun prelude-org-mode-defaults ()
     (let ((oldmap (cdr (assoc 'prelude-mode minor-mode-map-alist)))
@@ -59,7 +83,9 @@
   (add-hook 'org-mode-hook 'prelude-org-mode-defaults)
   )
 
-(use-package org-habit)  ; track habits
+;; track habits
+(use-package org-habit :ensure nil
+  :after org)
 
 (use-package org-man  ; make org-links work with man pages
   :config
@@ -79,8 +105,6 @@
 (use-package ox-gfm
   :after ox)
 
-
-(add-hook 'org-mode-hook 'org-indent-mode)
 
 ;; Automatically add a CREATED property when inserting a new headline
 (use-package org-expiry
@@ -162,23 +186,27 @@
 ;; install the restapi branch from org-jira (not on melpa yet)
 ;;(quelpa '(org-jira :fetcher github :repo "baohaojun/org-jira" :branch "restapi") :upgrade nil)
 ;;(require 'org-jira)
-(setq jiralib-url "https://jira.paesslergmbh.de")
-
 ;; we never want to upgrade org-jira (to the soap version on master)
 ;; This snippet prevents package-menu to update it
-(defvar package-menu-exclude-packages '("org-jira"))
+;;(defvar package-menu-exclude-packages '("org-jira"))
+;;(defun package-menu--remove-excluded-packages (orig)
+;;  (let ((included (-filter
+;;                   (lambda (entry)
+;;                     (let ((name (symbol-name (package-desc-name (car entry)))))
+;;                       (not (member name package-menu-exclude-packages))))
+;;                   tabulated-list-entries)))
+;;    (setq-local tabulated-list-entries included)
+;;    (funcall orig)))
+;;(advice-add 'package-menu--find-upgrades :around #'package-menu--remove-excluded-packages)
 
-(defun package-menu--remove-excluded-packages (orig)
-  (let ((included (-filter
-                   (lambda (entry)
-                     (let ((name (symbol-name (package-desc-name (car entry)))))
-                       (not (member name package-menu-exclude-packages))))
-                   tabulated-list-entries)))
-    (setq-local tabulated-list-entries included)
-    (funcall orig)))
-
-(advice-add 'package-menu--find-upgrades :around #'package-menu--remove-excluded-packages)
-
+(use-package org-jira
+  :after org
+  :commands (org-jira-get-issue org-jira-get-issues org-jira-get-projects)
+  :config
+  (setq jiralib-url "https://jira.paesslergmbh.de")
+  ;; Don't sync anything back to jira
+  (setq org-jira-deadline-duedate-sync-p nil)
+  (setq org-jira-worklog-sync-p nil))
 
 ;; Enter key follows links (= C-c C-o)
 (setq org-return-follows-link t)
@@ -211,60 +239,58 @@
 (setq org-refile-use-outline-path 'file)  ; Show filename for refiling
 (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
 
-(setq org-use-fast-todo-selection t)
-
-;; This allows changing todo states with S-left and S-right skipping all of the normal processing
-;; when entering or leaving a todo state.
-;; This cycles through the todo states but skips setting timestamps and entering notes which
-;; is very convenient when all you want to do is fix up the status of an entry.
-(setq org-treat-S-cursor-todo-selection-as-state-change nil)
-
-(setq org-default-notes-file (concat org-directory "refile.org"))
-
 (use-package org-id
+  :after org
   :config (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id))
 
 (require 'org-protocol)
 ;; org-capture chrome plugin: https://chrome.google.com/webstore/detail/org-capture/kkkjlfejijcjgjllecmnejhogpbcigdc?hl=en
 
-;; Capture templates for: TODO tasks, Notes, appointments, phone calls, meetings, and org-protocol
-(setq org-capture-templates
-      `(("t" "todo" entry (file ,(concat org-directory "refile.org"))
-         "* TODO %?\n%U\n" :clock-in t :clock-resume t)
-        ("T" "todo with link" entry (file ,(concat org-directory "refile.org"))
-         "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
-        ("e" "email" entry (file ,(concat org-directory "refile.org"))
-         "* TODO %? Email: %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
-        ("r" "respond" entry (file ,(concat org-directory "refile.org"))
-         "* TODO Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
-        ("n" "note" entry (file ,(concat org-directory "refile.org"))
-         "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
-        ("w" "org-protocol" entry (file ,(concat org-directory "refile.org"))
-         "* TODO Review %c\n%U\n" :immediate-finish t)
-        ("m" "Meeting" entry (file ,(concat org-directory "refile.org"))
-         "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t)
-        ("P" "Phone call" entry (file ,(concat org-directory "refile.org"))
-         "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
-        ("p" "Protocol" entry (file ,(concat org-directory "refile.org"))
-         "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
-        ("L" "Protocol Link" entry (file ,(concat org-directory "refile.org"))
-         "* %?\n[[%:link][%:description]]\n")
-        ("h" "Habit" entry (file ,(concat org-directory "refile.org"))
-         "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
+(use-package org-capture :ensure nil
+  :after org
+  :commands org-capture
+  :config
+  ;; Capture templates for: TODO tasks, Notes, appointments, phone calls, meetings, and org-protocol
+  (setq org-capture-templates
+        `(("t" "todo" entry (file ,(concat org-directory "refile.org"))
+           "* TODO %?\n%U\n" :clock-in t :clock-resume t)
+          ("T" "todo with link" entry (file ,(concat org-directory "refile.org"))
+           "* TODO %?\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("e" "email" entry (file ,(concat org-directory "refile.org"))
+           "* TODO %? Email: %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish nil)
+          ("r" "respond" entry (file ,(concat org-directory "refile.org"))
+           "* TODO Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
+          ("n" "note" entry (file ,(concat org-directory "refile.org"))
+           "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+          ("w" "org-protocol" entry (file ,(concat org-directory "refile.org"))
+           "* TODO Review %c\n%U\n" :immediate-finish t)
+          ("m" "Meeting" entry (file ,(concat org-directory "refile.org"))
+           "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t)
+          ("c" "Code Review" entry (file+headline ,(concat org-directory "refile.org") "Code Review")
+           "* TODO %?\n  %i")
+          ("P" "Phone call" entry (file ,(concat org-directory "refile.org"))
+           "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
+          ("p" "Protocol" entry (file ,(concat org-directory "refile.org"))
+           "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
+          ("L" "Protocol Link" entry (file ,(concat org-directory "refile.org"))
+           "* %?\n[[%:link][%:description]]\n")
+          ("h" "Habit" entry (file ,(concat org-directory "refile.org"))
+           "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
 
 ;;; Create (and delete) a new capture frame with emacsclient -ne "(make-capture-frame)"
-(defadvice org-capture-finalize
-    (after delete-capture-frame activate)
-  "Advise capture-finalize to close the frame"
-  (if (equal "capture" (frame-parameter nil 'name))
-      (delete-frame)))
+  (defadvice org-capture-finalize
+      (after delete-capture-frame activate)
+    "Advise capture-finalize to close the frame"
+    (if (equal "capture" (frame-parameter nil 'name))
+        (delete-frame)))
 
-(defadvice org-capture-destroy
-    (after delete-capture-frame activate)
-  "Advise capture-destroy to close the frame"
-  (if (equal "capture" (frame-parameter nil 'name))
-      (delete-frame)))
+  (defadvice org-capture-destroy
+      (after delete-capture-frame activate)
+    "Advise capture-destroy to close the frame"
+    (if (equal "capture" (frame-parameter nil 'name))
+        (delete-frame)))
+  )
 
 (use-package noflet)  ; let you locally overwrite functions
 (defun make-capture-frame ()
@@ -274,24 +300,39 @@
   (select-frame-by-name "capture")
   (delete-other-windows)
   (noflet ((switch-to-buffer-other-window (buf) (switch-to-buffer buf)))
-          (org-capture)))
+    (org-capture)))
 
+(use-package orca
+  :after org-capture
+  :config
+  (setq orca-handler-list
+        `((orca-handler-match-url
+           "https://www.reddit.com/r/emacs"
+           ,(concat org-directory "refile.org") "\\* Reddit")
+          (orca-handler-match-url
+           "https://emacs.stackexchange.com/"
+           ,org-default-notes-file "\\* Questions")
+          (orca-handler-file
+           ,org-default-notes-file "\\* Refile")))
+  ;; To capture in current open org buffer:
+  ;;(push '(orca-handler-current-buffer "\\* Tasks") orca-handler-list)
+  )
 
-;; undone TODO entries will block switching the parent to DONE
-(setq org-enforce-todo-dependencies t)
-
-;; Do not dim blocked tasks
-(setq org-agenda-dim-blocked-tasks nil)
-
-;; Compact the block agenda view
-(setq org-agenda-compact-blocks nil)
 
 (use-package org-clock :ensure nil
   :after org
+  :commands (org-clock-in org-clock-in-last org-clock-out org-clock-goto org-clock-display)
   :config
   (setq org-clock-idle-time 15)  ; idle after 15 minutes
 
   ;;(setq org-clock-continuously t)  ; Start clocking from the last clock-out time, if any.
+
+  ;; Show lot of clocking history so it's easy to pick items off the C-F11 list
+  (setq org-clock-history-length 23)
+  ;; Save the running clock and all clock history when exiting Emacs, load it on startup
+  (setq org-clock-persist-file "~/.emacs.d/personal/org-clock-save.el")
+  (setq org-clock-persist t)
+  (org-clock-persistence-insinuate)
 
   ;; org-clock-display (C-c C-x C-d) shows times for this month by default
   (setq org-clock-display-default-range 'thismonth)
@@ -316,9 +357,60 @@
 (setq org-duration-format '((special . h:mm)))
 ;; Set to  (("d" . nil) (special . h:mm)) if you want to show days
 
-;; Agenda clock report parameters
-(setq org-agenda-clockreport-parameter-plist
-      (quote (:link t :maxlevel 5 :fileskip0 t :compact nil :narrow 80)))
+(use-package org-agenda :ensure nil
+  :after org
+  :commands org-agenda
+  :config
+  ;; Overwrite the current window with the agenda
+  (setq org-agenda-window-setup 'current-window)
+
+  ;; Do not dim blocked tasks
+  (setq org-agenda-dim-blocked-tasks nil)
+
+  ;; Compact the block agenda view
+  (setq org-agenda-compact-blocks nil)
+
+  ;; Agenda clock report parameters
+  (setq org-agenda-clockreport-parameter-plist
+        (quote (:link t :maxlevel 5 :fileskip0 t :compact nil :narrow 80)))
+
+  ;; Agenda log mode items to display (closed and state changes by default)
+  (setq org-agenda-log-mode-items (quote (closed state clock)))
+
+  ;; Keep tasks with dates on the global todo lists
+  (setq org-agenda-todo-ignore-with-date nil)
+
+  ;; Keep tasks with deadlines on the global todo lists
+  (setq org-agenda-todo-ignore-deadlines nil)
+
+  ;; Keep tasks with scheduled dates on the global todo lists
+  (setq org-agenda-todo-ignore-scheduled nil)
+
+  ;; Keep tasks with timestamps on the global todo lists
+  (setq org-agenda-todo-ignore-timestamp nil)
+
+  ;; Remove completed deadline tasks from the agenda view
+  (setq org-agenda-skip-deadline-if-done t)
+
+  ;; Remove completed scheduled tasks from the agenda view
+  (setq org-agenda-skip-scheduled-if-done t)
+
+  ;; Remove completed items from search results
+  (setq org-agenda-skip-timestamp-if-done t)
+
+  ;; Include agenda archive files when searching for things
+  (setq org-agenda-text-search-extra-files (quote (agenda-archives)))
+
+  ;; Show all future entries for repeating tasks
+  (setq org-agenda-repeating-timestamp-show-all t)
+
+  ;; Show all agenda dates - even if they are empty
+  (setq org-agenda-show-all-dates t)
+
+  ;; Start the weekly agenda on Monday
+  (setq org-agenda-start-on-weekday 1)
+
+  )
 
 ;; Set default column view headings: Task Effort Clock_Summary
 ;;(setq org-columns-default-format "%80ITEM(Task) %10Effort(Effort){:} %10CLOCKSUM")
@@ -330,9 +422,6 @@
 ;; global STYLE property values for completion
 (setq org-global-properties (quote (("Effort_ALL" . "0:15 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 0:00")
                                     ("STYLE_ALL" . "habit"))))
-
-;; Agenda log mode items to display (closed and state changes by default)
-(setq org-agenda-log-mode-items (quote (closed state clock)))
 
 ;; Tags with fast selection keys
 (setq org-tag-alist (quote ((:startgroup)
@@ -353,43 +442,8 @@
 ;; Allow setting single tags without the menu
 (setq org-fast-tag-selection-single-key (quote expert))
 
-;; Keep tasks with dates on the global todo lists
-(setq org-agenda-todo-ignore-with-date nil)
-
-;; Keep tasks with deadlines on the global todo lists
-(setq org-agenda-todo-ignore-deadlines nil)
-
-;; Keep tasks with scheduled dates on the global todo lists
-(setq org-agenda-todo-ignore-scheduled nil)
-
-;; Keep tasks with timestamps on the global todo lists
-(setq org-agenda-todo-ignore-timestamp nil)
-
-;; Remove completed deadline tasks from the agenda view
-(setq org-agenda-skip-deadline-if-done t)
-
-;; Remove completed scheduled tasks from the agenda view
-(setq org-agenda-skip-scheduled-if-done t)
-
-;; Remove completed items from search results
-(setq org-agenda-skip-timestamp-if-done t)
-
-
 (setq org-archive-mark-done nil)
 (setq org-archive-location "%s_archive::* Archived Tasks")
-
-
-;; Include agenda archive files when searching for things
-(setq org-agenda-text-search-extra-files (quote (agenda-archives)))
-
-;; Show all future entries for repeating tasks
-(setq org-agenda-repeating-timestamp-show-all t)
-
-;; Show all agenda dates - even if they are empty
-(setq org-agenda-show-all-dates t)
-
-;; Start the weekly agenda on Monday
-(setq org-agenda-start-on-weekday 1)
 
 ;; C-RET, C-S-RET insert new heading after current task content
 (setq org-insert-heading-respect-content nil)
@@ -402,13 +456,6 @@
 (setq org-special-ctrl-k t)
 (setq org-yank-adjusted-subtrees t)
 
-
-;; Show lot of clocking history so it's easy to pick items off the C-F11 list
-(setq org-clock-history-length 23)
-;; Save the running clock and all clock history when exiting Emacs, load it on startup
-(setq org-clock-persist-file "~/.emacs.d/personal/org-clock-save.el")
-(setq org-clock-persist t)
-(org-clock-persistence-insinuate)
 
 ;; Use sticky agenda's so they persist
 ;;(setq org-agenda-sticky t)
@@ -435,23 +482,12 @@
 ;; leave highlights in sparse tree after edit. C-c C-c removes highlights
 (setq org-remove-highlights-with-change nil)
 
-;; Overwrite the current window with the agenda
-(setq org-agenda-window-setup 'current-window)
-
 (use-package org-bullets
   :commands org-bullets-mode)
 
-(add-hook 'org-mode-hook
-          (lambda ()
-            ;; disable whitespace-mode in org-mode
-            (whitespace-mode -1)
-            ;; use utf-8 characters instead of `*` as bullet points
-            (org-bullets-mode 1)
-            ;; Automatic line-wrapping in org-mode
-            (auto-fill-mode 1)))
-
 
 (use-package org-pomodoro :load-path "repos/org-pomodoro"
+  :after org
   :commands (org-pomodoro org-pomodoro-active-p)
   :init
   ;; called with i3status-rs in ~/.config/i3/status.toml with

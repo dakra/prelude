@@ -1735,7 +1735,7 @@ displayed anywhere else."
 ;; Smart indentation for SQL files
 (use-package sql-indent :ensure nil :load-path "repos/emacs-sql-indent"
   :commands sqlind-setup
-  :init (add-hook 'sql-mode-hook 'sqlind-setup))
+  :init (add-hook 'sql-mode-hook 'sqlind-minor-mode))
 
 ;; Capitalize keywords in SQL mode
 (use-package sqlup-mode
@@ -2093,7 +2093,12 @@ and when called with 2 prefix arguments only open in browser."
 
 (use-package magit
   :defines (magit-ediff-dwim-show-on-hunks)
+  :commands (magit-status magit-list-repositories magit-log magit-log-buffer-file magit-list-submodules)
   :config
+  (setq magit-repository-directories
+        '(("~/atomx" . 5)
+          ("~/e5" . 5)
+          ("~/projects" . 5)))
   ;; Highlight issue ids in commit messages
   (add-hook 'git-commit-mode-hook 'bug-reference-mode)
 
