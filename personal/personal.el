@@ -217,7 +217,7 @@ F5 inserts the entity code."
   :after pcomplete
   :commands pcomplete/git)
 
-(use-package pcompl-pip
+(use-package pcmpl-pip
   :after pcomplete
   :commands pcomplete/pip)
 
@@ -1308,8 +1308,8 @@ prepended to the element after the #+HEADERS: tag."
   (use-package alchemist))
 
 
-(use-package fabric
-  :defer t)
+(use-package fabric :load-path "repos/fabric.el"
+  :commands fabric-run-command)
 
 ;; Commint for redis
 (use-package redis
@@ -1648,6 +1648,8 @@ displayed anywhere else."
 
 ;; SQL
 (use-package sql
+  :mode (("\\.sql\\'" . sql-mode)
+         ("\\.msql\\'" . sql-mode))  ; Mako template sql
   :config
   (sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\|mysql\\) ?\\[?[_a-zA-Z0-9]*\\]?> ")
 
@@ -1753,10 +1755,10 @@ displayed anywhere else."
 (use-package emmet-mode
   :commands emmet-mode
   :bind (:map emmet-mode-keymap
-              ("<backtab>" . emmet-expand-line)
-              ("\C-c TAB" . emmet-expand-line)
-              ("C-M-p" . emmet-prev-edit-point)
-              ("C-M-n" . emmet-next-edit-point))
+         ("<backtab>" . emmet-expand-line)
+         ("\C-c TAB" . emmet-expand-line)
+         ("C-M-p" . emmet-prev-edit-point)
+         ("C-M-n" . emmet-next-edit-point))
   :init
   (add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
   (add-hook 'web-mode-hook 'emmet-mode)
@@ -2185,9 +2187,9 @@ and when called with 2 prefix arguments only open in browser."
 ;; more useful frame title, that show either a file or a
 ;; buffer name (if the buffer isn't visiting a file)
 (setq frame-title-format
-      '("" invocation-name " - " (:eval (if (buffer-file-name)
-                                            (abbreviate-file-name (buffer-file-name))
-                                          "%b"))))
+      '("" invocation-name " " (:eval (if (buffer-file-name)
+                                          (abbreviate-file-name (buffer-file-name))
+                                        "%b"))))
 
 (use-package dumb-jump
   :bind (("M-g o" . dumb-jump-go-other-window)
@@ -2667,6 +2669,12 @@ Lisp function does not specify a special indentation."
 (eval-after-load "flyspell"
   '(define-key flyspell-mode-map (kbd "C-;") nil))
 
+;; Don't inherit flyspell from "error" which has red background
+(custom-theme-set-faces
+ 'moe-dark
+ '(flyspell-duplicate ((t (:weight normal :underline (:color "#ff0000" :style wave)))))
+ '(flyspell-incorrect ((t (:weight normal :underline (:color "#ff0000" :style wave))))))
+
 (use-package avy
   :bind ("C-;" . avy-goto-char-timer)
   :config
@@ -2677,9 +2685,9 @@ Lisp function does not specify a special indentation."
 (use-package ace-link
   :commands (ace-link-eww ace-link-org ace-link-woman)
   :bind (:map Info-mode-map ("o" . ace-link-info)
-              :map help-mode-map ("o" . ace-link-help)
-              :map compilation-mode-map ("o" . ace-link-compilation)
-              :map org-mode-map ("M-o" . ace-link-org))
+         :map help-mode-map ("o" . ace-link-help)
+         :map compilation-mode-map ("o" . ace-link-compilation)
+         :map org-mode-map ("M-o" . ace-link-org))
   :init
   (eval-after-load "woman"
     `(define-key woman-mode-map ,"o" 'ace-link-woman))
@@ -2693,7 +2701,7 @@ Lisp function does not specify a special indentation."
 ;; Show helm-list of correct spelling suggesions
 (use-package flyspell-correct-helm
   :bind (:map flyspell-mode-map
-              ("C-." . flyspell-correct-previous-word-generic)))
+         ("C-." . flyspell-correct-previous-word-generic)))
 
 ;; Automatically guess languages and switch ispell
 
@@ -2723,8 +2731,8 @@ Lisp function does not specify a special indentation."
 ;; (flycheck-add-mode 'javascript-eslint 'web-mode)
 (use-package web-mode :load-path "repos/web-mode"
   :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
-         "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'" "\\.jinja2?\\'"
-         "\\.vue\\'")
+         "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'"
+         "\\.jinja2?\\'" "\\.mako\\'" "\\.vue\\'")
   :config
   ;;(setq web-mode-engines-alist '(("django"  . "/templates/.*\\.html\\'")))
   (setq web-mode-engines-alist '(("django" . "\\.jinja2?\\'")))

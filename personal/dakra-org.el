@@ -51,6 +51,8 @@
   :config
   (require 'smartparens-org)  ;; Additional org sp-local-pairs
 
+  (setq org-directory "~/org/")
+
   ;; Always take note when marking task as done
   (setq org-log-done 'note)
 
@@ -117,10 +119,6 @@
   (org-expiry-insinuate))
 
 ;;(setq org-list-indent-offset 1)
-
-(setq org-directory "~/org/")
-
-(setq org-agenda-files '("~/org"))
 
 ;; Show headings up to level 2 by default when opening an org files
 (setq org-startup-folded 'content)
@@ -367,6 +365,8 @@
   :after org
   :commands org-agenda
   :config
+  (setq org-agenda-files '("~/org"))
+
   ;; Overwrite the current window with the agenda
   (setq org-agenda-window-setup 'current-window)
 
