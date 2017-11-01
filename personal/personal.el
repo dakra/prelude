@@ -2665,16 +2665,6 @@ Lisp function does not specify a special indentation."
 ;;(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
 ;;(global-set-key "\M-p"  (lambda () (interactive) (scroll-down 1)) )
 
-;; remove flyspess 'C-;' keybinding so we can use it for avy jump
-(eval-after-load "flyspell"
-  '(define-key flyspell-mode-map (kbd "C-;") nil))
-
-;; Don't inherit flyspell from "error" which has red background
-(custom-theme-set-faces
- 'moe-dark
- '(flyspell-duplicate ((t (:weight normal :underline (:color "#ff0000" :style wave)))))
- '(flyspell-incorrect ((t (:weight normal :underline (:color "#ff0000" :style wave))))))
-
 (use-package avy
   :bind ("C-;" . avy-goto-char-timer)
   :config
@@ -2698,14 +2688,34 @@ Lisp function does not specify a special indentation."
 
 ;; Spellcheck setup
 
+(use-package ispell :ensure nil
+  :bind (("C-c I c" . ispell-comments-and-strings)
+         ("C-c I d" . ispell-change-dictionary)
+         ("C-c I k" . ispell-kill-ispell)
+         ("C-c I m" . ispell-message)
+         ("C-c I r" . ispell-region)))
+(use-package flyspell :ensure nil
+  :after ispell
+  :config
+  ;; remove flyspess 'C-;' keybinding so we can use it for avy jump
+  (unbind-key "C-;" flyspell-mode-map)
+  ;; Don't inherit flyspell from "error" which has red background
+  (custom-theme-set-faces
+   'moe-dark
+   '(flyspell-duplicate ((t (:weight normal :underline (:color "forest green" :style wave)))))
+   '(flyspell-incorrect ((t (:weight normal :underline (:color "forest green" :style wave))))))
+  )
+
 ;; Show helm-list of correct spelling suggesions
 (use-package flyspell-correct-helm
+  :after flyspell
   :bind (:map flyspell-mode-map
          ("C-." . flyspell-correct-previous-word-generic)))
 
 ;; Automatically guess languages and switch ispell
 
 (use-package guess-language
+  :after ispell
   :commands guess-language-mode
   :init
   ;; Only guess language for emails
@@ -2716,8 +2726,7 @@ Lisp function does not specify a special indentation."
   (setq guess-language-langcodes '((en . ("en_GB" "English"))
                                    (de . ("de_DE" "German"))))
   (setq guess-language-languages '(en de))
-  (setq guess-language-min-paragraph-length 35)
-  )
+  (setq guess-language-min-paragraph-length 35))
 
 ;; Adds the node_modules/.bin directory to the buffer exec_path.
 ;; E.g. support project local eslint installations.
