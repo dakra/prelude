@@ -241,6 +241,54 @@ F5 inserts the entity code."
          ;;("M-r" . dakra-eshell-read-history)
          )
   :config
+  ;; FIXME: workaround for pcomplete * bug
+  ;; See: https://debbugs.gnu.org/cgi/bugreport.cgi?bug=18951
+  (defun pcomplete-parse-arguments (&optional expand-p)
+    "Parse the command line arguments.  Most completions need this info."
+    (let ((results (funcall pcomplete-parse-arguments-function)))
+      (when results
+        (setq pcomplete-args (or (car results) (list ""))
+	      pcomplete-begins (or (cdr results) (list (point)))
+	      pcomplete-last (1- (length pcomplete-args))
+	      pcomplete-index 0
+	      pcomplete-stub (pcomplete-arg 'last))
+        (let ((begin (pcomplete-begin 'last)))
+	  (if (and (listp pcomplete-stub) ;??
+		   (not pcomplete-expand-only-p))
+	      (let* ((completions pcomplete-stub) ;??
+		     (common-stub (car completions))
+		     (c completions)
+		     (len (length common-stub)))
+	        (while (and c (> len 0))
+		  (while (and (> len 0)
+			      (not (string=
+				    (substring common-stub 0 len)
+				    (substring (car c) 0
+					       (min (length (car c))
+						    len)))))
+		    (setq len (1- len)))
+		  (setq c (cdr c)))
+	        (setq pcomplete-stub (substring common-stub 0 len)
+		      pcomplete-autolist t)
+	        (when (and begin (> len 0) (not pcomplete-show-list))
+		  (delete-region begin (point))
+		  (pcomplete-insert-entry "" pcomplete-stub))
+	        (throw 'pcomplete-completions completions))
+	    (when expand-p
+	      (if (stringp pcomplete-stub)
+		  (when begin
+		    (delete-region begin (point))
+		    (insert-and-inherit pcomplete-stub))
+	        (if (and (listp pcomplete-stub)
+		         pcomplete-expand-only-p)
+		    ;; this is for the benefit of `pcomplete-expand'
+		    (setq pcomplete-last-completion-length (- (point) begin)
+			  pcomplete-current-completions pcomplete-stub)
+		  (error "Cannot expand argument"))))
+	    (if pcomplete-expand-only-p
+	        (throw 'pcompleted t)
+	      pcomplete-args))))))
+
   (defun dakra-eshell-always ()
     "Start a regular shell if you prefer that."
     (interactive)
@@ -267,12 +315,6 @@ F5 inserts the entity code."
 
   ;; (eshell/alias "gd" "magit-diff-unstaged")
   ;; (eshell/alias "gds" "magit-diff-staged")
-
-  ;; Show git info in prompt
-  (use-package eshell-git-prompt
-    :config ;;(eshell-git-prompt-use-theme 'powerline)
-    ;; FIXME: Wait for powerline font
-    (eshell-git-prompt-use-theme 'robbyrussell))
 
   (defun dakra-eshell-read-history ()
     (interactive)
@@ -313,8 +355,12 @@ F5 inserts the entity code."
                                 ;; Emacs bug where * gets removed
                                 ;; See https://github.com/company-mode/company-mode/issues/218
                                 ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=18951
-                                (setq-local company-idle-delay 1)
-                                (setq-local company-backends '(company-capf))))
+                                (require 'company)
+                                (setq-local company-idle-delay 0.1)
+                                ;; (setq-local company-backends '(company-eshell-autosuggest))
+                                (setq-local company-backends '(company-capf))
+                                ;; (setq-local company-frontends '(company-preview-frontend))
+                                ))
   ;; Functions starting with `eshell/' can be called directly from eshell
   ;; with only the last part. E.g. (eshell/foo) will call `$ foo'
   (defun eshell/d (&rest args)
@@ -377,9 +423,21 @@ file to edit."
       (shell-command full-cmd)))
   )
 
+;; Show git info in prompt
+(use-package eshell-git-prompt
+  :after eshell
+  :config ;;(eshell-git-prompt-use-theme 'powerline)
+  ;; FIXME: Wait for powerline font
+  (eshell-git-prompt-use-theme 'robbyrussell))
+
 (use-package eshell-bookmark
   :after eshell
   :commands eshell-bookmark-setup)
+
+(use-package fish-completion :ensure nil :load-path "repos/emacs-fish-completion"
+  :after eshell
+  :config (fish-completion-eshell-toggle-globally))
+
 
 (defun xah-paste-or-paste-previous ()
   "Paste. When called repeatedly, paste previous.
@@ -396,7 +454,40 @@ Version 2017-01-11"
       (yank))))
 ;;(global-set-key (kbd "C-y") 'xah-paste-or-paste-previous)
 
-;;; toggle narrow or widen (region or defun) with C-x n
+(use-package fancy-narrow
+  :commands (fancy-narrow-to-defun fancy-narrow-to-region fancy-widen fancy-narrow-active-p)
+  :bind (("C-x n" . fancy-narrow-or-widen-dwim))
+  :init
+    ;;; toggle narrow or widen (region or defun) with C-x n
+  (defun fancy-narrow-or-widen-dwim (p)
+    "Widen if buffer is narrowed, narrow-dwim otherwise.
+Dwim means: region, org-src-block, org-subtree, or
+defun, whichever applies first.  Narrowing to
+org-src-block actually calls `org-edit-src-code'.
+
+With prefix P, don't widen, just narrow even if buffer
+is already narrowed."
+    (interactive "P")
+    (declare (interactive-only))
+    (cond ((and (fancy-narrow-active-p) (not p)) (fancy-widen))
+          ((region-active-p)
+           (fancy-narrow-to-region (region-beginning)
+                                   (region-end)))
+          ((derived-mode-p 'org-mode)
+           ;; `org-edit-src-code' is not a real narrowing
+           ;; command. Remove this first conditional if
+           ;; you don't want it.
+           (cond ((ignore-errors (org-edit-src-code) t)
+                  (delete-other-windows))
+                 ((ignore-errors (org-fancy-narrow-to-block) t))
+                 (t (org-narrow-to-subtree))))
+          ((derived-mode-p 'latex-mode)
+           (LaTeX-narrow-to-environment))
+          (t (fancy-narrow-to-defun))))
+  :config
+  ;; Make swiper work with fancy-narow
+  (fancy-narrow--advise-function 'swiper))
+
 (defun narrow-or-widen-dwim (p)
   "Widen if buffer is narrowed, narrow-dwim otherwise.
 Dwim means: region, org-src-block, org-subtree, or
@@ -422,14 +513,14 @@ is already narrowed."
         ((derived-mode-p 'latex-mode)
          (LaTeX-narrow-to-environment))
         (t (narrow-to-defun))))
-(define-key ctl-x-map "n" #'narrow-or-widen-dwim)
+(define-key ctl-x-map "N" #'narrow-or-widen-dwim)
 
 (use-package calc :ensure nil
   :bind ("<XF86Calculator>" . quick-calc))
 
 ;; Associate more files with conf-mode
 (use-package conf-mode :ensure nil
-  :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'"))
+  :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'" "\\.ini\\.tmpl\\'"))
 
 ;; Edit GNU gettext PO files
 (use-package po-mode
@@ -1326,6 +1417,9 @@ prepended to the element after the #+HEADERS: tag."
          ("\\.markdown\\'" . gfm-mode)
          ("\\.md\\'" . gfm-mode))
   :config
+  ;; Enable fontification for code blocks
+  (setq markdown-fontify-code-blocks-natively t)
+  (add-to-list 'markdown-code-lang-modes '("ini" . conf-mode))
   ;; use pandoc with source code syntax highlighting to preview markdown (C-c C-c p)
   (setq markdown-command "pandoc -s --highlight-style pygments -f markdown_github -t html5"))
 
@@ -1391,6 +1485,7 @@ split via i3 and create a new Emacs frame."
   ;; Add function that calls (display-buffer) if you want to exclude it from frames-only-mode
   (add-to-list 'frames-only-mode-use-window-functions 'undo-tree-visualize)
   (add-to-list 'frames-only-mode-use-window-functions 'po-edit-string)
+  (add-to-list 'frames-only-mode-use-window-functions 'org-clock-resolve)
   (frames-only-mode))
 
 (use-package edit-server
@@ -1650,7 +1745,21 @@ displayed anywhere else."
 (use-package sql
   :mode (("\\.sql\\'" . sql-mode)
          ("\\.msql\\'" . sql-mode))  ; Mako template sql
+  :init
+  ;; Persist sqli history accross multiple sessions
+  (setq-default sql-input-ring-file-name
+                (expand-file-name ".sqli_history" user-emacs-directory))
   :config
+  ;; I never use multiline in the comint mode. So auto add ";" at the end
+  (defun dakra/add-semicolon-and-comint-send-input ()
+    "Adds semicolon at the end of the line and runs comint-send-input."
+    (interactive)
+    (move-end-of-line nil)
+    (insert ";")
+    (comint-send-input))
+  (define-key sql-interactive-mode-map [return] #'dakra/add-semicolon-and-comint-send-input)
+
+  ;; Fix prompt detection for mariadb
   (sql-set-product-feature 'mysql :prompt-regexp "^\\(MariaDB\\|MySQL\\|mysql\\) ?\\[?[_a-zA-Z0-9]*\\]?> ")
 
   (setq sql-product 'mysql)
@@ -1728,8 +1837,7 @@ displayed anywhere else."
 
   (add-hook 'sql-interactive-mode-hook
             (lambda ()
-              (toggle-truncate-lines t)
-              ))
+              (toggle-truncate-lines t)))
   (add-hook 'sql-mode
             (lambda ()
               (setq sql-set-product 'mysql))))
@@ -2741,7 +2849,7 @@ Lisp function does not specify a special indentation."
 (use-package web-mode :load-path "repos/web-mode"
   :mode ("\\.phtml\\'" "\\.tpl\\.php\\'" "\\.tpl\\'" "\\.blade\\.php\\'" "\\.jsp\\'" "\\.as[cp]x\\'"
          "\\.erb\\'" "\\.html.?\\'" "/\\(views\\|html\\|theme\\|templates\\)/.*\\.php\\'"
-         "\\.jinja2?\\'" "\\.mako\\'" "\\.vue\\'")
+         "\\.jinja2?\\'" "\\.mako\\'" "\\.vue\\'" "_template\\.txt")
   :config
   ;;(setq web-mode-engines-alist '(("django"  . "/templates/.*\\.html\\'")))
   (setq web-mode-engines-alist '(("django" . "\\.jinja2?\\'")))

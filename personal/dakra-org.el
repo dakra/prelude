@@ -779,6 +779,7 @@ session as the current block. ARG has same meaning as in
 (add-to-list 'org-src-lang-modes (quote ("dot" . graphviz-dot)))
 
 ;; Add 'conf-mode' to org-babel
+(add-to-list 'org-src-lang-modes '("ini" . conf))
 (add-to-list 'org-src-lang-modes '("conf" . conf))
 
 ;; add all languages to org mode
