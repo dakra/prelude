@@ -39,17 +39,50 @@
 ;; Always just use left-to-right text
 (setq bidi-display-reordering nil)
 
+(setq-default indent-tabs-mode nil)   ;; don't use tabs to indent
+(setq-default tab-width 8)            ;; but maintain correct appearance
+
+;; Newline at end of file
+(setq require-final-newline t)
+
+;; delete the selection with a keypress
+(delete-selection-mode t)
+
+;; smart tab behavior - indent or complete
+(setq tab-always-indent 'complete)
+
+;; revert buffers automatically when underlying files are changed externally
+(global-auto-revert-mode t)
+
 ;; A better Emacs Package Menu
 (use-package paradox
+  :defer t  ;; Otherwise it will load and fail because I didn't unlock gpgagent yet
   :commands paradox-list-packages
   :config
+  ;; FIXME: timer because defer doesn't work;
+  ;; See issue: https://github.com/jwiegley/use-package/issues/514
   ;; Set paradox-github-token
-  (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")
+  (run-at-time "2 min" nil
+               '(lambda ()
+                  (require 'dakra-passwords "~/.emacs.d/personal/dakra-passwords.el.gpg")))
 
   (setq paradox-display-download-count t)
   (setq paradox-use-homepage-buttons nil)
   (setq paradox-execute-asynchronously t))
 
+(use-package hippie-exp :ensure nil
+  :bind (("M-/" . hippie-expand))
+  :config
+  (setq hippie-expand-try-functions-list '(try-expand-dabbrev
+                                           try-expand-dabbrev-all-buffers
+                                           try-expand-dabbrev-from-kill
+                                           try-complete-file-name-partially
+                                           try-complete-file-name
+                                           try-expand-all-abbrevs
+                                           try-expand-list
+                                           try-expand-line
+                                           try-complete-lisp-symbol-partially
+                                           try-complete-lisp-symbol)))
 (use-package comint :ensure nil
   :commands comint-truncate-buffer
   :config
@@ -57,9 +90,13 @@
   (setq comint-buffer-maximum-size 16384))
 
 (use-package whitespace
+  :commands whitespace-mode
+  :init (add-hook 'text-mode-hook 'whitespace-mode)
   :config
-  ;; highlight lines with more than 110 characters
-  (setq whitespace-line-column 110))
+  (setq whitespace-style '(face tabs empty trailing lines-tail))
+  ;; highlight lines with more than `fill-column' characters
+  (setq whitespace-line-column nil)
+  :diminish whitespace-mode)
 
 ;; Only remove trailing whitespaces that I put there
 (use-package ws-butler
@@ -67,7 +104,10 @@
   :diminish ws-butler-mode
   :init
   (add-hook 'text-mode-hook 'ws-butler-mode)
-  (add-hook 'prog-mode-hook 'ws-butler-mode))
+  ;;(add-hook 'prog-mode-hook 'ws-butler-mode)
+  ;;:config
+  ;;(setq ws-butler-keep-whitespace-before-point nil)
+  )
 
 ;;(show-paren-mode t)
 ;;(setq show-paren-style 'expression)
@@ -75,6 +115,47 @@
 (use-package which-key
   :config (which-key-mode 1)
   :diminish which-key-mode)
+
+(use-package crux
+  :commands (crux-smart-open-line-above crux-sudo-edit))
+
+(use-package smartparens
+  :commands smartparens-mode
+  :config
+  (require 'smartparens-config)
+  (setq sp-base-key-bindings 'paredit)
+  (setq sp-autoskip-closing-pair 'always)
+  (setq sp-hybrid-kill-entire-symbol nil)
+  (sp-use-paredit-bindings)
+
+  ;; Always highlight matching parens
+  (show-smartparens-global-mode +1)
+  (setq blink-matching-paren nil)  ;; Don't blink matching parens
+
+  ;; Create keybindings to wrap symbol/region in pairs
+  (defun prelude-wrap-with (s)
+    "Create a wrapper function for smartparens using S."
+    `(lambda (&optional arg)
+       (interactive "P")
+       (sp-wrap-with-pair ,s)))
+  (define-key prog-mode-map (kbd "M-(") (prelude-wrap-with "("))
+  (define-key prog-mode-map (kbd "M-[") (prelude-wrap-with "["))
+  (define-key prog-mode-map (kbd "M-{") (prelude-wrap-with "{"))
+  (define-key prog-mode-map (kbd "M-\"") (prelude-wrap-with "\""))
+  (define-key prog-mode-map (kbd "M-'") (prelude-wrap-with "'"))
+  (define-key prog-mode-map (kbd "M-`") (prelude-wrap-with "`"))
+
+  ;; smart curly braces
+  (sp-pair "{" nil :post-handlers
+           '(((lambda (&rest _ignored)
+                (crux-smart-open-line-above)) "RET")))
+  (sp-pair "[" nil :post-handlers
+           '(((lambda (&rest _ignored)
+                (crux-smart-open-line-above)) "RET")))
+  (sp-pair "(" nil :post-handlers
+           '(((lambda (&rest _ignored)
+                (crux-smart-open-line-above)) "RET")))
+  )
 
 (use-package beacon
   :config (beacon-mode 1)
@@ -454,6 +535,11 @@ Version 2017-01-11"
       (yank))))
 ;;(global-set-key (kbd "C-y") 'xah-paste-or-paste-previous)
 
+;; Show the name of the current function definition in the modeline
+(use-package which-func
+  :defer 5
+  :config (which-function-mode 1))
+
 (use-package fancy-narrow
   :commands (fancy-narrow-to-defun fancy-narrow-to-region fancy-widen fancy-narrow-active-p)
   :bind (("C-x n" . fancy-narrow-or-widen-dwim))
@@ -538,6 +624,8 @@ is already narrowed."
   :bind (:map pdf-view-mode-map
          ("C-s" . isearch-forward))
   :config
+  ;; more fine-grained zooming; +/- 10% instead of default 25%
+  (setq pdf-view-resize-factor 1.1)
   ;; Always use midnight-mode and almost same color as default font.
   ;; Just slightly brighter background to see the page boarders
   (setq pdf-view-midnight-colors '("#c6c6c6" . "#363636"))
@@ -1015,6 +1103,17 @@ prepended to the element after the #+HEADERS: tag."
 (use-package logview
   :commands logview-mode)
 
+(use-package uniquify :ensure nil
+  :demand t
+  :config
+  (setq uniquify-ignore-buffers-re "^\\*") ; don't muck with special buffers
+  (setq uniquify-buffer-name-style 'forward)
+  (setq uniquify-separator "/"))
+
+;; FIXME: add https://github.com/emacscollective/no-littering package
+
+(use-package bookmark :ensure nil
+  :config (setq bookmark-save-flag 1))
 ;; Nicer mark ring navigation (C-x C-SPC or C-x C-Left/Right)
 (use-package back-button
   :diminish back-button-mode
@@ -1104,13 +1203,16 @@ prepended to the element after the #+HEADERS: tag."
 
 ;; Increase fill-column for programming to 100
 (defun dakra-prog-mode-init ()
-  (setq comment-auto-fill-only-comments t)  ; Only auto-fill comments
-  (setq fill-column 100))
+  ;; Only auto-fill comments in prog-mode
+  (set (make-local-variable 'comment-auto-fill-only-comments) t)
+  (setq fill-column 100)
+  ;; Highlight some TODO keywords
+  (font-lock-add-keywords
+   nil '(("\\<\\(\\(FIX\\(ME\\)?\\|XXX\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
+          1 font-lock-warning-face t)))
+  (flyspell-prog-mode)
+  (smartparens-mode +1))
 (add-hook 'prog-mode-hook 'dakra-prog-mode-init)
-
-(font-lock-add-keywords
- nil '(("\\<\\(\\(FIX\\(ME\\)?\\|XXX\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
-        1 font-lock-warning-face t)))
 
 ;; Use 'C-c S' or 'M-s M-w' for 'eww-search-words' current region
 (define-key prelude-mode-map (kbd "C-c S") nil)  ; remove default crux find-shell-init keybinding
@@ -1143,7 +1245,25 @@ prepended to the element after the #+HEADERS: tag."
   :diminish whole-line-or-region-mode
   :config (whole-line-or-region-global-mode t))
 
+(use-package operation-on-number
+  :commands (operate-on-number-at-point apply-operation-to-number-at-point))
+(use-package smartrep
+  :config
+  (smartrep-define-key global-map "C-c ."
+    '(("+" . apply-operation-to-number-at-point)
+      ("-" . apply-operation-to-number-at-point)
+      ("*" . apply-operation-to-number-at-point)
+      ("/" . apply-operation-to-number-at-point)
+      ("\\" . apply-operation-to-number-at-point)
+      ("^" . apply-operation-to-number-at-point)
+      ("<" . apply-operation-to-number-at-point)
+      (">" . apply-operation-to-number-at-point)
+      ("#" . apply-operation-to-number-at-point)
+      ("%" . apply-operation-to-number-at-point)
+      ("'" . operate-on-number-at-point))))
+
 (use-package projectile
+  :demand t
   :config
   ;; Shorten the mode line
   (setq projectile-mode-line '(:eval (format " P[%s]" (projectile-project-name))))
@@ -1152,7 +1272,8 @@ prepended to the element after the #+HEADERS: tag."
   ;; cache projectile project files
   ;; projectile-find-files will be much faster for large projects.
   ;; C-u C-c p f to clear cache before search.
-  (setq projectile-enable-caching t))
+  (setq projectile-enable-caching nil)
+  (projectile-mode t))
 
 ;; this is already done in helm-projectile
 ;;(setq projectile-switch-project-action 'helm-projectile)
@@ -1478,7 +1599,6 @@ split via i3 and create a new Emacs frame."
               (list 'frame-auto-hide-function 'delete-frame)
               (list 'org-agenda-window-setup 'other-frame)
               (list 'org-src-window-setup 'other-frame)
-              (list 'ediff-window-setup-function 'ediff-setup-windows-plain)
               (list 'ido-default-buffer-method 'selected-window)
               ;;(list 'magit-commit-show-diff t)
               (list 'flycheck-display-errors-function #'frames-only-mode-flycheck-display-errors)))
@@ -1519,6 +1639,11 @@ split via i3 and create a new Emacs frame."
 ;; Read and manage your pocket (getpocket.com) list
 (use-package pocket-reader
   :commands pocket-reader)
+
+;; Tag articles with 'capture' in pocket and then call
+;; org-pocket-capture-items to save all tagged articles in an org file
+(use-package org-pocket :load-path "repos/org-pocket" :ensure nil
+  :config (setq org-pocket-capture-file "org/pocket.org"))
 
 ;; Emacs function to copy buffer locations as GitHub/Slack/JIRA/HipChat/... formatted code
 (use-package copy-as-format
@@ -1576,8 +1701,26 @@ split via i3 and create a new Emacs frame."
 
 ;; allow horizontal scrolling with "M-x >"
 (put 'scroll-left 'disabled nil)
+;; enable narrowing commands
+(put 'narrow-to-region 'disabled nil)
+(put 'narrow-to-page 'disabled nil)
+(put 'narrow-to-defun 'disabled nil)
+;; enabled change region case commands
+(put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
+
+;; enable erase-buffer command
+(put 'erase-buffer 'disabled nil)
 
 (setq ffap-machine-p-known 'reject)  ; don't "ping Germany" when typing test.de<TAB>
+
+;; anzu-mode enhances isearch & query-replace by showing total matches and current match position
+(use-package anzu
+  :demand t
+  :bind (("M-%" . anzu-query-replace)
+         ("C-M-%" . anzu-query-replace-regexp))
+  :config (global-anzu-mode)
+  :diminish anzu-mode)
 
 ;; You can change syntax in regex-builder with "C-c TAB"
 ;; "read" is 'code' syntax
@@ -2187,6 +2330,8 @@ and when called with 2 prefix arguments only open in browser."
 
 (use-package ediff :ensure nil
   :config
+  ;; Do everything in one frame
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain)
   ;; Split ediff windows horizontally by default
   (setq ediff-split-window-function 'split-window-horizontally))
 
@@ -2202,6 +2347,12 @@ and when called with 2 prefix arguments only open in browser."
   )
 
 (use-package magit
+  :bind (("C-x g" . magit-status)
+         ("C-x M-g" . magit-dispatch-popup)
+         ("s-m m" . magit-status)
+         ("s-m l" . magit-log)
+         ("s-m f" . magit-log-buffer-file)
+         ("s-m b" . magit-blame))
   :defines (magit-ediff-dwim-show-on-hunks)
   :commands (magit-status magit-list-repositories magit-log magit-log-buffer-file magit-list-submodules)
   :config
@@ -2235,22 +2386,16 @@ and when called with 2 prefix arguments only open in browser."
   :commands (gist-list gist-fork gist-fetch gist-buffer gist-buffer-private
                        gist-region gist-region-private gist-list gist-list-starred))
 
-;; use magithub instead
-;; github pull request support for magit
-(use-package magit-gh-pulls
-  :disabled t
-  :defer t
-  :init (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls))
-
 (use-package magithub
-  :disabled t  ; Wait for async support https://github.com/vermiculus/magithub/issues/37
   :after magit
+  :commands magithub-bug-reference-mode-on
+  :init (add-hook 'prog-mode-hook 'magithub-bug-reference-mode-on)
   :config
+  ;; Don't query github api all the time. This causes magit-status to freeze
+  ;; Wait for async support https://github.com/vermiculus/magithub/issues/37
+  (setq magithub-cache t)
   (setq magithub-api-timeout 5)
-  (magithub-feature-autoinject t)
-
-  ;; Fix for emacs 26
-  (defun ghubp--post-process (object &optional preserve-objects) object))
+  (magithub-feature-autoinject t))
 
 
 (use-package helpful
@@ -2804,6 +2949,7 @@ Lisp function does not specify a special indentation."
          ("C-c I r" . ispell-region)))
 (use-package flyspell :ensure nil
   :after ispell
+  :commands (flyspell-mode flyspell-prog-mode)
   :config
   ;; remove flyspess 'C-;' keybinding so we can use it for avy jump
   (unbind-key "C-;" flyspell-mode-map)
@@ -2812,7 +2958,7 @@ Lisp function does not specify a special indentation."
    'moe-dark
    '(flyspell-duplicate ((t (:weight normal :underline (:color "forest green" :style wave)))))
    '(flyspell-incorrect ((t (:weight normal :underline (:color "forest green" :style wave))))))
-  )
+  :diminish flyspell-mode)
 
 ;; Show helm-list of correct spelling suggesions
 (use-package flyspell-correct-helm
@@ -3093,11 +3239,8 @@ Lisp function does not specify a special indentation."
 
 ;;; don't show some modes that are always on in the mode line
 (diminish 'auto-revert-mode)
-(diminish 'flyspell-mode)
 (diminish 'guru-mode)
 (diminish 'prelude-mode)
-(diminish 'smartparens-mode)
-(diminish 'whitespace-mode)
 
 
 ;; backup

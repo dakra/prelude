@@ -3,6 +3,7 @@
 
 (setq mc/cmds-to-run-for-all
       '(
+        comment-dwim-2
         crux-move-beginning-of-line
         crux-smart-open-line
         dakra-capitalize-dwim
@@ -54,6 +55,7 @@
         hydra-multiple-cursors/mc/skip-to-previous-like-this
         hydra-multiple-cursors/mc/unmark-next-like-this
         hydra-multiple-cursors/mc/unmark-previous-like-this
+        iedit-switch-to-mc-mode
         js2-refactor-hydra/body
         js2-refactor-hydra/js2r-extract-var-and-exit
         js2-refactor-hydra/js2r-rename-var-and-exit

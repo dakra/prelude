@@ -14,6 +14,9 @@
 ;;(setq doom-one-brighter-comments t
 ;;      doom-one-brighter-modeline t)
 
+;;(setq org-fontify-whole-heading-line t
+;;org-fontify-done-headline t
+;;org-fontify-quote-and-verse-blocks t)
 
 
 (setq org-list-allow-alphabetical t)

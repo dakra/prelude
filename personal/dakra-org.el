@@ -24,14 +24,25 @@
          :map org-mode-map
          ("M-o" . ace-link-org)
          ("M-p" . org-previous-visible-heading)
-         ("M-n" . org-next-visible-heading))
+         ("M-n" . org-next-visible-heading)
+         ("<M-up>" . org-metaup)
+         ("<M-down>" . org-metadown)
+         :map smartparens-mode-map  ;; Remove sp keybinding for org-metaup/down to work
+         ("<M-up>" . nil)
+         ("<M-down>" . nil))
   :init
   ;; FIXME: If there is a org-clock to resume (forgot to clock out before shutting down)
   ;;        then there will be a *blocking* minibuffer with the question to resume the
   ;;        clock and the daemon does NOT start because there's no way to see/answer that question
   ;; Display custom agenda when starting Emacs in daemon mode
-  ;;(when (daemonp)
-  ;;  (add-hook 'after-init-hook '(lambda () (org-agenda nil " "))))
+  ;;(require 'org-clock)
+  ;;(if (daemonp)
+  ;;    (add-hook 'after-init-hook '(lambda ()
+  ;;                                  (setq org-clock-persist-query-resume nil)
+  ;;                                  (org-clock-load)
+  ;;                                  (org-agenda nil " ")
+  ;;                                  ))
+  ;;  (org-clock-load))
   (add-hook 'org-mode-hook
             (lambda ()
               ;; disable whitespace-mode in org-mode
@@ -252,6 +263,8 @@
   :after org
   :commands org-capture
   :config
+  ;; Capture/refile new items to the top of the list
+  (setq org-reverse-note-order t)
   ;; Capture templates for: TODO tasks, Notes, appointments, phone calls, meetings, and org-protocol
   (setq org-capture-templates
         `(("t" "todo" entry (file ,(concat org-directory "refile.org"))
@@ -276,6 +289,8 @@
            "* %^{Title}\nSource: %u, %c\n #+BEGIN_QUOTE\n%i\n#+END_QUOTE\n\n\n%?")
           ("L" "Protocol Link" entry (file ,(concat org-directory "refile.org"))
            "* %?\n[[%:link][%:description]]\n")
+          ("w" "Web site" entry (file "")
+           "* %a :website:\n\n%U %?\n\n%:initial")
           ("h" "Habit" entry (file ,(concat org-directory "refile.org"))
            "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")))
 
@@ -320,10 +335,13 @@
   ;;(push '(orca-handler-current-buffer "\\* Tasks") orca-handler-list)
   )
 
+;; FIXME: install bookmarklet and shell script (integrate with org-capture plugin?!)
+(use-package org-protocol-capture-html :load-path "repos/org-protocol-capture-html" :ensure nil
+  :after org-capture)
 
 (use-package org-clock :ensure nil
   :after org
-  :commands (org-clock-in org-clock-in-last org-clock-out org-clock-goto org-clock-display)
+  :commands (org-clock-in org-clock-in-last org-clock-goto org-clock-display org-clock-load)
   :config
   (setq org-clock-idle-time 15)  ; idle after 15 minutes
 
@@ -334,8 +352,11 @@
   ;; Save the running clock and all clock history when exiting Emacs, load it on startup
   (setq org-clock-persist-file "~/.emacs.d/personal/org-clock-save.el")
   (setq org-clock-persist t)
-  (org-clock-persistence-insinuate)
-
+  ;; Manual setup clock persistence so we don't get asked to resume clock
+  ;; when we forgot to clock out last session and automatically start the agenda
+  ;; which then would block the Emacs daemon startup process
+  ;;(org-clock-persistence-insinuate)
+  (add-hook 'kill-emacs-hook 'org-clock-save)
   ;; org-clock-display (C-c C-x C-d) shows times for this month by default
   (setq org-clock-display-default-range 'thismonth)
 
@@ -550,14 +571,14 @@
     (insert (format "%s" issue-title))
     (org-set-tags-to (format ":%s_%s:" (upcase dakra-gh-issue-project) issue-number))
     (org-set-tags-command t t)  ; realign tags
-    (next-line 3)  ; Move 3 lines down to the last PROPERTIES drawer line
+    (forward-line 3)  ; Move 3 lines down to the last PROPERTIES drawer line
     (move-end-of-line 1)
     (insert (format "\n[[%s][%s]]\n"
                     (format "https://github.com/atomx/api/issues/%s" issue-number)
                     (format "#%s: %s" issue-number issue-title)))
     (setq start-point (point))
     (insert (format "%s" issue-body))
-    (shell-command-on-region start-point (point) "pandoc -f markdown_github -t org" :replace t)
+    (shell-command-on-region start-point (point) "pandoc -f gfm -t org" :replace t)
     (org-indent-refresh-maybe (point) (mark) nil)))
 
 ;;; automatically create github issues from org-mode

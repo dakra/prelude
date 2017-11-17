@@ -91,7 +91,7 @@
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 
 ;; use hippie-expand instead of dabbrev
-(global-set-key (kbd "M-/") 'hippie-expand)
+;;(global-set-key (kbd "M-/") 'hippie-expand)
 
 ;; replace buffer-menu with ibuffer
 (global-set-key (kbd "C-x C-b") 'ibuffer)
@@ -102,8 +102,8 @@
 ;; toggle menu-bar visibility
 (global-set-key (kbd "<f12>") 'menu-bar-mode)
 
-(global-set-key (kbd "C-x g") 'magit-status)
-(global-set-key (kbd "C-x M-g") 'magit-dispatch-popup)
+;;(global-set-key (kbd "C-x g") 'magit-status)
+;;(global-set-key (kbd "C-x M-g") 'magit-dispatch-popup)
 
 (global-set-key (kbd "C-=") 'er/expand-region)
 
