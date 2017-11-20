@@ -120,7 +120,11 @@
   :commands (crux-smart-open-line-above crux-sudo-edit))
 
 (use-package smartparens
+  :demand t
   :commands smartparens-mode
+  :bind (:map smartparens-mode-map  ;; Remove sp keybinding for org-metaup/down to work
+         ("<M-up>" . nil)
+         ("<M-down>" . nil))
   :config
   (require 'smartparens-config)
   (setq sp-base-key-bindings 'paredit)
@@ -155,7 +159,9 @@
   (sp-pair "(" nil :post-handlers
            '(((lambda (&rest _ignored)
                 (crux-smart-open-line-above)) "RET")))
-  )
+
+  ;; use smartparens-mode everywhere
+  (smartparens-global-mode))
 
 (use-package beacon
   :config (beacon-mode 1)
@@ -438,8 +444,8 @@ F5 inserts the entity code."
                                 ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=18951
                                 (require 'company)
                                 (setq-local company-idle-delay 0.1)
-                                ;; (setq-local company-backends '(company-eshell-autosuggest))
-                                (setq-local company-backends '(company-capf))
+                                (setq-local company-backends '(company-eshell-autosuggest company-capf))
+                                ;; (setq-local company-backends '(company-capf))
                                 ;; (setq-local company-frontends '(company-preview-frontend))
                                 ))
   ;; Functions starting with `eshell/' can be called directly from eshell
@@ -515,10 +521,14 @@ file to edit."
   :after eshell
   :commands eshell-bookmark-setup)
 
-(use-package fish-completion :ensure nil :load-path "repos/emacs-fish-completion"
+(use-package fish-completion
+  :if (executable-find "fish")
   :after eshell
-  :config (fish-completion-eshell-toggle-globally))
+  :config (global-fish-completion-mode))
 
+;; `company-mode' backend to provide eshell history suggestion
+(use-package company-eshell-autosuggest
+  :after eshell)
 
 (defun xah-paste-or-paste-previous ()
   "Paste. When called repeatedly, paste previous.
@@ -914,7 +924,7 @@ is already narrowed."
     ("q" nil))
 
   (global-set-key
-   (kbd "C-c C-s")
+   (kbd "C-c S")
    (defhydra hydra-scratchpad (:hint nil)
      "
      _p_ython    _e_lisp        _s_ql
@@ -1210,8 +1220,7 @@ prepended to the element after the #+HEADERS: tag."
   (font-lock-add-keywords
    nil '(("\\<\\(\\(FIX\\(ME\\)?\\|XXX\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
           1 font-lock-warning-face t)))
-  (flyspell-prog-mode)
-  (smartparens-mode +1))
+  (flyspell-prog-mode))
 (add-hook 'prog-mode-hook 'dakra-prog-mode-init)
 
 ;; Use 'C-c S' or 'M-s M-w' for 'eww-search-words' current region
@@ -1245,7 +1254,7 @@ prepended to the element after the #+HEADERS: tag."
   :diminish whole-line-or-region-mode
   :config (whole-line-or-region-global-mode t))
 
-(use-package operation-on-number
+(use-package operate-on-mumber
   :commands (operate-on-number-at-point apply-operation-to-number-at-point))
 (use-package smartrep
   :config
@@ -2362,6 +2371,8 @@ and when called with 2 prefix arguments only open in browser."
           ("~/projects" . 5)))
   ;; Highlight issue ids in commit messages
   (add-hook 'git-commit-mode-hook 'bug-reference-mode)
+  ;; and log views
+  (add-hook 'log-view-mode-hook 'bug-reference-mode)
 
   ;; "b b" is only for checkout and doesn't automatically create a new branch
   ;; remap to `magit-branch-or-checkout' that checks out an existing branch
@@ -3233,7 +3244,7 @@ Lisp function does not specify a special indentation."
 (use-package systemd
   :mode ("\\.service\\'" "\\.timer\\'"))
 
-;; Turn off auto rever messages
+;; Turn off auto revert messages
 (setq auto-revert-verbose nil)
 
 

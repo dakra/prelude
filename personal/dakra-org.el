@@ -26,10 +26,7 @@
          ("M-p" . org-previous-visible-heading)
          ("M-n" . org-next-visible-heading)
          ("<M-up>" . org-metaup)
-         ("<M-down>" . org-metadown)
-         :map smartparens-mode-map  ;; Remove sp keybinding for org-metaup/down to work
-         ("<M-up>" . nil)
-         ("<M-down>" . nil))
+         ("<M-down>" . org-metadown))
   :init
   ;; FIXME: If there is a org-clock to resume (forgot to clock out before shutting down)
   ;;        then there will be a *blocking* minibuffer with the question to resume the
@@ -53,8 +50,6 @@
               (auto-fill-mode 1)
               ;; Indent text according to outline structure.
               (org-indent-mode 1)
-
-              (smartparens-mode 1)
 
               (setq completion-at-point-functions
                     '(org-completion-symbols
