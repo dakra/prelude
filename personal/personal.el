@@ -42,6 +42,35 @@
 (setq-default indent-tabs-mode nil)   ;; don't use tabs to indent
 (setq-default tab-width 8)            ;; but maintain correct appearance
 
+;;; UI
+;; Disable Tool- and Menubar
+(when (fboundp 'tool-bar-mode)
+  (tool-bar-mode -1))
+(menu-bar-mode -1)
+
+;; The blinking cursor is nothing, but an annoyance
+(blink-cursor-mode -1)
+
+;; Disable the annoying bell ring
+(setq ring-bell-function 'ignore)
+
+;; Disable startup screen
+(setq inhibit-startup-screen t)
+
+;; Nicer scrolling
+(setq scroll-margin 0
+      scroll-conservatively 100000
+      scroll-preserve-screen-position 1)
+
+;; mode line settings
+(line-number-mode t)
+(column-number-mode t)
+(size-indication-mode t)
+
+;; Enable y/n answers
+(fset 'yes-or-no-p 'y-or-n-p)
+
+
 ;; Newline at end of file
 (setq require-final-newline t)
 
@@ -205,19 +234,28 @@
   :bind (("C-c \\" . goto-last-change)
          ("C-c |" . goto-last-change-reverse)))
 
+(use-package powerline)
+(use-package smart-mode-line-powerline-theme)
+(use-package smart-mode-line
+  :demand t
+  :init (setq sml/theme 'powerline)
+  :config
+  (setq sml/name-with '(12 . 42))
+  (sml/setup))
 
-(require 'powerline)
-(require 'moe-theme)
-;; Show highlighted buffer-id as decoration. (Default: nil)
-(setq moe-theme-highlight-buffer-id t)
+(use-package moe-theme
+  :demand t
+  :config
+  ;; Show highlighted buffer-id as decoration. (Default: nil)
+  (setq moe-theme-highlight-buffer-id t)
 
-(setq moe-theme-resize-markdown-title '(1.5 1.3 1.2 1.1 1.0 1.0))
-(setq moe-theme-resize-org-title '(1.5 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
-(setq moe-theme-resize-rst-title '(1.5 1.3 1.2 1.1 1.0 1.0))
+  (setq moe-theme-resize-markdown-title '(1.5 1.3 1.2 1.1 1.0 1.0))
+  (setq moe-theme-resize-org-title '(1.5 1.2 1.0 1.0 1.0 1.0 1.0 1.0 1.0))
+  (setq moe-theme-resize-rst-title '(1.5 1.3 1.2 1.1 1.0 1.0))
 
-;; XXX: smart-mode-line theme is better?
-;;(powerline-moe-theme)
-(moe-dark)
+  ;; XXX: smart-mode-line theme is better?
+  ;;(powerline-moe-theme)
+  (moe-dark))
 
 ;; save and restore buffer and cursor positions (but don't restore window layout)
 ;;(desktop-save-mode 1)
@@ -616,7 +654,7 @@ is already narrowed."
 
 ;; Associate more files with conf-mode
 (use-package conf-mode :ensure nil
-  :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'" "\\.ini\\.tmpl\\'"))
+  :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'" "\\.ini\\.tmpl\\'" "\\.service\\'"))
 
 ;; Edit GNU gettext PO files
 (use-package po-mode
@@ -1633,8 +1671,6 @@ split via i3 and create a new Emacs frame."
 (setq browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "firefox-developer")
 
-
-(setq sml/theme 'powerline)  ; smart-mode-line theme
 
 (use-package docker
   :config (setq docker-keymap-prefix "C-c C-d"))
