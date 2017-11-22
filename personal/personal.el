@@ -7,14 +7,6 @@
 
 (require 'prelude-packages nil 'noerror)
 
-(prelude-require-packages
- '(moe-theme
-   ;;color-theme-sanityinc-solarized
-   smart-mode-line-powerline-theme
-
-   ;; coding major/minor modes
-   graphviz-dot-mode
-   ))
 
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package)
@@ -114,9 +106,7 @@
                                            try-complete-lisp-symbol)))
 (use-package comint :ensure nil
   :commands comint-truncate-buffer
-  :config
-  ;; Set max comint buffer size to 2^14. Default is only 1000.
-  (setq comint-buffer-maximum-size 16384))
+  :custom (comint-buffer-maximum-size 20000 "Increase comint buffer size."))
 
 (use-package whitespace
   :commands whitespace-mode
@@ -239,8 +229,8 @@
 (use-package smart-mode-line
   :demand t
   :init (setq sml/theme 'powerline)
+  :custom (sml/name-width '(12 . 42) "Smaller min-width for buffer names")
   :config
-  (setq sml/name-with '(12 . 42))
   (sml/setup))
 
 (use-package moe-theme
@@ -655,6 +645,9 @@ is already narrowed."
 ;; Associate more files with conf-mode
 (use-package conf-mode :ensure nil
   :mode ("mbsyncrc\\'" "msmtprc\\'" "pylintrc\\'" "\\.ini\\.tmpl\\'" "\\.service\\'"))
+
+(use-package graphviz-dot-mode
+  :mode ("\\.dot\\'"))
 
 ;; Edit GNU gettext PO files
 (use-package po-mode
@@ -1312,6 +1305,8 @@ prepended to the element after the #+HEADERS: tag."
 (use-package projectile
   :demand t
   :config
+  ;; Allow all file-local values for project root
+  (put 'projectile-project-root 'safe-local-variable 'stringp)
   ;; Shorten the mode line
   (setq projectile-mode-line '(:eval (format " P[%s]" (projectile-project-name))))
   ;; Automatically switch python venv

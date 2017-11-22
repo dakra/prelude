@@ -792,7 +792,7 @@ session as the current block. ARG has same meaning as in
   (format "<script type=\"text/javascript\">\n%s\n</script>" body))
 
 ;; dot == graphviz-dot
-(add-to-list 'org-src-lang-modes (quote ("dot" . graphviz-dot)))
+(add-to-list 'org-src-lang-modes '("dot" . graphviz-dot))
 
 ;; Add 'conf-mode' to org-babel
 (add-to-list 'org-src-lang-modes '("ini" . conf))
