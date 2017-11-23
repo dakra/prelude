@@ -44,9 +44,11 @@
 
 (setq mc/cmds-to-run-once
       '(
+        end-of-buffer
         handle-switch-frame
         helm-M-x
         helm-find-files
+        helm-mini
         hydra-multiple-cursors/mc/edit-lines-and-exit
         hydra-multiple-cursors/mc/mark-all-like-this-and-exit
         hydra-multiple-cursors/mc/mark-next-like-this

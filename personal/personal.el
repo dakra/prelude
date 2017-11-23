@@ -110,7 +110,7 @@
 
 (use-package whitespace
   :commands whitespace-mode
-  :init (add-hook 'text-mode-hook 'whitespace-mode)
+  ;;:init (add-hook 'text-mode-hook 'whitespace-mode)
   :config
   (setq whitespace-style '(face tabs empty trailing lines-tail))
   ;; highlight lines with more than `fill-column' characters
@@ -1116,7 +1116,7 @@ prepended to the element after the #+HEADERS: tag."
               vc-ignore-dir-regexp
               tramp-file-name-regexp))
 
-;; Turn of auto-save for tramp files
+;; Turn off auto-save for tramp files
 (add-to-list 'backup-directory-alist
              (cons tramp-file-name-regexp nil))
 
@@ -1247,6 +1247,7 @@ prepended to the element after the #+HEADERS: tag."
   ;; Only auto-fill comments in prog-mode
   (set (make-local-variable 'comment-auto-fill-only-comments) t)
   (setq fill-column 100)
+  (whitespace-mode)
   ;; Highlight some TODO keywords
   (font-lock-add-keywords
    nil '(("\\<\\(\\(FIX\\(ME\\)?\\|XXX\\|TODO\\|OPTIMIZE\\|HACK\\|REFACTOR\\):\\)"
@@ -1580,6 +1581,7 @@ prepended to the element after the #+HEADERS: tag."
          ("\\.markdown\\'" . gfm-mode)
          ("\\.md\\'" . gfm-mode))
   :config
+  (add-hook 'markdown-mode-hook #'outline-minor-mode)
   ;; Enable fontification for code blocks
   (setq markdown-fontify-code-blocks-natively t)
   (add-to-list 'markdown-code-lang-modes '("ini" . conf-mode))
@@ -2067,12 +2069,13 @@ displayed anywhere else."
   :commands scss-mode
   :config
   ;;(setq css-indent-offset 2)
-  (rainbow-mode +1)
+  (add-hook 'scss-mode-hook 'rainbow-mode)
   ;; turn off annoying auto-compile on save
   (setq scss-compile-at-save nil))
 
 (use-package sass-mode
-  :mode ("\\.sass\\'"))
+  :mode ("\\.sass\\'")
+  :config (add-hook 'sass-mode-hook 'rainbow-mode))
 
 ;;; python
 
@@ -2346,6 +2349,7 @@ and when called with 2 prefix arguments only open in browser."
         (browse-at-remote))))
   :bind (:map prelude-mode-map ("C-c G" . dakra-browse-at-remote))
   :config
+  (add-to-list 'browse-at-remote-remote-type-domains '("gitlab.bis" . "gitlab"))
   (add-to-list 'browse-at-remote-remote-type-domains '("gitlab.paesslergmbh.de" . "gitlab"))
   (add-to-list 'browse-at-remote-remote-type-domains '("git.ebenefuenf.com" . "gitlab"))
   (setq browse-at-remote-prefer-symbolic nil))
@@ -3260,8 +3264,8 @@ Lisp function does not specify a special indentation."
 (use-package yaml-mode
   :mode ("\\.yaml\\'" "\\.yml\\'")
   :config
-  (add-hook 'yaml-mode-hook 'whitespace-mode)
-  (add-hook 'yaml-mode-hook 'subword-mode)
+  (add-hook 'yaml-mode-hook #'dakra-prog-mode-init)
+  (add-hook 'yaml-mode-hook #'subword-mode)
   (add-hook 'yaml-mode-hook
             (lambda () (add-hook 'before-save-hook 'whitespace-cleanup nil t))))
 
