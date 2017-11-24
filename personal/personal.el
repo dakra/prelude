@@ -1176,6 +1176,7 @@ prepended to the element after the #+HEADERS: tag."
   :diminish helm-mode
   :bind (("C-x r b" . helm-filtered-bookmarks)  ; Use helm bookmarks
          ("C-c j" . helm-imenu)
+         ("C-x C-b" . helm-buffers-list)
          ("C-c C-r" . helm-resume)
          :map helm-map
          ("<tab>" . helm-execute-persistent-action)  ; Rebind tab to run persistent action
@@ -1650,6 +1651,7 @@ split via i3 and create a new Emacs frame."
   (add-to-list 'frames-only-mode-use-window-functions 'undo-tree-visualize)
   (add-to-list 'frames-only-mode-use-window-functions 'po-edit-string)
   (add-to-list 'frames-only-mode-use-window-functions 'org-clock-resolve)
+  (add-to-list 'frames-only-mode-use-window-functions 'graphviz-dot-preview)
   (frames-only-mode))
 
 (use-package edit-server
@@ -1930,6 +1932,7 @@ displayed anywhere else."
 (use-package sql
   :mode (("\\.sql\\'" . sql-mode)
          ("\\.msql\\'" . sql-mode))  ; Mako template sql
+  :commands (dakra/sql-postgres-neorent dakra/sql-atomx-local-api dakra/sql-atomx-remote-api)
   :init
   ;; Persist sqli history accross multiple sessions
   (setq-default sql-input-ring-file-name
@@ -2020,12 +2023,7 @@ displayed anywhere else."
           (database :default "api")
           (server :default "localhost")))
 
-  (add-hook 'sql-interactive-mode-hook
-            (lambda ()
-              (toggle-truncate-lines t)))
-  (add-hook 'sql-mode
-            (lambda ()
-              (setq sql-set-product 'mysql))))
+  (add-hook 'sql-interactive-mode-hook #'toggle-truncate-lines))
 
 ;; Smart indentation for SQL files
 (use-package sql-indent :ensure nil :load-path "repos/emacs-sql-indent"
@@ -2959,6 +2957,9 @@ Lisp function does not specify a special indentation."
   (add-hook 'god-mode-enabled-hook 'god-update-cursor)
   (add-hook 'god-mode-disabled-hook 'god-update-cursor))
 
+;; Operate on system processes like dired
+(use-package proced :ensure nil
+  :bind ("C-x p" . proced))
 
 ;; scroll 4 lines up/down w/o moving pointer
 ;;(global-set-key "\M-n"  (lambda () (interactive) (scroll-up   1)) )
