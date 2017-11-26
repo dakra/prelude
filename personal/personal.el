@@ -1943,7 +1943,11 @@ displayed anywhere else."
     "Adds semicolon at the end of the line and runs comint-send-input."
     (interactive)
     (move-end-of-line nil)
-    (insert ";")
+    (backward-char)
+    ;; Only add semicolon if there is non already
+    (unless (looking-at ";")
+      (forward-char)
+      (insert ";"))
     (comint-send-input))
   (define-key sql-interactive-mode-map [return] #'dakra/add-semicolon-and-comint-send-input)
 
