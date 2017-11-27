@@ -356,54 +356,6 @@ F5 inserts the entity code."
          ;;("M-r" . dakra-eshell-read-history)
          )
   :config
-  ;; FIXME: workaround for pcomplete * bug
-  ;; See: https://debbugs.gnu.org/cgi/bugreport.cgi?bug=18951
-  (defun pcomplete-parse-arguments (&optional expand-p)
-    "Parse the command line arguments.  Most completions need this info."
-    (let ((results (funcall pcomplete-parse-arguments-function)))
-      (when results
-        (setq pcomplete-args (or (car results) (list ""))
-	      pcomplete-begins (or (cdr results) (list (point)))
-	      pcomplete-last (1- (length pcomplete-args))
-	      pcomplete-index 0
-	      pcomplete-stub (pcomplete-arg 'last))
-        (let ((begin (pcomplete-begin 'last)))
-	  (if (and (listp pcomplete-stub) ;??
-		   (not pcomplete-expand-only-p))
-	      (let* ((completions pcomplete-stub) ;??
-		     (common-stub (car completions))
-		     (c completions)
-		     (len (length common-stub)))
-	        (while (and c (> len 0))
-		  (while (and (> len 0)
-			      (not (string=
-				    (substring common-stub 0 len)
-				    (substring (car c) 0
-					       (min (length (car c))
-						    len)))))
-		    (setq len (1- len)))
-		  (setq c (cdr c)))
-	        (setq pcomplete-stub (substring common-stub 0 len)
-		      pcomplete-autolist t)
-	        (when (and begin (> len 0) (not pcomplete-show-list))
-		  (delete-region begin (point))
-		  (pcomplete-insert-entry "" pcomplete-stub))
-	        (throw 'pcomplete-completions completions))
-	    (when expand-p
-	      (if (stringp pcomplete-stub)
-		  (when begin
-		    (delete-region begin (point))
-		    (insert-and-inherit pcomplete-stub))
-	        (if (and (listp pcomplete-stub)
-		         pcomplete-expand-only-p)
-		    ;; this is for the benefit of `pcomplete-expand'
-		    (setq pcomplete-last-completion-length (- (point) begin)
-			  pcomplete-current-completions pcomplete-stub)
-		  (error "Cannot expand argument"))))
-	    (if pcomplete-expand-only-p
-	        (throw 'pcompleted t)
-	      pcomplete-args))))))
-
   (defun dakra-eshell-always ()
     "Start a regular shell if you prefer that."
     (interactive)
@@ -1564,7 +1516,7 @@ prepended to the element after the #+HEADERS: tag."
   (use-package alchemist))
 
 
-(use-package fabric :load-path "repos/fabric.el"
+(use-package fabric
   :commands fabric-run-command)
 
 ;; Commint for redis

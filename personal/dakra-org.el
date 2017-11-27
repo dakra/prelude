@@ -338,6 +338,7 @@
   :after org
   :commands (org-clock-in org-clock-in-last org-clock-goto org-clock-display org-clock-load)
   :config
+  ;; Install `xprintidle' to get idle time over all X11. Otherwise it's only Emacs idle time.
   (setq org-clock-idle-time 15)  ; idle after 15 minutes
 
   ;;(setq org-clock-continuously t)  ; Start clocking from the last clock-out time, if any.
